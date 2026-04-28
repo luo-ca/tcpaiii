@@ -34,7 +34,12 @@ npm run build
 Authorization: Bearer <ADMIN_TOKEN>
 ```
 
-部署前必须在 ESA Functions & Pages 环境变量中配置 `ADMIN_TOKEN`，否则写接口会返回 `503 Admin token is not configured`，不会允许任何人添加、编辑或删除图片。
+管理密钥支持两种配置方式：
+
+- 推荐：在图库页输入密钥并点击“校验”；如果服务端提示未配置，会出现“初始化”按钮。首次初始化会把密钥的 SHA-256 摘要写入 `stats` KV 空间的 `admin-config` 记录，不保存明文。
+- 可选：在 ESA Functions & Pages 运行时环境变量中配置 `ADMIN_TOKEN`。如果平台只提示“构建过程中可使用的环境变量”，说明该变量可能只在构建时存在，函数运行时未必能读取。
+
+如果没有配置管理密钥，写接口会返回 `503 Admin token is not configured`，不会允许任何人添加、编辑或删除图片。
 
 如果不想保存明文密钥，也可以配置 `ADMIN_TOKEN_SHA256` 为管理密钥的 SHA-256 十六进制摘要。两者同时存在时优先使用 `ADMIN_TOKEN`。
 

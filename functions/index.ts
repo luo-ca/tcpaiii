@@ -23,6 +23,11 @@ type Stats = {
   dailyRequests: Record<string, number>;
 };
 
+type AdminConfig = {
+  tokenSha256: string | null;
+  updatedAt: string | null;
+};
+
 type JsonObject = Record<string, unknown>;
 type RuntimeGlobals = typeof globalThis & {
   ADMIN_TOKEN?: string;
@@ -42,6 +47,7 @@ const DEFAULT_LIST_PAGE_SIZE = 24;
 const MAX_LIST_PAGE_SIZE = 60;
 const ALLOWED_IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 const STATS_TIME_ZONE = 'Asia/Shanghai';
+const ADMIN_CONFIG_KEY = 'admin-config';
 
 // ============================================================
 // KV Helpers (懒加载 EdgeKV，避免模块顶层初始化导致崩溃)
@@ -130,6 +136,25 @@ async function saveStats(stats: Stats): Promise<void> {
   await getKvStats().put('data', JSON.stringify(stats));
 }
 
+async function getAdminConfig(): Promise<AdminConfig> {
+  const data = await getKvStats().get(ADMIN_CONFIG_KEY);
+  if (!data) return { tokenSha256: null, updatedAt: null };
+
+  const parsed = parseStoredJson<JsonObject>(data, {});
+  const tokenSha256 = typeof parsed.tokenSha256 === 'string' && isSha256Hex(parsed.tokenSha256)
+    ? parsed.tokenSha256.toLowerCase()
+    : null;
+
+  return {
+    tokenSha256,
+    updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null,
+  };
+}
+
+async function saveAdminConfig(config: AdminConfig): Promise<void> {
+  await getKvStats().put(ADMIN_CONFIG_KEY, JSON.stringify(config));
+}
+
 function getStatsDateKey(date = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: STATS_TIME_ZONE,
@@ -170,6 +195,10 @@ async function readJsonObject(request: Request): Promise<JsonObject | null> {
   } catch {
     return null;
   }
+}
+
+function isSha256Hex(value: string): boolean {
+  return /^[a-f0-9]{64}$/i.test(value);
 }
 
 function normalizeImageUrl(value: unknown): string | null {
@@ -257,6 +286,12 @@ async function verifyAdminRequest(request: Request, runtimeEnv?: RuntimeEnv): Pr
     return timingSafeEqualString(candidateHash, tokenHash) ? null : json({ error: 'Invalid admin token' }, 403);
   }
 
+  const adminConfig = await getAdminConfig();
+  if (adminConfig.tokenSha256) {
+    const candidateHash = await sha256Hex(token);
+    return timingSafeEqualString(candidateHash, adminConfig.tokenSha256) ? null : json({ error: 'Invalid admin token' }, 403);
+  }
+
   return json({ error: 'Admin token is not configured' }, 503);
 }
 
@@ -265,6 +300,31 @@ async function handleAdminVerify(request: Request, runtimeEnv?: RuntimeEnv): Pro
   if (authError) return authError;
 
   return json({ ok: true });
+}
+
+async function handleAdminBootstrap(request: Request, runtimeEnv?: RuntimeEnv): Promise<Response> {
+  const existingPlainToken = getRuntimeSecret('ADMIN_TOKEN', runtimeEnv);
+  const existingTokenHash = getRuntimeSecret('ADMIN_TOKEN_SHA256', runtimeEnv)?.toLowerCase();
+  if (existingPlainToken || existingTokenHash) {
+    return json({ error: 'Admin token is already configured by runtime env' }, 409);
+  }
+
+  const currentConfig = await getAdminConfig();
+  if (currentConfig.tokenSha256) {
+    return json({ error: 'Admin token is already configured in KV' }, 409);
+  }
+
+  const body = await readJsonObject(request);
+  if (!body || typeof body.token !== 'string' || !body.token.trim()) {
+    return json({ error: 'token is required' }, 400);
+  }
+
+  await saveAdminConfig({
+    tokenSha256: await sha256Hex(body.token.trim()),
+    updatedAt: new Date().toISOString(),
+  });
+
+  return json({ ok: true }, 201);
 }
 
 // ============================================================
@@ -631,6 +691,12 @@ const handler = {
       // GET /api/admin/verify
       if (pathname === '/api/admin/verify') {
         if (request.method === 'GET') return handleAdminVerify(request, runtimeEnv);
+        return json({ error: 'Method Not Allowed' }, 405);
+      }
+
+      // POST /api/admin/bootstrap
+      if (pathname === '/api/admin/bootstrap') {
+        if (request.method === 'POST') return handleAdminBootstrap(request, runtimeEnv);
         return json({ error: 'Method Not Allowed' }, 405);
       }
 

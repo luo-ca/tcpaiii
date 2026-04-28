@@ -159,6 +159,59 @@ describe("functions api", () => {
     expect(response.status).toBe(201);
   });
 
+  it("bootstraps admin tokens into KV when no runtime token exists", async () => {
+    vi.stubGlobal("ADMIN_TOKEN", undefined);
+    vi.stubGlobal("ADMIN_TOKEN_SHA256", undefined);
+
+    const bootstrap = await request("/api/admin/bootstrap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "kv-secret" }),
+    });
+
+    expect(bootstrap.status).toBe(201);
+
+    const verify = await request("/api/admin/verify", {
+      headers: {
+        Authorization: "Bearer kv-secret",
+      },
+    });
+
+    expect(verify.status).toBe(200);
+    await expect(json(verify)).resolves.toMatchObject({
+      ok: true,
+    });
+
+    const wrong = await request("/api/admin/verify", {
+      headers: {
+        Authorization: "Bearer wrong-secret",
+      },
+    });
+
+    expect(wrong.status).toBe(403);
+
+    expect(store.stats.get("admin-config")).not.toContain("kv-secret");
+  });
+
+  it("does not allow admin bootstrap after KV admin config exists", async () => {
+    vi.stubGlobal("ADMIN_TOKEN", undefined);
+    vi.stubGlobal("ADMIN_TOKEN_SHA256", undefined);
+
+    await request("/api/admin/bootstrap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "first-secret" }),
+    });
+
+    const response = await request("/api/admin/bootstrap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "second-secret" }),
+    });
+
+    expect(response.status).toBe(409);
+  });
+
   it("marks JSON API responses as non-cacheable", async () => {
     const response = await request("/api/stats");
 
