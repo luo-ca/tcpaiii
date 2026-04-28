@@ -26,6 +26,8 @@ type Stats = {
 type JsonObject = Record<string, unknown>;
 
 const MAX_BATCH_SIZE = 500;
+const DEFAULT_LIST_PAGE_SIZE = 24;
+const MAX_LIST_PAGE_SIZE = 60;
 const ALLOWED_IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 const STATS_TIME_ZONE = 'Asia/Shanghai';
 
@@ -169,6 +171,15 @@ function normalizeTags(value: unknown): string[] | null {
   return [...new Set(tags)];
 }
 
+function normalizePositiveInt(value: string | null, fallback: number, max?: number): number {
+  if (!value) return fallback;
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+
+  return max ? Math.min(parsed, max) : parsed;
+}
+
 // ============================================================
 // CORS helper
 // ============================================================
@@ -258,10 +269,51 @@ async function handleRandomImage(request: Request): Promise<Response> {
   });
 }
 
-// GET /api/list — 获取所有图片列表
-async function handleListImages(): Promise<Response> {
+// GET /api/list — 获取图片列表，支持分页参数
+async function handleListImages(request: Request): Promise<Response> {
+  const url = new URL(request.url);
   const images = await getAllImages();
-  return json(images);
+  const pageParam = url.searchParams.get('page');
+  const pageSizeParam = url.searchParams.get('pageSize');
+  const search = url.searchParams.get('search')?.trim().toLowerCase() ?? '';
+  const tag = url.searchParams.get('tag')?.trim() ?? '';
+
+  if (!pageParam && !pageSizeParam && !search && !tag) {
+    return json(images);
+  }
+
+  let filtered = images;
+
+  if (tag) {
+    filtered = filtered.filter(img =>
+      img.tags.some(item => item.toLowerCase() === tag.toLowerCase())
+    );
+  }
+
+  if (search) {
+    filtered = filtered.filter(img =>
+      img.title.toLowerCase().includes(search)
+      || img.url.toLowerCase().includes(search)
+      || img.tags.some(item => item.toLowerCase().includes(search))
+    );
+  }
+
+  const page = normalizePositiveInt(pageParam, 1);
+  const pageSize = normalizePositiveInt(pageSizeParam, DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE);
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const start = (page - 1) * pageSize;
+  const items = filtered.slice(start, start + pageSize);
+
+  return json({
+    items,
+    page,
+    pageSize,
+    total,
+    totalPages,
+    hasPrevPage: page > 1,
+    hasNextPage: page < totalPages,
+  });
 }
 
 // POST /api/batch — 批量添加图片
@@ -469,7 +521,7 @@ const handler = {
 
       // GET /api/list
       if (pathname === '/api/list') {
-        if (request.method === 'GET') return handleListImages();
+        if (request.method === 'GET') return handleListImages(request);
         return json({ error: 'Method Not Allowed' }, 405);
       }
 

@@ -149,6 +149,53 @@ describe("functions api", () => {
     });
   });
 
+  it("keeps legacy list responses as arrays when no pagination params are provided", async () => {
+    await request("/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "https://cdn.example.test/legacy-list.jpg", tags: ["list"] }),
+    });
+
+    const response = await request("/api/list");
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toHaveLength(1);
+  });
+
+  it("paginates list responses with search and tag filters", async () => {
+    await request("/api/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        images: Array.from({ length: 5 }, (_, index) => ({
+          url: `https://cdn.example.test/list-${index}.jpg`,
+          title: index % 2 === 0 ? `ACG image ${index}` : `Other image ${index}`,
+          tags: index % 2 === 0 ? ["acg"] : ["other"],
+        })),
+      }),
+    });
+
+    const response = await request("/api/list?page=2&pageSize=2&tag=acg&search=image");
+
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({
+      page: 2,
+      pageSize: 2,
+      total: 3,
+      totalPages: 2,
+      hasPrevPage: true,
+      hasNextPage: false,
+      items: [
+        expect.objectContaining({
+          title: "ACG image 4",
+          tags: ["acg"],
+        }),
+      ],
+    });
+  });
+
   it("allows larger batch imports up to 500 images", async () => {
     const images = Array.from({ length: 51 }, (_, index) => ({
       url: `https://cdn.example.test/batch-${index}.jpg`,

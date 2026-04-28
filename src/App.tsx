@@ -38,6 +38,7 @@ import {
   Shield,
   Zap,
   Database,
+  ChevronLeft,
   ChevronRight,
   TrendingUp,
   Clock,
@@ -73,6 +74,16 @@ interface Stats {
   tags: string[];
 }
 
+interface PaginatedImages {
+  items: ImageRecord[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+}
+
 type AppTab = 'random' | 'gallery' | 'docs';
 
 type ApiErrorPayload = {
@@ -93,6 +104,7 @@ const APP_DOMAIN = 'https://t.paiii.cn';
 const APP_LOGO_URL = 'https://static.paiii.cn/logo.svg';
 const EDGEONE_LOGO_URL = 'https://edgeone.ai/_next/static/media/headLogo.daeb48ad.png';
 const MAX_BATCH_IMAGE_COUNT = 500;
+const GALLERY_PAGE_SIZE = 24;
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
@@ -230,8 +242,21 @@ async function fetchRandomImage(tag?: string): Promise<ImageRecord> {
   return apiRequest<ImageRecord>(`/api/random${query ? `?${query}` : ''}`, undefined, 'Failed to fetch random image');
 }
 
-async function fetchImages(): Promise<ImageRecord[]> {
-  return apiRequest<ImageRecord[]>('/api/list', undefined, 'Failed to fetch images');
+async function fetchImagesPage(params: {
+  page: number;
+  pageSize: number;
+  search?: string;
+  tag?: string | null;
+}): Promise<PaginatedImages> {
+  const query = new URLSearchParams();
+  query.set('page', String(params.page));
+  query.set('pageSize', String(params.pageSize));
+
+  const search = params.search?.trim();
+  if (search) query.set('search', search);
+  if (params.tag) query.set('tag', params.tag);
+
+  return apiRequest<PaginatedImages>(`/api/list?${query.toString()}`, undefined, 'Failed to fetch images');
 }
 
 async function fetchStats(): Promise<Stats> {
@@ -1084,41 +1109,53 @@ function GalleryPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
-  const { data: images = [], isLoading, isError, error, refetch } = useQuery<ImageRecord[]>({
-    queryKey: ['images'],
-    queryFn: fetchImages,
+  const searchQuery = searchTerm.trim();
+  const imagesQuery = useQuery<PaginatedImages>({
+    queryKey: ['images', { page, pageSize: GALLERY_PAGE_SIZE, search: searchQuery, tag: selectedTag }],
+    queryFn: () => fetchImagesPage({
+      page,
+      pageSize: GALLERY_PAGE_SIZE,
+      search: searchQuery,
+      tag: selectedTag,
+    }),
+    placeholderData: previousData => previousData,
   });
 
-  const tags = useMemo(
-    () => [...new Set(images.flatMap(img => img.tags))].sort((a, b) => a.localeCompare(b, 'zh-CN')),
-    [images]
-  );
+  const { data: stats } = useQuery<Stats>({
+    queryKey: ['stats'],
+    queryFn: fetchStats,
+    refetchInterval: 15000,
+    staleTime: 0,
+  });
 
-  const filteredImages = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-
-    return images.filter(img => {
-      const matchesTag = !selectedTag || img.tags.includes(selectedTag);
-      const matchesQuery = !query
-        || img.title.toLowerCase().includes(query)
-        || img.url.toLowerCase().includes(query)
-        || img.tags.some(tag => tag.toLowerCase().includes(query));
-
-      return matchesTag && matchesQuery;
-    });
-  }, [images, searchTerm, selectedTag]);
-
+  const images = imagesQuery.data?.items ?? [];
+  const totalImages = stats?.totalImages ?? imagesQuery.data?.total ?? 0;
+  const totalPages = imagesQuery.data?.totalPages ?? 1;
+  const filteredTotal = imagesQuery.data?.total ?? 0;
+  const tags = stats?.tags ?? [];
   const totalTags = tags.length;
   const latestImage = images.reduce<ImageRecord | null>((latest, img) => {
     if (!latest) return img;
     return new Date(img.createdAt).getTime() > new Date(latest.createdAt).getTime() ? img : latest;
   }, null);
+  const isInitialLoading = imagesQuery.isLoading && !imagesQuery.data;
 
   const refreshGallery = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['images'] });
     queryClient.invalidateQueries({ queryKey: ['stats'], refetchType: 'all' });
   }, [queryClient]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedTag]);
+
+  useEffect(() => {
+    if (imagesQuery.data && page > imagesQuery.data.totalPages) {
+      setPage(imagesQuery.data.totalPages);
+    }
+  }, [imagesQuery.data, page]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteImage,
@@ -1138,9 +1175,10 @@ function GalleryPage() {
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedTag(null);
+    setPage(1);
   };
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-28">
         <div className="mb-8 flex items-center justify-between">
@@ -1159,14 +1197,14 @@ function GalleryPage() {
     );
   }
 
-  if (isError) {
+  if (imagesQuery.isError) {
     return (
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-28 text-center">
         <div className="max-w-md mx-auto rounded-2xl border border-red-100 glass-strong p-8">
           <Camera className="w-14 h-14 mx-auto mb-4 text-red-300" />
           <p className="text-lg font-medium text-foreground">图库加载失败</p>
-          <p className="text-sm mt-2 text-muted-foreground">{getErrorMessage(error, '请稍后重试')}</p>
-          <Button className="mt-5" variant="outline" onClick={() => refetch()}>
+          <p className="text-sm mt-2 text-muted-foreground">{getErrorMessage(imagesQuery.error, '请稍后重试')}</p>
+          <Button className="mt-5" variant="outline" onClick={() => imagesQuery.refetch()}>
             <RefreshCw className="w-4 h-4 mr-2" />
             重新加载
           </Button>
@@ -1187,9 +1225,9 @@ function GalleryPage() {
 
       <div className="grid grid-cols-1 gap-3 mb-5 sm:grid-cols-3">
         {[
-          { label: '图片总数', value: images.length, icon: Image },
+          { label: '图片总数', value: totalImages, icon: Image },
           { label: '标签数量', value: totalTags, icon: Tag },
-          { label: '最近更新', value: latestImage ? formatDateTime(latestImage.createdAt) : '暂无数据', icon: Clock },
+          { label: '当前页最新', value: latestImage ? formatDateTime(latestImage.createdAt) : '暂无数据', icon: Clock },
         ].map(item => (
           <Card key={item.label} className="glass-strong rounded-2xl">
             <CardContent className="p-4 flex items-center gap-3">
@@ -1212,7 +1250,10 @@ function GalleryPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
+                onChange={e => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="搜索标题、URL 或标签"
                 className="pl-9"
               />
@@ -1223,7 +1264,10 @@ function GalleryPage() {
                 className={`cursor-pointer ${
                   selectedTag === null ? 'bg-primary text-primary-foreground border-0' : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
                 }`}
-                onClick={() => setSelectedTag(null)}
+                onClick={() => {
+                  setSelectedTag(null);
+                  setPage(1);
+                }}
               >
                 全部
               </Badge>
@@ -1234,7 +1278,10 @@ function GalleryPage() {
                   className={`cursor-pointer ${
                     selectedTag === tag ? 'bg-primary text-primary-foreground border-0' : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
                   }`}
-                  onClick={() => setSelectedTag(tag)}
+                  onClick={() => {
+                    setSelectedTag(tag);
+                    setPage(1);
+                  }}
                 >
                   {tag}
                 </Badge>
@@ -1244,7 +1291,7 @@ function GalleryPage() {
         </CardContent>
       </Card>
 
-      {!images.length && (
+      {totalImages === 0 && (
         <div className="rounded-2xl border border-dashed border-border glass px-6 py-16 text-center text-muted-foreground">
           <Camera className="w-14 h-14 mx-auto mb-4 opacity-25" />
           <p className="text-lg font-medium text-foreground">暂无图片</p>
@@ -1255,7 +1302,7 @@ function GalleryPage() {
         </div>
       )}
 
-      {images.length > 0 && filteredImages.length === 0 && (
+      {totalImages > 0 && filteredTotal === 0 && (
         <div className="rounded-2xl border border-dashed border-border glass px-6 py-14 text-center">
           <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
           <p className="text-base font-medium text-foreground">没有匹配的图片</p>
@@ -1264,8 +1311,15 @@ function GalleryPage() {
         </div>
       )}
 
+      {imagesQuery.isFetching && images.length > 0 && (
+        <div className="mb-4 flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/55 px-4 py-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          正在加载当前页
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredImages.map((img, index) => (
+        {images.map((img, index) => (
           <Card
             key={img.id}
             className="group overflow-hidden glass rounded-2xl animate-fade-in hover-lift"
@@ -1335,6 +1389,34 @@ function GalleryPage() {
           </Card>
         ))}
       </div>
+
+      {filteredTotal > 0 && (
+        <div className="mt-8 flex flex-col items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/55 px-4 py-3 text-sm text-muted-foreground sm:flex-row">
+          <span>
+            共 {filteredTotal} 张，当前第 {page} / {totalPages} 页
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || imagesQuery.isFetching}
+              onClick={() => setPage(current => Math.max(1, current - 1))}
+            >
+              <ChevronLeft className="mr-1.5 h-4 w-4" />
+              上一页
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages || imagesQuery.isFetching}
+              onClick={() => setPage(current => Math.min(totalPages, current + 1))}
+            >
+              下一页
+              <ChevronRight className="ml-1.5 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

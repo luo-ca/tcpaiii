@@ -23,7 +23,7 @@ npm run build
 - `GET /api/random?tag=acg`：按标签筛选后 `302` 重定向到图片 URL。
 - `GET /api/random?format=json`：返回 JSON，供在线预览和前端调用使用。
 - `GET /api/stats`：返回图片数量、标签列表、调用统计和最近 7 天数据。
-- `GET /api/list`：返回图库列表。
+- `GET /api/list`：无参数时返回旧版完整图库数组；带 `page` / `pageSize` / `search` / `tag` 参数时返回分页结果。
 - `POST /api/create`、`PUT /api/update/:id`、`DELETE /api/delete/:id`、`POST /api/batch`：图库管理接口。
 
 ## ESA 部署
