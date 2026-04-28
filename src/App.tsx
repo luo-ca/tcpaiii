@@ -92,6 +92,7 @@ const APP_NAME = '派次元 API';
 const APP_DOMAIN = 'https://t.paiii.cn';
 const APP_LOGO_URL = 'https://static.paiii.cn/logo.svg';
 const EDGEONE_LOGO_URL = 'https://edgeone.ai/_next/static/media/headLogo.daeb48ad.png';
+const MAX_BATCH_IMAGE_COUNT = 500;
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
@@ -1374,7 +1375,7 @@ function AddImageDialog({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault();
     const lines = [...new Set(batchUrls.split('\n').map(l => l.trim()).filter(Boolean))];
     if (lines.length === 0) { toast.error('请输入至少一个图片地址'); return; }
-    if (lines.length > 50) { toast.error('单次最多添加 50 张图片'); return; }
+    if (lines.length > MAX_BATCH_IMAGE_COUNT) { toast.error(`单次最多添加 ${MAX_BATCH_IMAGE_COUNT} 张图片`); return; }
 
     const tags = parseTagsInput(batchTags);
     setProgress({ current: 0, total: lines.length });
@@ -1477,7 +1478,7 @@ function AddImageDialog({ onSuccess }: { onSuccess: () => void }) {
                 rows={6}
                 className="w-full min-h-[140px] rounded-lg border border-border/70 bg-secondary/30 px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y font-mono"
               />
-              <p className="text-xs text-muted-foreground">每行一个图片 URL，重复地址会自动合并，单次最多 50 张</p>
+              <p className="text-xs text-muted-foreground">每行一个图片 URL，重复地址会自动合并，单次最多 {MAX_BATCH_IMAGE_COUNT} 张</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="batch-tags">统一标签（逗号分隔，可选）</Label>

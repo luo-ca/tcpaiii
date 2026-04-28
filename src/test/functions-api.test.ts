@@ -149,6 +149,44 @@ describe("functions api", () => {
     });
   });
 
+  it("allows larger batch imports up to 500 images", async () => {
+    const images = Array.from({ length: 51 }, (_, index) => ({
+      url: `https://cdn.example.test/batch-${index}.jpg`,
+      tags: ["batch"],
+    }));
+
+    const response = await request("/api/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images }),
+    });
+
+    expect(response.status).toBe(201);
+    await expect(json(response)).resolves.toMatchObject({
+      total: 51,
+      success: 51,
+      failed: 0,
+    });
+  });
+
+  it("rejects batch imports above 500 images", async () => {
+    const images = Array.from({ length: 501 }, (_, index) => ({
+      url: `https://cdn.example.test/too-many-${index}.jpg`,
+      tags: ["batch"],
+    }));
+
+    const response = await request("/api/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(json(response)).resolves.toMatchObject({
+      error: "Maximum 500 images per batch request",
+    });
+  });
+
   it("redirects random image requests by default", async () => {
     await request("/api/create", {
       method: "POST",

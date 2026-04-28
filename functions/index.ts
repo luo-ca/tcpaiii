@@ -25,7 +25,7 @@ type Stats = {
 
 type JsonObject = Record<string, unknown>;
 
-const MAX_BATCH_SIZE = 50;
+const MAX_BATCH_SIZE = 500;
 const ALLOWED_IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 const STATS_TIME_ZONE = 'Asia/Shanghai';
 
