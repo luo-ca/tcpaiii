@@ -149,6 +149,36 @@ describe("functions api", () => {
     });
   });
 
+  it("redirects random image requests by default", async () => {
+    await request("/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "https://cdn.example.test/random.jpg", tags: ["风景"] }),
+    });
+
+    const response = await request("/api/random?tag=风景");
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Location")).toBe("https://cdn.example.test/random.jpg");
+  });
+
+  it("returns JSON only when explicitly requested", async () => {
+    await request("/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "https://cdn.example.test/json.jpg", title: "JSON image", tags: ["acg"] }),
+    });
+
+    const response = await request("/api/random?tag=acg&format=json");
+
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({
+      url: "https://cdn.example.test/json.jpg",
+      title: "JSON image",
+      tags: ["acg"],
+    });
+  });
+
   it("increments total and daily stats when random images are requested", async () => {
     await request("/api/create", {
       method: "POST",
@@ -156,8 +186,8 @@ describe("functions api", () => {
       body: JSON.stringify({ url: "https://cdn.example.test/random.jpg", tags: ["风景"] }),
     });
 
-    const first = await request("/api/random?type=风景");
-    const second = await request("/api/random?tag=风景");
+    const first = await request("/api/random?type=风景&format=json");
+    const second = await request("/api/random?tag=风景&format=json");
     const stats = await request("/api/stats");
     const statsBody = await json(stats);
 

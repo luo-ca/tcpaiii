@@ -187,6 +187,7 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: {
       'content-type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
       ...corsHeaders(),
     },
   });
@@ -200,7 +201,10 @@ function json(body: unknown, status = 200): Response {
 async function handleRandomImage(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const tag = url.searchParams.get('tag') || url.searchParams.get('type');
-  const redirect = url.searchParams.get('redirect') === 'true';
+  const format = url.searchParams.get('format');
+  const wantsJson = url.searchParams.has('json')
+    || format === 'json'
+    || url.searchParams.get('redirect') === 'false';
 
   const images = await getAllImages();
   if (images.length === 0) {
@@ -234,24 +238,23 @@ async function handleRandomImage(request: Request): Promise<Response> {
     // 统计失败不影响主流程
   }
 
-  // 支持 302 重定向模式（用于 <img src> 直链）
-  if (redirect) {
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: selected.url,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        ...corsHeaders(),
-      },
+  if (wantsJson) {
+    return json({
+      id: selected.id,
+      url: selected.url,
+      title: selected.title,
+      tags: selected.tags,
+      createdAt: selected.createdAt,
     });
   }
 
-  return json({
-    id: selected.id,
-    url: selected.url,
-    title: selected.title,
-    tags: selected.tags,
-    createdAt: selected.createdAt,
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: selected.url,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      ...corsHeaders(),
+    },
   });
 }
 

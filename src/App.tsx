@@ -168,6 +168,7 @@ async function apiRequest<T>(input: RequestInfo | URL, init: RequestInit | undef
 async function fetchRandomImage(tag?: string): Promise<ImageRecord> {
   const params = new URLSearchParams();
   if (tag) params.set('tag', tag);
+  params.set('format', 'json');
   const query = params.toString();
   return apiRequest<ImageRecord>(`/api/random${query ? `?${query}` : ''}`, undefined, 'Failed to fetch random image');
 }
@@ -398,6 +399,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
     queryKey: ['stats'],
     queryFn: fetchStats,
     refetchInterval: 15000,
+    staleTime: 0,
   });
 
   const shuffleImage = useCallback(async (tag?: string) => {
@@ -776,12 +778,12 @@ function ApiDocsSection() {
                   <Code className="w-5 h-5 text-blue-500" />
                   <span className="text-sm font-medium">基础调用</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">默认返回 JSON；直链图片请追加 redirect=true，浏览器会跳转到随机图片链接</p>
+                <p className="text-xs text-muted-foreground mb-3">默认返回 302 图片直链；需要 JSON 元数据时追加 format=json</p>
 
                 <div className="space-y-2">
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground mb-1">API 地址</p>
+                      <p className="text-xs text-muted-foreground mb-1">API 地址（默认 302）</p>
                       <code className="block overflow-x-auto whitespace-nowrap text-sm text-foreground">{APP_DOMAIN}/api/random</code>
                     </div>
                     <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`${APP_DOMAIN}/api/random`)}>
@@ -792,9 +794,9 @@ function ApiDocsSection() {
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">HTML 使用示例</p>
-                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`<img src="${APP_DOMAIN}/api/random?redirect=true" alt="随机图片" />`}</code>
+                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`<img src="${APP_DOMAIN}/api/random" alt="随机图片" />`}</code>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`<img src="${APP_DOMAIN}/api/random?redirect=true" alt="随机图片" />`)}>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`<img src="${APP_DOMAIN}/api/random" alt="随机图片" />`)}>
                       <CopyIcon className="w-3.5 h-3.5" />
                       <span className="ml-1 text-xs">复制</span>
                     </Button>
@@ -802,9 +804,9 @@ function ApiDocsSection() {
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">Markdown 使用示例</p>
-                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`![随机图片](${APP_DOMAIN}/api/random?redirect=true)`}</code>
+                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`![随机图片](${APP_DOMAIN}/api/random)`}</code>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`![随机图片](${APP_DOMAIN}/api/random?redirect=true)`)}>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`![随机图片](${APP_DOMAIN}/api/random)`)}>
                       <CopyIcon className="w-3.5 h-3.5" />
                       <span className="ml-1 text-xs">复制</span>
                     </Button>
@@ -842,7 +844,14 @@ function ApiDocsSection() {
                   <Code className="w-5 h-5 text-cyan-500" />
                   <span className="text-sm font-medium">JSON 返回模式</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">直接返回 JSON 数据，包含图片 URL、标题、标签等信息</p>
+                <p className="text-xs text-muted-foreground mb-3">追加 format=json 返回 JSON 数据，包含图片 URL、标题、标签等信息</p>
+                <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg mb-3 sm:flex-row sm:items-center sm:justify-between">
+                  <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{APP_DOMAIN}/api/random?format=json</code>
+                  <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`${APP_DOMAIN}/api/random?format=json`)}>
+                    <CopyIcon className="w-3.5 h-3.5" />
+                    <span className="ml-1 text-xs">复制</span>
+                  </Button>
+                </div>
                 <div className="p-3 bg-muted/40 rounded-lg">
                   <pre className="text-xs text-foreground overflow-x-auto">
 {`{
@@ -869,7 +878,7 @@ function ApiDocsSection() {
                   <div className="p-3 bg-muted/40 rounded-lg">
                     <p className="text-muted-foreground mb-1">JavaScript 调用</p>
                     <pre className="text-foreground overflow-x-auto">
-{`fetch('/api/random')
+{`fetch('/api/random?format=json')
   .then(r => r.json())
   .then(data => console.log(data.url))`}
                     </pre>
@@ -1051,7 +1060,7 @@ function GalleryPage() {
 
   const refreshGallery = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['images'] });
-    queryClient.invalidateQueries({ queryKey: ['stats'] });
+    queryClient.invalidateQueries({ queryKey: ['stats'], refetchType: 'all' });
   }, [queryClient]);
 
   const deleteMutation = useMutation({
