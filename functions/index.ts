@@ -24,6 +24,14 @@ type Stats = {
 };
 
 type JsonObject = Record<string, unknown>;
+type RuntimeGlobals = typeof globalThis & {
+  ADMIN_TOKEN?: string;
+  ADMIN_TOKEN_SHA256?: string;
+  __ENV?: Record<string, string | undefined>;
+  process?: {
+    env?: Record<string, string | undefined>;
+  };
+};
 
 const MAX_BATCH_SIZE = 500;
 const DEFAULT_LIST_PAGE_SIZE = 24;
@@ -62,6 +70,11 @@ function parseStoredJson<T>(value: unknown, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function getRuntimeSecret(name: 'ADMIN_TOKEN' | 'ADMIN_TOKEN_SHA256'): string | undefined {
+  const runtime = globalThis as RuntimeGlobals;
+  return runtime[name] || runtime.__ENV?.[name] || runtime.process?.env?.[name];
 }
 
 async function getAllImages(): Promise<ImageRecord[]> {
@@ -178,6 +191,55 @@ function normalizePositiveInt(value: string | null, fallback: number, max?: numb
   if (!Number.isFinite(parsed) || parsed < 1) return fallback;
 
   return max ? Math.min(parsed, max) : parsed;
+}
+
+function getBearerToken(request: Request): string | null {
+  const header = request.headers.get('Authorization') || request.headers.get('authorization');
+  if (!header) return null;
+
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || null;
+}
+
+function timingSafeEqualString(left: string, right: string): boolean {
+  const encoder = new TextEncoder();
+  const leftBytes = encoder.encode(left);
+  const rightBytes = encoder.encode(right);
+  const maxLength = Math.max(leftBytes.length, rightBytes.length);
+  let diff = leftBytes.length ^ rightBytes.length;
+
+  for (let index = 0; index < maxLength; index += 1) {
+    diff |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0);
+  }
+
+  return diff === 0;
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest))
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function verifyAdminRequest(request: Request): Promise<Response | null> {
+  const token = getBearerToken(request);
+  if (!token) {
+    return json({ error: 'Admin token required' }, 401);
+  }
+
+  const plainToken = getRuntimeSecret('ADMIN_TOKEN');
+  if (plainToken) {
+    return timingSafeEqualString(token, plainToken) ? null : json({ error: 'Invalid admin token' }, 403);
+  }
+
+  const tokenHash = getRuntimeSecret('ADMIN_TOKEN_SHA256')?.toLowerCase();
+  if (tokenHash) {
+    const candidateHash = await sha256Hex(token);
+    return timingSafeEqualString(candidateHash, tokenHash) ? null : json({ error: 'Invalid admin token' }, 403);
+  }
+
+  return json({ error: 'Admin token is not configured' }, 503);
 }
 
 // ============================================================
@@ -543,27 +605,43 @@ const handler = {
 
       // POST /api/batch
       if (pathname === '/api/batch') {
-        if (request.method === 'POST') return handleBatchCreateImages(request);
+        if (request.method === 'POST') {
+          const authError = await verifyAdminRequest(request);
+          if (authError) return authError;
+          return handleBatchCreateImages(request);
+        }
         return json({ error: 'Method Not Allowed' }, 405);
       }
 
       // POST /api/create
       if (pathname === '/api/create') {
-        if (request.method === 'POST') return handleCreateImage(request);
+        if (request.method === 'POST') {
+          const authError = await verifyAdminRequest(request);
+          if (authError) return authError;
+          return handleCreateImage(request);
+        }
         return json({ error: 'Method Not Allowed' }, 405);
       }
 
       // PUT /api/update/:id
       const updateMatch = pathname.match(/^\/api\/update\/(.+)$/);
       if (updateMatch) {
-        if (request.method === 'PUT') return handleUpdateImage(request, updateMatch[1]);
+        if (request.method === 'PUT') {
+          const authError = await verifyAdminRequest(request);
+          if (authError) return authError;
+          return handleUpdateImage(request, updateMatch[1]);
+        }
         return json({ error: 'Method Not Allowed' }, 405);
       }
 
       // DELETE /api/delete/:id
       const deleteMatch = pathname.match(/^\/api\/delete\/(.+)$/);
       if (deleteMatch) {
-        if (request.method === 'DELETE') return handleDeleteImage(deleteMatch[1]);
+        if (request.method === 'DELETE') {
+          const authError = await verifyAdminRequest(request);
+          if (authError) return authError;
+          return handleDeleteImage(deleteMatch[1]);
+        }
         return json({ error: 'Method Not Allowed' }, 405);
       }
 

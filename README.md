@@ -24,7 +24,21 @@ npm run build
 - `GET /api/random?format=json`：返回 JSON，供在线预览和前端调用使用。
 - `GET /api/stats`：返回图片数量、标签列表、调用统计和最近 7 天数据。
 - `GET /api/list`：无参数时返回旧版完整图库数组；带 `page` / `pageSize` / `search` / `tag` 参数时返回分页结果。
-- `POST /api/create`、`PUT /api/update/:id`、`DELETE /api/delete/:id`、`POST /api/batch`：图库管理接口。
+- `POST /api/create`、`PUT /api/update/:id`、`DELETE /api/delete/:id`、`POST /api/batch`：图库管理接口，必须携带管理密钥。
+
+## 管理鉴权
+
+公开读接口不需要鉴权；所有写接口必须携带：
+
+```http
+Authorization: Bearer <ADMIN_TOKEN>
+```
+
+部署前必须在 ESA Functions & Pages 环境变量中配置 `ADMIN_TOKEN`，否则写接口会返回 `503 Admin token is not configured`，不会允许任何人添加、编辑或删除图片。
+
+如果不想保存明文密钥，也可以配置 `ADMIN_TOKEN_SHA256` 为管理密钥的 SHA-256 十六进制摘要。两者同时存在时优先使用 `ADMIN_TOKEN`。
+
+前端图库页会要求输入管理密钥，密钥仅保存在当前浏览器的 `localStorage` 中，用于后续管理请求。
 
 ## ESA 部署
 

@@ -5,6 +5,7 @@ import { getRecentStatsDateKeys, getStatsDateKey, handler } from "../../function
 type Store = Record<string, Map<string, string>>;
 
 const store: Store = {};
+const ADMIN_TOKEN = "test-admin-token";
 
 class MockEdgeKV {
   private namespace: string;
@@ -36,6 +37,13 @@ function request(path: string, init?: RequestInit) {
   return handler.fetch(new Request(`https://example.test${path}`, init));
 }
 
+function adminHeaders(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${ADMIN_TOKEN}`,
+  };
+}
+
 async function json(response: Response) {
   return response.json() as Promise<Record<string, unknown>>;
 }
@@ -47,12 +55,13 @@ describe("functions api", () => {
     }
 
     vi.stubGlobal("EdgeKV", MockEdgeKV);
+    vi.stubGlobal("ADMIN_TOKEN", ADMIN_TOKEN);
   });
 
   it("rejects malformed JSON bodies", async () => {
     const response = await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: "{bad json",
     });
 
@@ -60,6 +69,60 @@ describe("functions api", () => {
     await expect(json(response)).resolves.toMatchObject({
       error: "Request body must be a valid JSON object",
     });
+  });
+
+  it("requires an admin token for write APIs", async () => {
+    const response = await request("/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "https://cdn.example.test/blocked.jpg" }),
+    });
+
+    expect(response.status).toBe(401);
+    await expect(json(response)).resolves.toMatchObject({
+      error: "Admin token required",
+    });
+  });
+
+  it("rejects invalid admin tokens for write APIs", async () => {
+    const response = await request("/api/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer wrong-token",
+      },
+      body: JSON.stringify({ url: "https://cdn.example.test/blocked.jpg" }),
+    });
+
+    expect(response.status).toBe(403);
+    await expect(json(response)).resolves.toMatchObject({
+      error: "Invalid admin token",
+    });
+  });
+
+  it("disables write APIs when no admin token is configured", async () => {
+    vi.stubGlobal("ADMIN_TOKEN", undefined);
+    vi.stubGlobal("ADMIN_TOKEN_SHA256", undefined);
+
+    const response = await request("/api/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer any-token",
+      },
+      body: JSON.stringify({ url: "https://cdn.example.test/blocked.jpg" }),
+    });
+
+    expect(response.status).toBe(503);
+    await expect(json(response)).resolves.toMatchObject({
+      error: "Admin token is not configured",
+    });
+  });
+
+  it("keeps read APIs public", async () => {
+    const response = await request("/api/stats");
+
+    expect(response.status).toBe(200);
   });
 
   it("marks JSON API responses as non-cacheable", async () => {
@@ -75,7 +138,7 @@ describe("functions api", () => {
   it("marks random redirects as non-cacheable", async () => {
     await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: "https://cdn.example.test/no-cache.jpg", tags: ["cache"] }),
     });
 
@@ -92,7 +155,7 @@ describe("functions api", () => {
   it("rejects non-http image URLs", async () => {
     const response = await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: "javascript:alert(1)", title: "bad" }),
     });
 
@@ -105,7 +168,7 @@ describe("functions api", () => {
   it("normalizes title and deduplicates tags when creating images", async () => {
     const response = await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({
         url: " https://cdn.example.test/image.jpg ",
         title: "  风景图  ",
@@ -124,12 +187,12 @@ describe("functions api", () => {
   it("rejects duplicate URLs on update while allowing the current image URL", async () => {
     const first = await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: "https://cdn.example.test/a.jpg" }),
     });
     const second = await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: "https://cdn.example.test/b.jpg" }),
     });
 
@@ -138,14 +201,14 @@ describe("functions api", () => {
 
     const noChange = await request(`/api/update/${secondBody.id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: "https://cdn.example.test/b.jpg", title: "same url" }),
     });
     expect(noChange.status).toBe(200);
 
     const duplicate = await request(`/api/update/${secondBody.id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: firstBody.url }),
     });
 
@@ -158,7 +221,7 @@ describe("functions api", () => {
   it("sorts stats tags for stable UI output", async () => {
     await request("/api/batch", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({
         images: [
           { url: "https://cdn.example.test/a.jpg", tags: ["自然"] },
@@ -179,7 +242,7 @@ describe("functions api", () => {
   it("keeps legacy list responses as arrays when no pagination params are provided", async () => {
     await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: "https://cdn.example.test/legacy-list.jpg", tags: ["list"] }),
     });
 
@@ -194,7 +257,7 @@ describe("functions api", () => {
   it("paginates list responses with search and tag filters", async () => {
     await request("/api/batch", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({
         images: Array.from({ length: 5 }, (_, index) => ({
           url: `https://cdn.example.test/list-${index}.jpg`,
@@ -231,7 +294,7 @@ describe("functions api", () => {
 
     const response = await request("/api/batch", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ images }),
     });
 
@@ -251,7 +314,7 @@ describe("functions api", () => {
 
     const response = await request("/api/batch", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ images }),
     });
 
@@ -264,7 +327,7 @@ describe("functions api", () => {
   it("redirects random image requests by default", async () => {
     await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: "https://cdn.example.test/random.jpg", tags: ["风景"] }),
     });
 
@@ -277,7 +340,7 @@ describe("functions api", () => {
   it("returns JSON only when explicitly requested", async () => {
     await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: "https://cdn.example.test/json.jpg", title: "JSON image", tags: ["acg"] }),
     });
 
@@ -294,7 +357,7 @@ describe("functions api", () => {
   it("increments total and daily stats when random images are requested", async () => {
     await request("/api/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ url: "https://cdn.example.test/random.jpg", tags: ["风景"] }),
     });
 

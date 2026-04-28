@@ -49,6 +49,7 @@ import {
   RefreshCw,
   Search,
   Copy as CopyIcon,
+  KeyRound,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard } from '@/lib/utils';
@@ -105,9 +106,30 @@ const APP_LOGO_URL = 'https://static.paiii.cn/logo.svg';
 const EDGEONE_LOGO_URL = 'https://edgeone.ai/_next/static/media/headLogo.daeb48ad.png';
 const MAX_BATCH_IMAGE_COUNT = 500;
 const GALLERY_PAGE_SIZE = 24;
+const ADMIN_TOKEN_STORAGE_KEY = 'paiii-admin-token';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function getStoredAdminToken(): string {
+  try {
+    return window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function setStoredAdminToken(token: string): void {
+  try {
+    if (token) {
+      window.localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+    } else {
+      window.localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // Storage can be unavailable in private mode; the in-memory state still works.
+  }
 }
 
 function parseTagsInput(value: string): string[] {
@@ -287,27 +309,37 @@ async function fetchStats(): Promise<Stats> {
   return apiRequest<Stats>('/api/stats', undefined, 'Failed to fetch stats');
 }
 
-async function createImage(data: { url: string; title: string; tags: string[] }): Promise<ImageRecord> {
+function getAdminHeaders(adminToken: string): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${adminToken}`,
+  };
+}
+
+async function createImage(data: { url: string; title: string; tags: string[] }, adminToken: string): Promise<ImageRecord> {
   return apiRequest<ImageRecord>('/api/create', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAdminHeaders(adminToken),
     body: JSON.stringify(data),
   }, 'Failed to create image');
 }
 
-async function updateImage(id: string, data: { url?: string; title?: string; tags?: string[] }): Promise<ImageRecord> {
+async function updateImage(id: string, data: { url?: string; title?: string; tags?: string[] }, adminToken: string): Promise<ImageRecord> {
   return apiRequest<ImageRecord>(`/api/update/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAdminHeaders(adminToken),
     body: JSON.stringify(data),
   }, 'Failed to update image');
 }
 
-async function deleteImage(id: string): Promise<void> {
-  await apiRequest<{ success: boolean }>(`/api/delete/${id}`, { method: 'DELETE' }, 'Failed to delete image');
+async function deleteImage(id: string, adminToken: string): Promise<void> {
+  await apiRequest<{ success: boolean }>(`/api/delete/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${adminToken}` },
+  }, 'Failed to delete image');
 }
 
-async function batchCreateImages(images: Array<{ url: string; title: string; tags: string[] }>): Promise<{
+async function batchCreateImages(images: Array<{ url: string; title: string; tags: string[] }>, adminToken: string): Promise<{
   total: number;
   success: number;
   failed: number;
@@ -315,7 +347,7 @@ async function batchCreateImages(images: Array<{ url: string; title: string; tag
 }> {
   return apiRequest('/api/batch', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAdminHeaders(adminToken),
     body: JSON.stringify({ images }),
   }, 'Failed to batch create images');
 }
@@ -1134,6 +1166,8 @@ function GalleryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [adminToken, setAdminToken] = useState(() => getStoredAdminToken());
+  const hasAdminToken = adminToken.trim().length > 0;
 
   const searchQuery = searchTerm.trim();
   const imagesQuery = useQuery<PaginatedImages>({
@@ -1182,7 +1216,7 @@ function GalleryPage() {
   }, [imagesQuery.data, page]);
 
   const deleteMutation = useMutation({
-    mutationFn: deleteImage,
+    mutationFn: (id: string) => deleteImage(id, adminToken.trim()),
     onSuccess: () => {
       toast.success('图片已删除');
       refreshGallery();
@@ -1200,6 +1234,23 @@ function GalleryPage() {
     setSearchTerm('');
     setSelectedTag(null);
     setPage(1);
+  };
+
+  const handleAdminTokenChange = (value: string) => {
+    setAdminToken(value);
+    setStoredAdminToken(value.trim());
+  };
+
+  const clearAdminToken = () => {
+    setAdminToken('');
+    setStoredAdminToken('');
+    toast.success('管理密钥已清除');
+  };
+
+  const requireAdminToken = (): boolean => {
+    if (hasAdminToken) return true;
+    toast.error('请先填写管理密钥');
+    return false;
   };
 
   if (isInitialLoading) {
@@ -1244,8 +1295,40 @@ function GalleryPage() {
           <h2 className="text-3xl font-bold tracking-tight">图片管理</h2>
           <p className="text-muted-foreground text-sm mt-1">管理你的外链图片库</p>
         </div>
-        <AddImageDialog onSuccess={refreshGallery} />
+        <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
       </div>
+
+      <Card className="glass-strong rounded-2xl mb-5">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Label htmlFor="admin-token" className="flex items-center gap-2 text-sm font-medium">
+                <KeyRound className="h-4 w-4 text-blue-500" />
+                管理密钥
+              </Label>
+              <Input
+                id="admin-token"
+                type="password"
+                value={adminToken}
+                onChange={event => handleAdminTokenChange(event.target.value)}
+                placeholder="输入管理密钥后才能添加、编辑、删除"
+                className="bg-secondary/30"
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={hasAdminToken ? 'default' : 'outline'} className={hasAdminToken ? 'bg-emerald-600 text-white border-0' : 'text-muted-foreground'}>
+                {hasAdminToken ? '已启用管理权限' : '只读模式'}
+              </Badge>
+              {hasAdminToken && (
+                <Button variant="outline" size="sm" onClick={clearAdminToken}>
+                  清除
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-3 mb-5 sm:grid-cols-3">
         {[
@@ -1321,7 +1404,7 @@ function GalleryPage() {
           <p className="text-lg font-medium text-foreground">暂无图片</p>
           <p className="text-sm mt-1">添加第一张外链图片后即可开始提供随机图接口</p>
           <div className="mt-5 flex justify-center">
-            <AddImageDialog onSuccess={refreshGallery} />
+            <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
           </div>
         </div>
       )}
@@ -1381,7 +1464,7 @@ function GalleryPage() {
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </Button>
-                        <EditImageDialog image={img} onSuccess={refreshGallery} />
+                        <EditImageDialog image={img} adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -1400,7 +1483,14 @@ function GalleryPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>取消</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteMutation.mutate(img.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">删除</AlertDialogAction>
+                              <AlertDialogAction
+                                onClick={() => {
+                                  if (requireAdminToken()) deleteMutation.mutate(img.id);
+                                }}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                删除
+                              </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -1449,7 +1539,15 @@ function GalleryPage() {
 // Add Image Dialog (支持批量添加)
 // ============================================================
 
-function AddImageDialog({ onSuccess }: { onSuccess: () => void }) {
+function AddImageDialog({
+  adminToken,
+  onSuccess,
+  onRequireToken,
+}: {
+  adminToken: string;
+  onSuccess: () => void;
+  onRequireToken: () => boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'single' | 'batch'>('single');
   const [url, setUrl] = useState('');
@@ -1471,7 +1569,7 @@ function AddImageDialog({ onSuccess }: { onSuccess: () => void }) {
 
   // 单张添加
   const singleMutation = useMutation({
-    mutationFn: () => createImage({ url: url.trim(), title: title.trim() || '未命名图片', tags: parseTagsInput(tagsInput) }),
+    mutationFn: () => createImage({ url: url.trim(), title: title.trim() || '未命名图片', tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => { toast.success('图片添加成功'); setOpen(false); onSuccess(); },
     onError: (err) => { toast.error(getErrorMessage(err, '添加失败')); },
   });
@@ -1479,6 +1577,8 @@ function AddImageDialog({ onSuccess }: { onSuccess: () => void }) {
   // 批量添加（使用批量 API，一次请求完成）
   const handleBatchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!onRequireToken()) return;
+
     const lines = [...new Set(batchUrls.split('\n').map(l => l.trim()).filter(Boolean))];
     if (lines.length === 0) { toast.error('请输入至少一个图片地址'); return; }
     if (lines.length > MAX_BATCH_IMAGE_COUNT) { toast.error(`单次最多添加 ${MAX_BATCH_IMAGE_COUNT} 张图片`); return; }
@@ -1490,7 +1590,8 @@ function AddImageDialog({ onSuccess }: { onSuccess: () => void }) {
     try {
       // 使用批量 API，一次请求完成
       const result = await batchCreateImages(
-        lines.map((imageUrl, i) => ({ url: imageUrl, title: `图片 ${i + 1}`, tags }))
+        lines.map((imageUrl, i) => ({ url: imageUrl, title: `图片 ${i + 1}`, tags })),
+        adminToken
       );
       setProgress({ current: result.success, total: lines.length });
 
@@ -1511,6 +1612,8 @@ function AddImageDialog({ onSuccess }: { onSuccess: () => void }) {
 
   const handleSingleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!onRequireToken()) return;
+
     if (!url.trim()) { toast.error('请输入图片地址'); return; }
     setLoading(true);
     singleMutation.mutate(undefined, { onSettled: () => setLoading(false) });
@@ -1623,7 +1726,17 @@ function AddImageDialog({ onSuccess }: { onSuccess: () => void }) {
 // Edit Image Dialog
 // ============================================================
 
-function EditImageDialog({ image, onSuccess }: { image: ImageRecord; onSuccess: () => void }) {
+function EditImageDialog({
+  image,
+  adminToken,
+  onSuccess,
+  onRequireToken,
+}: {
+  image: ImageRecord;
+  adminToken: string;
+  onSuccess: () => void;
+  onRequireToken: () => boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -1635,13 +1748,15 @@ function EditImageDialog({ image, onSuccess }: { image: ImageRecord; onSuccess: 
   }, [open, image]);
 
   const mutation = useMutation({
-    mutationFn: () => updateImage(image.id, { url: url.trim(), title: title.trim(), tags: parseTagsInput(tagsInput) }),
+    mutationFn: () => updateImage(image.id, { url: url.trim(), title: title.trim(), tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => { toast.success('图片更新成功'); setOpen(false); onSuccess(); },
     onError: (err) => { toast.error(getErrorMessage(err, '更新失败')); },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!onRequireToken()) return;
+
     if (!url.trim()) { toast.error('请输入图片地址'); return; }
     setLoading(true);
     mutation.mutate(undefined, { onSettled: () => setLoading(false) });
