@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -809,7 +811,10 @@ function RealtimeStats() {
   });
 
   const dailyEntries = Object.entries(stats?.dailyRequests ?? {});
-  const maxDailyRequests = Math.max(...dailyEntries.map(([, count]) => count), 1);
+  const chartData = dailyEntries.map(([dateKey, count]) => ({
+    date: formatShortDate(dateKey),
+    requests: count,
+  }));
   const statCards = [
     { label: '总调用量', value: stats?.totalRequests ?? 0, icon: TrendingUp, color: 'text-blue-500', sub: '累计请求总次数' },
     { label: '今日调用', value: stats?.todayRequests ?? 0, icon: Clock, color: 'text-indigo-500', sub: `${stats?.lastRequestAt ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN') : '暂无数据'}` },
@@ -855,22 +860,50 @@ function RealtimeStats() {
             </div>
             <div className="h-44">
               {dailyEntries.length > 0 ? (
-                <div className="flex h-full items-end gap-2 sm:gap-3">
-                  {dailyEntries.map(([dateKey, count]) => (
-                    <div key={dateKey} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                      <div className="flex h-32 w-full items-end rounded-lg bg-secondary/40 p-1.5">
-                        <div
-                          className="w-full rounded-md bg-gradient-to-t from-blue-500 via-indigo-500 to-fuchsia-500 transition-all duration-500"
-                          style={{ height: `${Math.max(8, (count / maxDailyRequests) * 100)}%` }}
-                        />
-                      </div>
-                      <div className="text-center leading-tight">
-                        <p className="text-xs font-medium text-foreground">{count}</p>
-                        <p className="text-[11px] text-muted-foreground">{formatShortDate(dateKey)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ChartContainer
+                  config={{
+                    requests: {
+                      label: '调用量',
+                      color: 'hsl(var(--primary))',
+                    },
+                  }}
+                  className="h-full w-full"
+                >
+                  <AreaChart data={chartData} margin={{ left: 6, right: 8, top: 8, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="requestsTrend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-requests)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="var(--color-requests)" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <YAxis
+                      width={32}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="line" />}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="requests"
+                      stroke="var(--color-requests)"
+                      strokeWidth={2.5}
+                      fill="url(#requestsTrend)"
+                      dot={{ r: 3, strokeWidth: 2 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </AreaChart>
+                </ChartContainer>
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground/40">
                   <div className="text-center">
@@ -1141,6 +1174,16 @@ function ImageSubmission() {
 
 function Changelog() {
   const updates = [
+    {
+      date: '2026-04-29',
+      title: 'Pages 化与图库升级',
+      items: [
+        '脱离 PHP 接口，改为 ESA Functions & Pages 与 EdgeKV 提供图片服务',
+        '新增图库展示与管理能力，支持图片标签、搜索和在线预览',
+        '图库分页加入页码、首页末页、跳转页数和每页数量选择',
+        '优化接口缓存、分页加载、相邻页预取和图片加载性能',
+      ],
+    },
     {
       date: '2025-06-15',
       title: '展示站与文档',
