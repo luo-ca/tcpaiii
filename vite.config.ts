@@ -1,8 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
-import vesaErrorReporter from "./.vesa/vite-error-plugin.js";
-import vesaDesignMode from "./.vesa/vite-design-mode-plugin.js";
 import path from "path";
 import fs from "fs";
 
@@ -27,7 +25,7 @@ export default defineConfig(({ mode }) => ({
         }
       : {}),
   },
-  plugins: [vesaErrorReporter(), vesaDesignMode(), tailwindcss(), react()].filter(Boolean),
+  plugins: [tailwindcss(), react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

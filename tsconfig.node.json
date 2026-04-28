@@ -19,5 +19,5 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", ".vesa/**/*.js"]
+  "include": ["vite.config.ts"]
 }

@@ -96,7 +96,6 @@ type ApiErrorPayload = {
 };
 
 type AdminAuthStatus = 'empty' | 'unverified' | 'checking' | 'valid' | 'invalid' | 'unconfigured';
-type AdminBootstrapResponse = { ok: true };
 
 const API_HTML_FALLBACK_MESSAGE = 'API 请求返回了页面 HTML，说明 /api 路由当前没有命中函数，请检查 ESA 路由是否已绑定到 t.paiii.cn/api/*。';
 
@@ -113,30 +112,9 @@ const EDGEONE_LOGO_URL = 'https://edgeone.ai/_next/static/media/headLogo.daeb48a
 const MAX_BATCH_IMAGE_COUNT = 500;
 const GALLERY_PAGE_SIZE = 24;
 const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 36, 60] as const;
-const ADMIN_TOKEN_STORAGE_KEY = 'paiii-admin-token';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getStoredAdminToken(): string {
-  try {
-    return window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ?? '';
-  } catch {
-    return '';
-  }
-}
-
-function setStoredAdminToken(token: string): void {
-  try {
-    if (token) {
-      window.localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
-    } else {
-      window.localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-    }
-  } catch {
-    // Storage can be unavailable in private mode; the in-memory state still works.
-  }
 }
 
 function parseTagsInput(value: string): string[] {
@@ -349,14 +327,6 @@ async function verifyAdminToken(adminToken: string): Promise<{ ok: true }> {
   return apiRequest<{ ok: true }>('/api/admin/verify', {
     headers: { Authorization: `Bearer ${adminToken}` },
   }, 'Failed to verify admin token');
-}
-
-async function bootstrapAdminToken(adminToken: string): Promise<AdminBootstrapResponse> {
-  return apiRequest<AdminBootstrapResponse>('/api/admin/bootstrap', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: adminToken }),
-  }, 'Failed to initialize admin token');
 }
 
 function getAdminHeaders(adminToken: string): HeadersInit {
@@ -1267,9 +1237,8 @@ function GalleryPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(GALLERY_PAGE_SIZE);
   const [pageJumpInput, setPageJumpInput] = useState('1');
-  const [adminToken, setAdminToken] = useState(() => getStoredAdminToken());
-  const [adminAuthStatus, setAdminAuthStatus] = useState<AdminAuthStatus>(() => getStoredAdminToken() ? 'unverified' : 'empty');
-  const [adminBootstrapLoading, setAdminBootstrapLoading] = useState(false);
+  const [adminToken, setAdminToken] = useState('');
+  const [adminAuthStatus, setAdminAuthStatus] = useState<AdminAuthStatus>('empty');
   const hasAdminToken = adminToken.trim().length > 0;
   const hasVerifiedAdminToken = hasAdminToken && adminAuthStatus === 'valid';
 
@@ -1389,13 +1358,11 @@ function GalleryPage() {
 
   const handleAdminTokenChange = (value: string) => {
     setAdminToken(value);
-    setStoredAdminToken(value.trim());
     setAdminAuthStatus(value.trim() ? 'unverified' : 'empty');
   };
 
   const clearAdminToken = () => {
     setAdminToken('');
-    setStoredAdminToken('');
     setAdminAuthStatus('empty');
     toast.success('管理密钥已清除');
   };
@@ -1424,30 +1391,6 @@ function GalleryPage() {
         toast.error(message);
       }
       return false;
-    }
-  }, [adminToken]);
-
-  const initializeAdminToken = useCallback(async () => {
-    const token = adminToken.trim();
-    if (!token) {
-      setAdminAuthStatus('empty');
-      toast.error('请先填写要初始化的管理密钥');
-      return;
-    }
-
-    setAdminBootstrapLoading(true);
-    try {
-      await bootstrapAdminToken(token);
-      setAdminAuthStatus('valid');
-      toast.success('管理密钥已写入 KV 并启用');
-    } catch (err) {
-      const message = getErrorMessage(err, '初始化管理密钥失败');
-      toast.error(message);
-      if (message.includes('already configured')) {
-        setAdminAuthStatus('unverified');
-      }
-    } finally {
-      setAdminBootstrapLoading(false);
     }
   }, [adminToken]);
 
@@ -1545,21 +1488,10 @@ function GalleryPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => void checkAdminToken()}
-                  disabled={adminAuthStatus === 'checking' || adminBootstrapLoading}
+                  disabled={adminAuthStatus === 'checking'}
                 >
                   {adminAuthStatus === 'checking' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-1.5 h-3.5 w-3.5" />}
                   校验
-                </Button>
-              )}
-              {adminAuthStatus === 'unconfigured' && hasAdminToken && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => void initializeAdminToken()}
-                  disabled={adminBootstrapLoading}
-                >
-                  {adminBootstrapLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
-                  初始化
                 </Button>
               )}
               {hasAdminToken && (
