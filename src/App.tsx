@@ -199,6 +199,10 @@ function formatShortDate(value: string): string {
   return month && day ? `${Number(month)}/${Number(day)}` : value;
 }
 
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat('zh-CN').format(value);
+}
+
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   return typeof value === 'object' && value !== null;
 }
@@ -810,16 +814,22 @@ function RealtimeStats() {
     refetchInterval: 10000,
   });
 
-  const dailyEntries = Object.entries(stats?.dailyRequests ?? {});
+  const dailyEntries = useMemo(
+    () => Object.entries(stats?.dailyRequests ?? {}).sort(([left], [right]) => left.localeCompare(right)),
+    [stats?.dailyRequests]
+  );
   const chartData = dailyEntries.map(([dateKey, count]) => ({
     date: formatShortDate(dateKey),
+    fullDate: dateKey,
     requests: count,
   }));
+  const totalRecentRequests = chartData.reduce((sum, item) => sum + item.requests, 0);
+  const hasTrendData = chartData.some(item => item.requests > 0);
   const statCards = [
-    { label: '总调用量', value: stats?.totalRequests ?? 0, icon: TrendingUp, color: 'text-blue-500', sub: '累计请求总次数' },
-    { label: '今日调用', value: stats?.todayRequests ?? 0, icon: Clock, color: 'text-indigo-500', sub: `${stats?.lastRequestAt ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN') : '暂无数据'}` },
-    { label: '接入站点', value: 1, icon: Globe, color: 'text-cyan-500', sub: '使用本 API 的网站' },
-    { label: '图片总数', value: stats?.totalImages ?? 0, icon: Layers, color: 'text-fuchsia-500', sub: `${stats?.tags?.length ?? 0} 个分类` },
+    { label: '总调用量', value: formatNumber(stats?.totalRequests ?? 0), icon: TrendingUp, color: 'text-blue-500', sub: '累计请求总次数' },
+    { label: '今日调用', value: formatNumber(stats?.todayRequests ?? 0), icon: Clock, color: 'text-indigo-500', sub: `${stats?.lastRequestAt ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN') : '暂无数据'}` },
+    { label: '接入站点', value: formatNumber(1), icon: Globe, color: 'text-cyan-500', sub: '使用本 API 的网站' },
+    { label: '图片总数', value: formatNumber(stats?.totalImages ?? 0), icon: Layers, color: 'text-fuchsia-500', sub: `${stats?.tags?.length ?? 0} 个分类` },
   ];
 
   return (
@@ -855,11 +865,11 @@ function RealtimeStats() {
                 <span className="text-sm font-medium">7 天调用趋势</span>
               </div>
               <span className="rounded-full bg-secondary/60 px-3 py-1 text-xs text-muted-foreground">
-                最近 7 天
+                近 7 天 {formatNumber(totalRecentRequests)} 次
               </span>
             </div>
             <div className="h-44">
-              {dailyEntries.length > 0 ? (
+              {hasTrendData ? (
                 <ChartContainer
                   config={{
                     requests: {
@@ -891,7 +901,7 @@ function RealtimeStats() {
                     />
                     <ChartTooltip
                       cursor={false}
-                      content={<ChartTooltipContent indicator="line" />}
+                      content={<ChartTooltipContent indicator="line" labelKey="fullDate" />}
                     />
                     <Area
                       type="monotone"
@@ -1156,9 +1166,11 @@ function ImageSubmission() {
               </div>
             </div>
             <div className="text-center">
-              <Button size="sm" className="gradient-button rounded-full border-0 text-white text-xs h-8">
-                前往投稿
-                <ChevronRight className="w-3 h-3 ml-1" />
+              <Button size="sm" className="gradient-button rounded-full border-0 text-white text-xs h-8" asChild>
+                <a href="https://www.paiii.cn/bbs/9" target="_blank" rel="noreferrer">
+                  前往投稿
+                  <ChevronRight className="w-3 h-3 ml-1" />
+                </a>
               </Button>
             </div>
           </CardContent>
