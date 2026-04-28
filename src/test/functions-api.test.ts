@@ -373,6 +373,36 @@ describe("functions api", () => {
     });
   });
 
+  it("clamps paginated list requests to the last page", async () => {
+    await request("/api/batch", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        images: Array.from({ length: 3 }, (_, index) => ({
+          url: `https://cdn.example.test/clamped-${index}.jpg`,
+          title: `Clamped image ${index}`,
+        })),
+      }),
+    });
+
+    const response = await request("/api/list?page=99&pageSize=2");
+
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({
+      page: 2,
+      pageSize: 2,
+      total: 3,
+      totalPages: 2,
+      hasPrevPage: true,
+      hasNextPage: false,
+      items: [
+        expect.objectContaining({
+          title: "Clamped image 2",
+        }),
+      ],
+    });
+  });
+
   it("allows larger batch imports up to 500 images", async () => {
     const images = Array.from({ length: 51 }, (_, index) => ({
       url: `https://cdn.example.test/batch-${index}.jpg`,

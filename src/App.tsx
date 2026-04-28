@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,6 +110,7 @@ const APP_LOGO_URL = 'https://static.paiii.cn/logo.svg';
 const EDGEONE_LOGO_URL = 'https://edgeone.ai/_next/static/media/headLogo.daeb48ad.png';
 const MAX_BATCH_IMAGE_COUNT = 500;
 const GALLERY_PAGE_SIZE = 24;
+const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 36, 60] as const;
 const ADMIN_TOKEN_STORAGE_KEY = 'paiii-admin-token';
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -137,6 +139,31 @@ function setStoredAdminToken(token: string): void {
 
 function parseTagsInput(value: string): string[] {
   return [...new Set(value.split(/[,，]/).map(tag => tag.trim()).filter(Boolean))];
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getVisiblePages(currentPage: number, totalPages: number): number[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const middle = clampNumber(currentPage, 3, totalPages - 2);
+  const pages = new Set([1, middle - 1, middle, middle + 1, totalPages]);
+  return [...pages].sort((a, b) => a - b);
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => window.clearTimeout(timer);
+  }, [value, delayMs]);
+
+  return debouncedValue;
 }
 
 async function copyText(text: string, successMessage = '已复制到剪贴板') {
@@ -1183,18 +1210,21 @@ function GalleryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(GALLERY_PAGE_SIZE);
+  const [pageJumpInput, setPageJumpInput] = useState('1');
   const [adminToken, setAdminToken] = useState(() => getStoredAdminToken());
   const [adminAuthStatus, setAdminAuthStatus] = useState<AdminAuthStatus>(() => getStoredAdminToken() ? 'unverified' : 'empty');
   const [adminBootstrapLoading, setAdminBootstrapLoading] = useState(false);
   const hasAdminToken = adminToken.trim().length > 0;
   const hasVerifiedAdminToken = hasAdminToken && adminAuthStatus === 'valid';
 
-  const searchQuery = searchTerm.trim();
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
+  const searchQuery = debouncedSearchTerm.trim();
   const imagesQuery = useQuery<PaginatedImages>({
-    queryKey: ['images', { page, pageSize: GALLERY_PAGE_SIZE, search: searchQuery, tag: selectedTag }],
+    queryKey: ['images', { page, pageSize, search: searchQuery, tag: selectedTag }],
     queryFn: () => fetchImagesPage({
       page,
-      pageSize: GALLERY_PAGE_SIZE,
+      pageSize,
       search: searchQuery,
       tag: selectedTag,
     }),
@@ -1214,6 +1244,7 @@ function GalleryPage() {
   const filteredTotal = imagesQuery.data?.total ?? 0;
   const tags = stats?.tags ?? [];
   const totalTags = tags.length;
+  const visiblePages = useMemo(() => getVisiblePages(page, totalPages), [page, totalPages]);
   const latestImage = images.reduce<ImageRecord | null>((latest, img) => {
     if (!latest) return img;
     return new Date(img.createdAt).getTime() > new Date(latest.createdAt).getTime() ? img : latest;
@@ -1225,15 +1256,45 @@ function GalleryPage() {
     queryClient.invalidateQueries({ queryKey: ['stats'], refetchType: 'all' });
   }, [queryClient]);
 
+  const prefetchGalleryPage = useCallback((nextPage: number) => {
+    if (nextPage < 1 || nextPage > totalPages) return;
+    queryClient.prefetchQuery({
+      queryKey: ['images', { page: nextPage, pageSize, search: searchQuery, tag: selectedTag }],
+      queryFn: () => fetchImagesPage({
+        page: nextPage,
+        pageSize,
+        search: searchQuery,
+        tag: selectedTag,
+      }),
+      staleTime: 10000,
+    });
+  }, [pageSize, queryClient, searchQuery, selectedTag, totalPages]);
+
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedTag]);
+  }, [pageSize, searchQuery, selectedTag]);
 
   useEffect(() => {
     if (imagesQuery.data && page > imagesQuery.data.totalPages) {
       setPage(imagesQuery.data.totalPages);
     }
   }, [imagesQuery.data, page]);
+
+  useEffect(() => {
+    setPageJumpInput(String(page));
+  }, [page]);
+
+  useEffect(() => {
+    if (imagesQuery.data?.page && imagesQuery.data.page !== page) {
+      setPage(imagesQuery.data.page);
+    }
+  }, [imagesQuery.data?.page, page]);
+
+  useEffect(() => {
+    if (!imagesQuery.data) return;
+    prefetchGalleryPage(page + 1);
+    prefetchGalleryPage(page - 1);
+  }, [imagesQuery.data, page, prefetchGalleryPage]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteImage(id, adminToken.trim()),
@@ -1248,6 +1309,21 @@ function GalleryPage() {
 
   const handleCopyUrl = async (url: string) => {
     await copyText(url, '图片地址已复制');
+  };
+
+  const goToPage = useCallback((nextPage: number) => {
+    setPage(clampNumber(nextPage, 1, totalPages));
+  }, [totalPages]);
+
+  const handlePageJump = (event: React.FormEvent) => {
+    event.preventDefault();
+    const nextPage = Number.parseInt(pageJumpInput, 10);
+    if (!Number.isFinite(nextPage)) {
+      setPageJumpInput(String(page));
+      return;
+    }
+
+    goToPage(nextPage);
   };
 
   const clearFilters = () => {
@@ -1541,7 +1617,7 @@ function GalleryPage() {
           <Card
             key={img.id}
             className="group overflow-hidden glass rounded-2xl animate-fade-in hover-lift"
-            style={{ animationDelay: `${index * 0.05}s` }}
+            style={{ animationDelay: `${Math.min(index, 12) * 0.035}s` }}
           >
             <CardContent className="p-0">
               <div className="relative aspect-video overflow-hidden bg-muted">
@@ -1549,7 +1625,8 @@ function GalleryPage() {
                   src={img.url}
                   alt={img.title}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading="lazy"
+                  loading={index < 6 ? 'eager' : 'lazy'}
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-black/50 sm:bg-black/0 sm:group-hover:bg-black/60 transition-colors duration-300" />
                 <div className="absolute inset-0 flex items-end p-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300 translate-y-0 sm:translate-y-2 sm:group-hover:translate-y-0">
@@ -1616,29 +1693,109 @@ function GalleryPage() {
       </div>
 
       {filteredTotal > 0 && (
-        <div className="mt-8 flex flex-col items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/55 px-4 py-3 text-sm text-muted-foreground sm:flex-row">
-          <span>
-            共 {filteredTotal} 张，当前第 {page} / {totalPages} 页
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1 || imagesQuery.isFetching}
-              onClick={() => setPage(current => Math.max(1, current - 1))}
-            >
-              <ChevronLeft className="mr-1.5 h-4 w-4" />
-              上一页
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages || imagesQuery.isFetching}
-              onClick={() => setPage(current => Math.min(totalPages, current + 1))}
-            >
-              下一页
-              <ChevronRight className="ml-1.5 h-4 w-4" />
-            </Button>
+        <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/55 px-4 py-3 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>共 {filteredTotal} 张</span>
+            <span>每页 {imagesQuery.data?.pageSize ?? pageSize} 张</span>
+            <span>第 {page} / {totalPages} 页</span>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-wrap items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1 || imagesQuery.isFetching}
+                onClick={() => goToPage(1)}
+                aria-label="跳转到第一页"
+              >
+                首页
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                disabled={page <= 1 || imagesQuery.isFetching}
+                onClick={() => goToPage(page - 1)}
+                aria-label="上一页"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              {visiblePages.map((pageNumber, index) => {
+                const previousPage = visiblePages[index - 1];
+                const hasGap = previousPage !== undefined && pageNumber - previousPage > 1;
+
+                return (
+                  <div key={pageNumber} className="flex items-center gap-1">
+                    {hasGap && <span className="flex h-9 w-6 items-center justify-center text-muted-foreground/70">…</span>}
+                    <Button
+                      variant={pageNumber === page ? 'default' : 'outline'}
+                      size="icon"
+                      className="h-9 w-9"
+                      disabled={imagesQuery.isFetching}
+                      onClick={() => goToPage(pageNumber)}
+                      aria-current={pageNumber === page ? 'page' : undefined}
+                      aria-label={`第 ${pageNumber} 页`}
+                    >
+                      {pageNumber}
+                    </Button>
+                  </div>
+                );
+              })}
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                disabled={page >= totalPages || imagesQuery.isFetching}
+                onClick={() => goToPage(page + 1)}
+                aria-label="下一页"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages || imagesQuery.isFetching}
+                onClick={() => goToPage(totalPages)}
+                aria-label="跳转到最后一页"
+              >
+                末页
+              </Button>
+            </div>
+            <form onSubmit={handlePageJump} className="flex items-center gap-2">
+              <Label htmlFor="gallery-page-jump" className="text-xs text-muted-foreground">
+                跳至
+              </Label>
+              <Input
+                id="gallery-page-jump"
+                type="number"
+                min={1}
+                max={totalPages}
+                value={pageJumpInput}
+                onChange={event => setPageJumpInput(event.target.value)}
+                className="h-9 w-20 bg-background/60 text-center"
+                disabled={imagesQuery.isFetching}
+              />
+              <Button type="submit" variant="outline" size="sm" disabled={imagesQuery.isFetching}>
+                跳转
+              </Button>
+            </form>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="gallery-page-size" className="text-xs text-muted-foreground">
+                每页
+              </Label>
+              <Select value={String(pageSize)} onValueChange={value => setPageSize(Number(value))}>
+                <SelectTrigger id="gallery-page-size" className="h-9 w-24 bg-background/60">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GALLERY_PAGE_SIZE_OPTIONS.map(option => (
+                    <SelectItem key={option} value={String(option)}>
+                      {option} 张
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       )}

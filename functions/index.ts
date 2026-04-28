@@ -456,10 +456,10 @@ async function handleListImages(request: Request): Promise<Response> {
     );
   }
 
-  const page = normalizePositiveInt(pageParam, 1);
   const pageSize = normalizePositiveInt(pageSizeParam, DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE);
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(normalizePositiveInt(pageParam, 1), totalPages);
   const start = (page - 1) * pageSize;
   const items = filtered.slice(start, start + pageSize);
 
