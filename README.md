@@ -40,6 +40,8 @@ Authorization: Bearer <ADMIN_TOKEN>
 
 前端图库页会要求输入管理密钥，密钥仅保存在当前浏览器的 `localStorage` 中，用于后续管理请求。
 
+图库页的“校验”按钮会请求 `GET /api/admin/verify`。只有服务端验证通过后，页面才显示“已验证”；随便输入一个非空密钥不会获得管理权限。
+
 ## ESA 部署
 
 当前项目名固定为 `tcpaiii`，避免继续发布到模板项目 `vite-react-template`。

@@ -37,6 +37,10 @@ function request(path: string, init?: RequestInit) {
   return handler.fetch(new Request(`https://example.test${path}`, init));
 }
 
+function requestWithEnv(path: string, init: RequestInit | undefined, env: Record<string, string>) {
+  return handler.fetch(new Request(`https://example.test${path}`, init), env);
+}
+
 function adminHeaders(): Record<string, string> {
   return {
     "Content-Type": "application/json",
@@ -123,6 +127,36 @@ describe("functions api", () => {
     const response = await request("/api/stats");
 
     expect(response.status).toBe(200);
+  });
+
+  it("verifies admin tokens without mutating data", async () => {
+    const response = await request("/api/admin/verify", {
+      headers: {
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("reads admin tokens from runtime env parameters", async () => {
+    vi.stubGlobal("ADMIN_TOKEN", undefined);
+
+    const response = await requestWithEnv("/api/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer runtime-secret",
+      },
+      body: JSON.stringify({ url: "https://cdn.example.test/runtime-env.jpg" }),
+    }, {
+      ADMIN_TOKEN: "runtime-secret",
+    });
+
+    expect(response.status).toBe(201);
   });
 
   it("marks JSON API responses as non-cacheable", async () => {

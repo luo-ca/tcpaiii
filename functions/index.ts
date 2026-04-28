@@ -32,6 +32,10 @@ type RuntimeGlobals = typeof globalThis & {
     env?: Record<string, string | undefined>;
   };
 };
+type RuntimeEnv = Record<string, string | undefined> | {
+  env?: Record<string, string | undefined>;
+  bindings?: Record<string, string | undefined>;
+};
 
 const MAX_BATCH_SIZE = 500;
 const DEFAULT_LIST_PAGE_SIZE = 24;
@@ -72,9 +76,23 @@ function parseStoredJson<T>(value: unknown, fallback: T): T {
   }
 }
 
-function getRuntimeSecret(name: 'ADMIN_TOKEN' | 'ADMIN_TOKEN_SHA256'): string | undefined {
+function getRuntimeSecret(name: 'ADMIN_TOKEN' | 'ADMIN_TOKEN_SHA256', runtimeEnv?: RuntimeEnv): string | undefined {
   const runtime = globalThis as RuntimeGlobals;
-  return runtime[name] || runtime.__ENV?.[name] || runtime.process?.env?.[name];
+  return getEnvSecret(runtimeEnv, name)
+    || runtime[name]
+    || runtime.__ENV?.[name]
+    || runtime.process?.env?.[name];
+}
+
+function getEnvSecret(runtimeEnv: RuntimeEnv | undefined, name: 'ADMIN_TOKEN' | 'ADMIN_TOKEN_SHA256'): string | undefined {
+  if (!runtimeEnv || typeof runtimeEnv !== 'object') return undefined;
+  const directValue = (runtimeEnv as Record<string, string | undefined>)[name];
+  if (directValue) return directValue;
+
+  const envValue = 'env' in runtimeEnv ? runtimeEnv.env?.[name] : undefined;
+  if (envValue) return envValue;
+
+  return 'bindings' in runtimeEnv ? runtimeEnv.bindings?.[name] : undefined;
 }
 
 async function getAllImages(): Promise<ImageRecord[]> {
@@ -222,24 +240,31 @@ async function sha256Hex(value: string): Promise<string> {
     .join('');
 }
 
-async function verifyAdminRequest(request: Request): Promise<Response | null> {
+async function verifyAdminRequest(request: Request, runtimeEnv?: RuntimeEnv): Promise<Response | null> {
   const token = getBearerToken(request);
   if (!token) {
     return json({ error: 'Admin token required' }, 401);
   }
 
-  const plainToken = getRuntimeSecret('ADMIN_TOKEN');
+  const plainToken = getRuntimeSecret('ADMIN_TOKEN', runtimeEnv);
   if (plainToken) {
     return timingSafeEqualString(token, plainToken) ? null : json({ error: 'Invalid admin token' }, 403);
   }
 
-  const tokenHash = getRuntimeSecret('ADMIN_TOKEN_SHA256')?.toLowerCase();
+  const tokenHash = getRuntimeSecret('ADMIN_TOKEN_SHA256', runtimeEnv)?.toLowerCase();
   if (tokenHash) {
     const candidateHash = await sha256Hex(token);
     return timingSafeEqualString(candidateHash, tokenHash) ? null : json({ error: 'Invalid admin token' }, 403);
   }
 
   return json({ error: 'Admin token is not configured' }, 503);
+}
+
+async function handleAdminVerify(request: Request, runtimeEnv?: RuntimeEnv): Promise<Response> {
+  const authError = await verifyAdminRequest(request, runtimeEnv);
+  if (authError) return authError;
+
+  return json({ ok: true });
 }
 
 // ============================================================
@@ -574,7 +599,7 @@ async function handleStats(): Promise<Response> {
 // ============================================================
 
 const handler = {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, runtimeEnv?: RuntimeEnv): Promise<Response> {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
@@ -603,10 +628,16 @@ const handler = {
         return json({ error: 'Method Not Allowed' }, 405);
       }
 
+      // GET /api/admin/verify
+      if (pathname === '/api/admin/verify') {
+        if (request.method === 'GET') return handleAdminVerify(request, runtimeEnv);
+        return json({ error: 'Method Not Allowed' }, 405);
+      }
+
       // POST /api/batch
       if (pathname === '/api/batch') {
         if (request.method === 'POST') {
-          const authError = await verifyAdminRequest(request);
+          const authError = await verifyAdminRequest(request, runtimeEnv);
           if (authError) return authError;
           return handleBatchCreateImages(request);
         }
@@ -616,7 +647,7 @@ const handler = {
       // POST /api/create
       if (pathname === '/api/create') {
         if (request.method === 'POST') {
-          const authError = await verifyAdminRequest(request);
+          const authError = await verifyAdminRequest(request, runtimeEnv);
           if (authError) return authError;
           return handleCreateImage(request);
         }
@@ -627,7 +658,7 @@ const handler = {
       const updateMatch = pathname.match(/^\/api\/update\/(.+)$/);
       if (updateMatch) {
         if (request.method === 'PUT') {
-          const authError = await verifyAdminRequest(request);
+          const authError = await verifyAdminRequest(request, runtimeEnv);
           if (authError) return authError;
           return handleUpdateImage(request, updateMatch[1]);
         }
@@ -638,7 +669,7 @@ const handler = {
       const deleteMatch = pathname.match(/^\/api\/delete\/(.+)$/);
       if (deleteMatch) {
         if (request.method === 'DELETE') {
-          const authError = await verifyAdminRequest(request);
+          const authError = await verifyAdminRequest(request, runtimeEnv);
           if (authError) return authError;
           return handleDeleteImage(deleteMatch[1]);
         }

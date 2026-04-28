@@ -92,6 +92,8 @@ type ApiErrorPayload = {
   message?: string;
 };
 
+type AdminAuthStatus = 'empty' | 'unverified' | 'checking' | 'valid' | 'invalid' | 'unconfigured';
+
 const API_HTML_FALLBACK_MESSAGE = 'API 请求返回了页面 HTML，说明 /api 路由当前没有命中函数，请检查 ESA 路由是否已绑定到 t.paiii.cn/api/*。';
 
 const HEADER_TABS: Array<{ key: AppTab; label: string; icon: typeof Shuffle }> = [
@@ -307,6 +309,12 @@ async function fetchImagesPage(params: {
 
 async function fetchStats(): Promise<Stats> {
   return apiRequest<Stats>('/api/stats', undefined, 'Failed to fetch stats');
+}
+
+async function verifyAdminToken(adminToken: string): Promise<{ ok: true }> {
+  return apiRequest<{ ok: true }>('/api/admin/verify', {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  }, 'Failed to verify admin token');
 }
 
 function getAdminHeaders(adminToken: string): HeadersInit {
@@ -1167,7 +1175,9 @@ function GalleryPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [adminToken, setAdminToken] = useState(() => getStoredAdminToken());
+  const [adminAuthStatus, setAdminAuthStatus] = useState<AdminAuthStatus>(() => getStoredAdminToken() ? 'unverified' : 'empty');
   const hasAdminToken = adminToken.trim().length > 0;
+  const hasVerifiedAdminToken = hasAdminToken && adminAuthStatus === 'valid';
 
   const searchQuery = searchTerm.trim();
   const imagesQuery = useQuery<PaginatedImages>({
@@ -1239,19 +1249,61 @@ function GalleryPage() {
   const handleAdminTokenChange = (value: string) => {
     setAdminToken(value);
     setStoredAdminToken(value.trim());
+    setAdminAuthStatus(value.trim() ? 'unverified' : 'empty');
   };
 
   const clearAdminToken = () => {
     setAdminToken('');
     setStoredAdminToken('');
+    setAdminAuthStatus('empty');
     toast.success('管理密钥已清除');
   };
 
-  const requireAdminToken = (): boolean => {
-    if (hasAdminToken) return true;
-    toast.error('请先填写管理密钥');
-    return false;
-  };
+  const checkAdminToken = useCallback(async (): Promise<boolean> => {
+    const token = adminToken.trim();
+    if (!token) {
+      setAdminAuthStatus('empty');
+      toast.error('请先填写管理密钥');
+      return false;
+    }
+
+    setAdminAuthStatus('checking');
+    try {
+      await verifyAdminToken(token);
+      setAdminAuthStatus('valid');
+      toast.success('管理密钥校验通过');
+      return true;
+    } catch (err) {
+      const message = getErrorMessage(err, '管理密钥校验失败');
+      if (message.includes('not configured')) {
+        setAdminAuthStatus('unconfigured');
+        toast.error('服务端未配置管理密钥，请先在 ESA 环境变量配置 ADMIN_TOKEN');
+      } else {
+        setAdminAuthStatus('invalid');
+        toast.error(message);
+      }
+      return false;
+    }
+  }, [adminToken]);
+
+  const requireAdminToken = useCallback(async (): Promise<boolean> => {
+    if (hasVerifiedAdminToken) return true;
+    if (!hasAdminToken) {
+      toast.error('请先填写管理密钥');
+      return false;
+    }
+
+    return checkAdminToken();
+  }, [checkAdminToken, hasAdminToken, hasVerifiedAdminToken]);
+
+  const adminStatusText = {
+    empty: '只读模式',
+    unverified: '待校验',
+    checking: '校验中',
+    valid: '已验证',
+    invalid: '密钥错误',
+    unconfigured: '服务端未配置',
+  }[adminAuthStatus];
 
   if (isInitialLoading) {
     return (
@@ -1317,9 +1369,23 @@ function GalleryPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant={hasAdminToken ? 'default' : 'outline'} className={hasAdminToken ? 'bg-emerald-600 text-white border-0' : 'text-muted-foreground'}>
-                {hasAdminToken ? '已启用管理权限' : '只读模式'}
+              <Badge
+                variant={hasVerifiedAdminToken ? 'default' : 'outline'}
+                className={hasVerifiedAdminToken ? 'bg-emerald-600 text-white border-0' : 'text-muted-foreground'}
+              >
+                {adminStatusText}
               </Badge>
+              {hasAdminToken && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void checkAdminToken()}
+                  disabled={adminAuthStatus === 'checking'}
+                >
+                  {adminAuthStatus === 'checking' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-1.5 h-3.5 w-3.5" />}
+                  校验
+                </Button>
+              )}
               {hasAdminToken && (
                 <Button variant="outline" size="sm" onClick={clearAdminToken}>
                   清除
@@ -1484,8 +1550,8 @@ function GalleryPage() {
                             <AlertDialogFooter>
                               <AlertDialogCancel>取消</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => {
-                                  if (requireAdminToken()) deleteMutation.mutate(img.id);
+                                onClick={async () => {
+                                  if (await requireAdminToken()) deleteMutation.mutate(img.id);
                                 }}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
@@ -1546,7 +1612,7 @@ function AddImageDialog({
 }: {
   adminToken: string;
   onSuccess: () => void;
-  onRequireToken: () => boolean;
+  onRequireToken: () => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'single' | 'batch'>('single');
@@ -1577,7 +1643,7 @@ function AddImageDialog({
   // 批量添加（使用批量 API，一次请求完成）
   const handleBatchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!onRequireToken()) return;
+    if (!(await onRequireToken())) return;
 
     const lines = [...new Set(batchUrls.split('\n').map(l => l.trim()).filter(Boolean))];
     if (lines.length === 0) { toast.error('请输入至少一个图片地址'); return; }
@@ -1612,11 +1678,13 @@ function AddImageDialog({
 
   const handleSingleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!onRequireToken()) return;
+    void (async () => {
+      if (!(await onRequireToken())) return;
 
-    if (!url.trim()) { toast.error('请输入图片地址'); return; }
-    setLoading(true);
-    singleMutation.mutate(undefined, { onSettled: () => setLoading(false) });
+      if (!url.trim()) { toast.error('请输入图片地址'); return; }
+      setLoading(true);
+      singleMutation.mutate(undefined, { onSettled: () => setLoading(false) });
+    })();
   };
 
   return (
@@ -1735,7 +1803,7 @@ function EditImageDialog({
   image: ImageRecord;
   adminToken: string;
   onSuccess: () => void;
-  onRequireToken: () => boolean;
+  onRequireToken: () => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState('');
@@ -1755,11 +1823,13 @@ function EditImageDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!onRequireToken()) return;
+    void (async () => {
+      if (!(await onRequireToken())) return;
 
-    if (!url.trim()) { toast.error('请输入图片地址'); return; }
-    setLoading(true);
-    mutation.mutate(undefined, { onSettled: () => setLoading(false) });
+      if (!url.trim()) { toast.error('请输入图片地址'); return; }
+      setLoading(true);
+      mutation.mutate(undefined, { onSettled: () => setLoading(false) });
+    })();
   };
 
   return (
