@@ -188,6 +188,27 @@ function getNonJsonApiMessage(response: Response, body: string, fallback: string
   return `${fallback}：接口返回了非 JSON 内容`;
 }
 
+function withNoCacheQuery(input: RequestInfo | URL, init?: RequestInit): RequestInfo | URL {
+  const method = init?.method?.toUpperCase() ?? 'GET';
+  if (method !== 'GET') return input;
+
+  const cacheBustValue = String(Date.now());
+
+  if (typeof input === 'string') {
+    const url = new URL(input, window.location.origin);
+    url.searchParams.set('_t', cacheBustValue);
+    return url.pathname + url.search + url.hash;
+  }
+
+  if (input instanceof URL) {
+    const nextUrl = new URL(input.toString());
+    nextUrl.searchParams.set('_t', cacheBustValue);
+    return nextUrl;
+  }
+
+  return input;
+}
+
 async function getApiErrorMessage(response: Response, fallback: string): Promise<string> {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
 
@@ -207,7 +228,10 @@ async function getApiErrorMessage(response: Response, fallback: string): Promise
 }
 
 async function apiRequest<T>(input: RequestInfo | URL, init: RequestInit | undefined, fallback: string): Promise<T> {
-  const response = await fetch(input, init);
+  const response = await fetch(withNoCacheQuery(input, init), {
+    ...init,
+    cache: 'no-store',
+  });
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
 
   if (!response.ok) {

@@ -189,7 +189,18 @@ function corsHeaders(): Record<string, string> {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400',
+    'Access-Control-Max-Age': '0',
+  };
+}
+
+function noStoreHeaders(): Record<string, string> {
+  return {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
+    'CDN-Cache-Control': 'no-store',
+    'Surrogate-Control': 'no-store',
+    Pragma: 'no-cache',
+    Expires: '0',
+    Vary: 'Accept, Accept-Encoding',
   };
 }
 
@@ -198,7 +209,7 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: {
       'content-type': 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      ...noStoreHeaders(),
       ...corsHeaders(),
     },
   });
@@ -263,7 +274,7 @@ async function handleRandomImage(request: Request): Promise<Response> {
     status: 302,
     headers: {
       Location: selected.url,
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      ...noStoreHeaders(),
       ...corsHeaders(),
     },
   });
@@ -507,7 +518,12 @@ const handler = {
 
     // CORS preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders() });
+      return new Response(null, {
+        headers: {
+          ...noStoreHeaders(),
+          ...corsHeaders(),
+        },
+      });
     }
 
     try {

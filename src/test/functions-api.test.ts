@@ -62,6 +62,33 @@ describe("functions api", () => {
     });
   });
 
+  it("marks JSON API responses as non-cacheable", async () => {
+    const response = await request("/api/stats");
+
+    expect(response.headers.get("Cache-Control")).toContain("no-store");
+    expect(response.headers.get("CDN-Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Surrogate-Control")).toBe("no-store");
+    expect(response.headers.get("Pragma")).toBe("no-cache");
+    expect(response.headers.get("Expires")).toBe("0");
+  });
+
+  it("marks random redirects as non-cacheable", async () => {
+    await request("/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "https://cdn.example.test/no-cache.jpg", tags: ["cache"] }),
+    });
+
+    const response = await request("/api/random?tag=cache");
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Cache-Control")).toContain("no-store");
+    expect(response.headers.get("CDN-Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Surrogate-Control")).toBe("no-store");
+    expect(response.headers.get("Pragma")).toBe("no-cache");
+    expect(response.headers.get("Expires")).toBe("0");
+  });
+
   it("rejects non-http image URLs", async () => {
     const response = await request("/api/create", {
       method: "POST",
