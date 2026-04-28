@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="paiii-favicon-gradient" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#007AFF"/>
+      <stop offset="0.55" stop-color="#5856D6"/>
+      <stop offset="1" stop-color="#AF52DE"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#paiii-favicon-gradient)"/>
+  <path d="M16 19.5C16 16.46 18.46 14 21.5 14H35C43.28 14 50 20.72 50 29C50 37.28 43.28 44 35 44H28V50H16V19.5ZM28 25.5V32.5H35C36.93 32.5 38.5 30.93 38.5 29C38.5 27.07 36.93 25.5 35 25.5H28Z" fill="white"/>
+</svg>
