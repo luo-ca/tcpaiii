@@ -1,5 +1,5 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "tcpaiii",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "esa:login": "esa-cli login",
+    "esa:deploy": "npm run build && esa-cli deploy --environment production --name tcpaiii --assets ./dist --description \"deploy tcpaiii\"",
+    "esa:route:list": "esa-cli route list",
+    "esa:route:api": "esa-cli route add t.paiii.cn/api/* paiii.cn --alias tcpaiii-api",
+    "check:api": "node scripts/check-api.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

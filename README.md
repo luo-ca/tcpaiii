@@ -1,69 +1,67 @@
-# Welcome to your Vesa project
+# tcpaiii
 
-## Project info
+派次元 API 前端与 ESA Functions & Pages 项目，线上域名为 `https://t.paiii.cn`。前端负责在线预览、图库管理、接口文档和统计展示，后端函数提供随机图片、图库增删改查、批量导入和统计接口。
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Vesa**
-
-Start prompting in Vesa to make changes.
-
-Changes made via Vesa will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Vesa.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## 本地开发
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+常用检查：
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run lint
+npm run test
+npm run build
+```
 
-**Use GitHub Codespaces**
+## API 行为
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- `GET /api/random`：默认 `302` 重定向到随机图片 URL。
+- `GET /api/random?tag=acg`：按标签筛选后 `302` 重定向到图片 URL。
+- `GET /api/random?format=json`：返回 JSON，供在线预览和前端调用使用。
+- `GET /api/stats`：返回图片数量、标签列表、调用统计和最近 7 天数据。
+- `GET /api/list`：返回图库列表。
+- `POST /api/create`、`PUT /api/update/:id`、`DELETE /api/delete/:id`、`POST /api/batch`：图库管理接口。
 
-## What technologies are used for this project?
+## ESA 部署
 
-This project is built with:
+当前项目名固定为 `tcpaiii`，避免继续发布到模板项目 `vite-react-template`。
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+npm run esa:login
+npm run esa:deploy
+```
 
-## How can I deploy this project?
+如果线上访问 `/api/random?format=json` 返回 `<!doctype html>` 或首页内容，说明 `/api/*` 没有命中函数，通常是路由绑定缺失或仍在访问旧项目。登录 ESA 后执行：
 
-Simply open Vesa and click on Share -> Publish.
+```sh
+npm run esa:route:list
+npm run esa:route:api
+npm run check:api
+```
 
-## Can I connect a custom domain to my Vesa project?
+`esa:route:api` 绑定的是：
 
-Yes, you can!
+```sh
+esa-cli route add t.paiii.cn/api/* paiii.cn --alias tcpaiii-api
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+绑定成功后：
+
+- `https://t.paiii.cn/api/random` 应返回 `302`，响应头 `Location` 是图片地址。
+- `https://t.paiii.cn/api/random?tag=acg` 应返回 `302`，响应头 `Location` 是图片地址。
+- `https://t.paiii.cn/api/random?format=json` 应返回 `application/json`。
+
+## GitHub
+
+远程仓库：
+
+```sh
+git remote -v
+git push -u origin main
+```
+
+如果 HTTPS 推送失败，需要先在本机登录 GitHub CLI、配置凭据管理器，或把远程地址切换为 SSH。

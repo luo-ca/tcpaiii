@@ -80,6 +80,8 @@ type ApiErrorPayload = {
   message?: string;
 };
 
+const API_HTML_FALLBACK_MESSAGE = 'API 请求返回了页面 HTML，说明 /api 路由当前没有命中函数，请检查 ESA 路由是否已绑定到 t.paiii.cn/api/*。';
+
 const HEADER_TABS: Array<{ key: AppTab; label: string; icon: typeof Shuffle }> = [
   { key: 'random', label: '随机', icon: Shuffle },
   { key: 'gallery', label: '图库', icon: Image },
@@ -134,21 +136,66 @@ function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   return typeof value === 'object' && value !== null;
 }
 
-async function getApiErrorMessage(response: Response, fallback: string): Promise<string> {
+function isJsonContentType(contentType: string): boolean {
+  return contentType.includes('application/json') || contentType.includes('+json');
+}
+
+function isLikelyHtmlResponse(contentType: string, body: string): boolean {
+  const normalizedBody = body.trim().slice(0, 200).toLowerCase();
+  return contentType.includes('text/html')
+    || normalizedBody.startsWith('<!doctype')
+    || normalizedBody.startsWith('<html')
+    || normalizedBody.includes('<head');
+}
+
+function summarizeBody(body: string): string {
+  return body.trim().replace(/\s+/g, ' ').slice(0, 140);
+}
+
+async function readTextSafely(response: Response): Promise<string> {
   try {
-    const payload = await response.json();
-    if (isApiErrorPayload(payload)) {
-      return payload.error || payload.message || fallback;
+    return await response.text();
+  } catch {
+    return '';
+  }
+}
+
+function getNonJsonApiMessage(response: Response, body: string, fallback: string): string {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+
+  if (isLikelyHtmlResponse(contentType, body)) {
+    return API_HTML_FALLBACK_MESSAGE;
+  }
+
+  const summary = summarizeBody(body);
+  if (summary) {
+    return `${fallback}：接口返回了非 JSON 内容（${summary}）`;
+  }
+
+  return `${fallback}：接口返回了非 JSON 内容`;
+}
+
+async function getApiErrorMessage(response: Response, fallback: string): Promise<string> {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+
+  try {
+    if (isJsonContentType(contentType)) {
+      const payload = await response.clone().json();
+      if (isApiErrorPayload(payload)) {
+        return payload.error || payload.message || fallback;
+      }
     }
   } catch {
     // Non-JSON error bodies are handled by the fallback below.
   }
 
-  return fallback;
+  const body = await readTextSafely(response.clone());
+  return getNonJsonApiMessage(response, body, fallback);
 }
 
 async function apiRequest<T>(input: RequestInfo | URL, init: RequestInit | undefined, fallback: string): Promise<T> {
   const response = await fetch(input, init);
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
 
   if (!response.ok) {
     throw new Error(await getApiErrorMessage(response, fallback));
@@ -158,7 +205,16 @@ async function apiRequest<T>(input: RequestInfo | URL, init: RequestInit | undef
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  if (!isJsonContentType(contentType)) {
+    const body = await readTextSafely(response.clone());
+    throw new Error(getNonJsonApiMessage(response, body, fallback));
+  }
+
+  try {
+    return await response.json() as T;
+  } catch {
+    throw new Error(`${fallback}：接口返回的 JSON 无法解析`);
+  }
 }
 
 // ============================================================
@@ -826,8 +882,8 @@ function ApiDocsSection() {
                 <p className="text-xs text-muted-foreground mb-3">通过 tag 参数指定图片分类</p>
                 <div className="space-y-2">
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
-                    <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{APP_DOMAIN}/api/random?tag=风景</code>
-                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`${APP_DOMAIN}/api/random?tag=风景`)}>
+                    <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{APP_DOMAIN}/api/random?tag=acg</code>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`${APP_DOMAIN}/api/random?tag=acg`)}>
                       <CopyIcon className="w-3.5 h-3.5" />
                       <span className="ml-1 text-xs">复制</span>
                     </Button>
@@ -857,8 +913,8 @@ function ApiDocsSection() {
 {`{
   "id": "img-001",
   "url": "https://example.com/image.jpg",
-  "title": "优胜美地山谷",
-  "tags": ["风景", "自然", "山脉"],
+  "title": "二次元插画",
+  "tags": ["acg", "二次元"],
   "createdAt": "2025-01-15T08:00:00Z"
 }`}
                   </pre>

@@ -1,8 +1,7 @@
 {
-  "name": "vite-react-template",
+  "name": "tcpaiii",
   "entry": "./functions/index.ts",
   "assets": {
-    "directory": "./dist",
-    "notFoundStrategy": "singlePageApplication"
+    "directory": "./dist"
   }
 }
