@@ -106,12 +106,43 @@ const HEADER_TABS: Array<{ key: AppTab; label: string; icon: typeof Shuffle }> =
 ];
 
 const APP_NAME = '派次元 API';
-const APP_DOMAIN = 'https://t.paiii.cn';
+const APP_FALLBACK_DOMAIN = 'https://t.paiii.cn';
 const APP_LOGO_URL = 'https://static.paiii.cn/logo.svg';
 const EDGEONE_LOGO_URL = 'https://edgeone.ai/_next/static/media/headLogo.daeb48ad.png';
 const MAX_BATCH_IMAGE_COUNT = 500;
 const GALLERY_PAGE_SIZE = 24;
 const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 36, 60] as const;
+const EDGEONE_PREVIEW_QUERY_KEYS = ['eo_token', 'eo_time'] as const;
+
+function getAppOrigin(): string {
+  if (typeof window === 'undefined') return APP_FALLBACK_DOMAIN;
+  return window.location.origin;
+}
+
+function appendCurrentPreviewParams(url: URL): URL {
+  if (typeof window === 'undefined') return url;
+
+  const currentParams = new URLSearchParams(window.location.search);
+  for (const key of EDGEONE_PREVIEW_QUERY_KEYS) {
+    const value = currentParams.get(key);
+    if (value && !url.searchParams.has(key)) {
+      url.searchParams.set(key, value);
+    }
+  }
+
+  return url;
+}
+
+function buildAppUrl(path: string): string {
+  const url = new URL(path, getAppOrigin());
+  return appendCurrentPreviewParams(url).toString();
+}
+
+function buildApiPath(path: string): string {
+  if (typeof window === 'undefined') return path;
+  const url = appendCurrentPreviewParams(new URL(path, window.location.origin));
+  return url.pathname + url.search + url.hash;
+}
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
@@ -231,13 +262,13 @@ function withNoCacheQuery(input: RequestInfo | URL, init?: RequestInit): Request
   const cacheBustValue = String(Date.now());
 
   if (typeof input === 'string') {
-    const url = new URL(input, window.location.origin);
+    const url = new URL(buildApiPath(input), window.location.origin);
     url.searchParams.set('_t', cacheBustValue);
     return url.pathname + url.search + url.hash;
   }
 
   if (input instanceof URL) {
-    const nextUrl = new URL(input.toString());
+    const nextUrl = appendCurrentPreviewParams(new URL(input.toString()));
     nextUrl.searchParams.set('_t', cacheBustValue);
     return nextUrl;
   }
@@ -552,6 +583,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
   const requestIdRef = useRef(0);
   const [imageKey, setImageKey] = useState(0);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const randomApiUrl = buildAppUrl(`/api/random${selectedTag ? `?tag=${encodeURIComponent(selectedTag)}` : ''}`);
 
   const { data: stats } = useQuery<Stats>({
     queryKey: ['stats'],
@@ -644,7 +676,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
             </div>
             <div className="min-w-0 flex-1 sm:ml-3">
               <div className="truncate rounded-md bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground border border-border/60 font-mono">
-                {APP_DOMAIN}/api/random{selectedTag ? `?tag=${selectedTag}` : ''}
+                {randomApiUrl}
               </div>
             </div>
             <Button
@@ -944,6 +976,9 @@ function WhyChoose() {
 
 function ApiDocsSection() {
   const [activeDocTab, setActiveDocTab] = useState('basic');
+  const randomApiUrl = buildAppUrl('/api/random');
+  const randomTagApiUrl = buildAppUrl('/api/random?tag=acg');
+  const randomJsonApiUrl = buildAppUrl('/api/random?format=json');
 
   const copyCode = async (text: string) => {
     await copyText(text);
@@ -979,9 +1014,9 @@ function ApiDocsSection() {
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">API 地址（默认 302）</p>
-                      <code className="block overflow-x-auto whitespace-nowrap text-sm text-foreground">{APP_DOMAIN}/api/random</code>
+                      <code className="block overflow-x-auto whitespace-nowrap text-sm text-foreground">{randomApiUrl}</code>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`${APP_DOMAIN}/api/random`)}>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomApiUrl)}>
                       <CopyIcon className="w-3.5 h-3.5" />
                       <span className="ml-1 text-xs">复制</span>
                     </Button>
@@ -989,9 +1024,9 @@ function ApiDocsSection() {
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">HTML 使用示例</p>
-                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`<img src="${APP_DOMAIN}/api/random" alt="随机图片" />`}</code>
+                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`<img src="${randomApiUrl}" alt="随机图片" />`}</code>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`<img src="${APP_DOMAIN}/api/random" alt="随机图片" />`)}>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`<img src="${randomApiUrl}" alt="随机图片" />`)}>
                       <CopyIcon className="w-3.5 h-3.5" />
                       <span className="ml-1 text-xs">复制</span>
                     </Button>
@@ -999,9 +1034,9 @@ function ApiDocsSection() {
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">Markdown 使用示例</p>
-                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`![随机图片](${APP_DOMAIN}/api/random)`}</code>
+                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`![随机图片](${randomApiUrl})`}</code>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`![随机图片](${APP_DOMAIN}/api/random)`)}>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`![随机图片](${randomApiUrl})`)}>
                       <CopyIcon className="w-3.5 h-3.5" />
                       <span className="ml-1 text-xs">复制</span>
                     </Button>
@@ -1021,8 +1056,8 @@ function ApiDocsSection() {
                 <p className="text-xs text-muted-foreground mb-3">通过 tag 参数指定图片分类</p>
                 <div className="space-y-2">
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
-                    <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{APP_DOMAIN}/api/random?tag=acg</code>
-                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`${APP_DOMAIN}/api/random?tag=acg`)}>
+                    <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{randomTagApiUrl}</code>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomTagApiUrl)}>
                       <CopyIcon className="w-3.5 h-3.5" />
                       <span className="ml-1 text-xs">复制</span>
                     </Button>
@@ -1041,8 +1076,8 @@ function ApiDocsSection() {
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">追加 format=json 返回 JSON 数据，包含图片 URL、标题、标签等信息</p>
                 <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg mb-3 sm:flex-row sm:items-center sm:justify-between">
-                  <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{APP_DOMAIN}/api/random?format=json</code>
-                  <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`${APP_DOMAIN}/api/random?format=json`)}>
+                  <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{randomJsonApiUrl}</code>
+                  <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomJsonApiUrl)}>
                     <CopyIcon className="w-3.5 h-3.5" />
                     <span className="ml-1 text-xs">复制</span>
                   </Button>
@@ -1081,7 +1116,7 @@ function ApiDocsSection() {
                   <div className="p-3 bg-muted/40 rounded-lg">
                     <p className="text-muted-foreground mb-1">命令行调用</p>
                     <pre className="text-foreground overflow-x-auto">
-{`curl ${APP_DOMAIN}/api/random`}
+{`curl ${randomApiUrl}`}
                     </pre>
                   </div>
                 </div>
@@ -2064,6 +2099,7 @@ function EditImageDialog({
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('random');
   const [shuffleTrigger, setShuffleTrigger] = useState(0);
+  const appUrl = buildAppUrl('/');
 
   const handleTabChange = (tab: AppTab) => {
     setActiveTab(tab);
@@ -2194,7 +2230,7 @@ export default function App() {
                 <ExternalLink className="w-3 h-3 shrink-0" aria-hidden />
               </a>
               <a
-                href={APP_DOMAIN}
+                href={appUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-foreground transition-colors inline-flex items-center gap-1"
