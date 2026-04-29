@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getRecentStatsDateKeys, getStatsDateKey, handler } from "../../edge-functions/api/[[default]]";
+import { getRecentStatsDateKeys, getStatsDateKey, handler } from "../../edge-functions/api/[[default]].js";
 
 type Store = Record<string, Map<string, string>>;
 
@@ -148,6 +148,16 @@ describe("functions api", () => {
     const response = await request("/api/stats");
 
     expect(response.status).toBe(200);
+  });
+
+  it("exposes a health endpoint for deployment checks", async () => {
+    const response = await request("/api/health");
+
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({
+      ok: true,
+      runtime: "edgeone-pages",
+    });
   });
 
   it("verifies admin tokens without mutating data", async () => {

@@ -15,5 +15,5 @@
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false
   },
-  "include": ["edge-functions/**/*.ts"]
+  "include": ["edge-functions/**/*.js"]
 }

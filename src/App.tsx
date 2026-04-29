@@ -97,7 +97,7 @@ type ApiErrorPayload = {
 
 type AdminAuthStatus = 'empty' | 'unverified' | 'checking' | 'valid' | 'invalid' | 'unconfigured';
 
-const API_HTML_FALLBACK_MESSAGE = 'API 请求返回了页面 HTML，说明 /api 路由当前没有命中 EdgeOne Pages 函数，请检查 edge-functions/api/[[default]] 是否已随项目部署。';
+const API_HTML_FALLBACK_MESSAGE = 'API 请求返回了页面 HTML，说明 /api 路由当前没有命中 EdgeOne Pages 函数，请检查 edge-functions/api/[[default]].js 是否已随项目部署。';
 
 const HEADER_TABS: Array<{ key: AppTab; label: string; icon: typeof Shuffle }> = [
   { key: 'random', label: '随机', icon: Shuffle },
