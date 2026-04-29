@@ -4,6 +4,11 @@ const MAX_LIST_PAGE_SIZE = 60;
 const ALLOWED_IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 const STATS_TIME_ZONE = 'Asia/Shanghai';
 const ADMIN_CONFIG_KEY = 'admin-config';
+const API_BUILD_ID = 'edgeone-js-kv-diagnostics-2026-04-29';
+const KV_BINDING_NAMES = {
+    images: ['images_kv', 'IMAGES_KV', 'images'],
+    stats: ['stats_kv', 'STATS_KV', 'stats'],
+};
 // ============================================================
 // KV Helpers
 // EdgeOne Pages KV is exposed through project-bound variables
@@ -18,7 +23,7 @@ function getKvImages(runtimeEnv) {
         || getDirectKvBinding(() => images);
     if (directBinding)
         return directBinding;
-    return getRuntimeKv(runtimeEnv, ['images_kv', 'IMAGES_KV', 'images'], 'images', () => {
+    return getRuntimeKv(runtimeEnv, KV_BINDING_NAMES.images, 'images', () => {
         if (!_legacyKvImages) {
             _legacyKvImages = createLegacyKv('images');
         }
@@ -31,7 +36,7 @@ function getKvStats(runtimeEnv) {
         || getDirectKvBinding(() => stats);
     if (directBinding)
         return directBinding;
-    return getRuntimeKv(runtimeEnv, ['stats_kv', 'STATS_KV', 'stats'], 'stats', () => {
+    return getRuntimeKv(runtimeEnv, KV_BINDING_NAMES.stats, 'stats', () => {
         if (!_legacyKvStats) {
             _legacyKvStats = createLegacyKv('stats');
         }
@@ -68,8 +73,91 @@ function createLegacyKv(namespace) {
 function isKvNamespace(value) {
     return isJsonObject(value)
         && typeof value.get === 'function'
-        && typeof value.put === 'function'
-        && typeof value.delete === 'function';
+        && typeof value.put === 'function';
+}
+function readOptionalBinding(readBinding) {
+    try {
+        return readBinding();
+    }
+    catch (_a) {
+        return undefined;
+    }
+}
+function readDirectBindingByName(name) {
+    switch (name) {
+        case 'images_kv':
+            return readOptionalBinding(() => images_kv);
+        case 'IMAGES_KV':
+            return readOptionalBinding(() => IMAGES_KV);
+        case 'images':
+            return readOptionalBinding(() => images);
+        case 'stats_kv':
+            return readOptionalBinding(() => stats_kv);
+        case 'STATS_KV':
+            return readOptionalBinding(() => STATS_KV);
+        case 'stats':
+            return readOptionalBinding(() => stats);
+        default:
+            return undefined;
+    }
+}
+function describeBinding(value) {
+    if (value === undefined || value === null) {
+        return { present: false };
+    }
+    return {
+        present: true,
+        type: typeof value,
+        isKvNamespace: isKvNamespace(value),
+        hasGet: typeof value.get === 'function',
+        hasPut: typeof value.put === 'function',
+        hasDelete: typeof value.delete === 'function',
+        hasList: typeof value.list === 'function',
+        keys: getObjectKeys(value),
+    };
+}
+function getObjectKeys(value) {
+    if (!isJsonObject(value))
+        return [];
+    try {
+        return Object.keys(value).slice(0, 20);
+    }
+    catch (_a) {
+        return [];
+    }
+}
+function describeRuntimeEnv(runtimeEnv) {
+    var _a, _b;
+    if (!runtimeEnv || typeof runtimeEnv !== 'object') {
+        return { present: false, type: typeof runtimeEnv };
+    }
+    return {
+        present: true,
+        type: typeof runtimeEnv,
+        keys: getObjectKeys(runtimeEnv),
+        envKeys: getObjectKeys('env' in runtimeEnv ? (_a = runtimeEnv.env) !== null && _a !== void 0 ? _a : null : null),
+        bindingKeys: getObjectKeys('bindings' in runtimeEnv ? (_b = runtimeEnv.bindings) !== null && _b !== void 0 ? _b : null : null),
+    };
+}
+function getKvDiagnostics(runtimeEnv) {
+    const diagnostics = {
+        expectedBindings: KV_BINDING_NAMES,
+        runtimeEnv: describeRuntimeEnv(runtimeEnv),
+        bindings: {},
+    };
+    for (const name of [...KV_BINDING_NAMES.images, ...KV_BINDING_NAMES.stats]) {
+        diagnostics.bindings[name] = {
+            direct: describeBinding(readDirectBindingByName(name)),
+            runtimeEnv: describeBinding(getEnvBinding(runtimeEnv, name)),
+            globalThis: describeBinding(globalThis[name]),
+        };
+    }
+    return diagnostics;
+}
+function getSafeErrorMessage(err) {
+    if (err instanceof Error)
+        return err.message;
+    return typeof err === 'string' ? err : String(err);
 }
 function parseStoredJson(value, fallback) {
     if (typeof value !== 'string') {
@@ -575,7 +663,13 @@ const handler = {
         // GET /api/health
         if (pathname === '/api/health') {
             if (request.method === 'GET')
-                return json({ ok: true, runtime: 'edgeone-pages', timestamp: new Date().toISOString() });
+                return json({
+                    ok: true,
+                    runtime: 'edgeone-pages',
+                    buildId: API_BUILD_ID,
+                    timestamp: new Date().toISOString(),
+                    kv: getKvDiagnostics(runtimeEnv),
+                });
             return json({ error: 'Method Not Allowed' }, 405);
         }
 
@@ -652,14 +746,18 @@ const handler = {
         catch (err) {
             // 捕获所有未预期的运行时错误，防止 ER 进程崩溃
             console.error('Unhandled error:', err);
-            return json({ error: 'Internal Server Error' }, 500);
+            return json({
+                error: 'Internal Server Error',
+                message: getSafeErrorMessage(err),
+                buildId: API_BUILD_ID,
+            }, 500);
         }
     },
 };
 async function onRequest(context) {
     return handler.fetch(context.request, context.env);
 }
-export default handler;
+export default onRequest;
 export { handler };
 export { onRequest };
 export { getRecentStatsDateKeys, getStatsDateKey };

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getRecentStatsDateKeys, getStatsDateKey, handler } from "../../edge-functions/api/[[default]].js";
 
 type Store = Record<string, Map<string, string>>;
+type TestKv = ReturnType<typeof edgeOneKv>;
 
 const store: Store = {};
 const ADMIN_TOKEN = "test-admin-token";
@@ -37,14 +38,14 @@ function request(path: string, init?: RequestInit) {
   return handler.fetch(new Request(`https://example.test${path}`, init));
 }
 
-function requestWithEnv(path: string, init: RequestInit | undefined, env: Record<string, string | ReturnType<typeof edgeOneKv>>) {
+function requestWithEnv(path: string, init: RequestInit | undefined, env: Record<string, string | TestKv>) {
   return handler.fetch(new Request(`https://example.test${path}`, init), env);
 }
 
-function edgeOneKv(namespace: string) {
+function edgeOneKv(namespace: string, options: { delete?: boolean } = {}) {
   store[namespace] ??= new Map();
 
-  return {
+  const kv = {
     get(key: string) {
       return Promise.resolve(store[namespace].get(key));
     },
@@ -56,10 +57,14 @@ function edgeOneKv(namespace: string) {
       store[namespace].set(key, value);
       return Promise.resolve();
     },
-    delete(key: string) {
+    ...(options.delete === false ? {} : {
+      delete(key: string) {
       return Promise.resolve(store[namespace].delete(key));
-    },
+      },
+    }),
   };
+
+  return kv;
 }
 
 function adminHeaders(): Record<string, string> {
@@ -151,12 +156,38 @@ describe("functions api", () => {
   });
 
   it("exposes a health endpoint for deployment checks", async () => {
-    const response = await request("/api/health");
+    vi.stubGlobal("EdgeKV", undefined);
+
+    const response = await requestWithEnv("/api/health", undefined, {
+      images_kv: edgeOneKv("health-images"),
+      stats_kv: edgeOneKv("health-stats"),
+    });
 
     expect(response.status).toBe(200);
     await expect(json(response)).resolves.toMatchObject({
       ok: true,
       runtime: "edgeone-pages",
+      buildId: "edgeone-js-kv-diagnostics-2026-04-29",
+      kv: {
+        bindings: {
+          images_kv: {
+            runtimeEnv: {
+              present: true,
+              isKvNamespace: true,
+              hasGet: true,
+              hasPut: true,
+            },
+          },
+          stats_kv: {
+            runtimeEnv: {
+              present: true,
+              isKvNamespace: true,
+              hasGet: true,
+              hasPut: true,
+            },
+          },
+        },
+      },
     });
   });
 
@@ -214,6 +245,30 @@ describe("functions api", () => {
       url: "https://cdn.example.test/edgeone-kv.jpg",
     });
     expect(store["edgeone-stats"].get("data")).toContain("\"totalRequests\":1");
+  });
+
+  it("accepts EdgeOne KV bindings without a delete method", async () => {
+    vi.stubGlobal("EdgeKV", undefined);
+
+    const env = {
+      ADMIN_TOKEN,
+      images_kv: edgeOneKv("edgeone-images-no-delete", { delete: false }),
+      stats_kv: edgeOneKv("edgeone-stats-no-delete", { delete: false }),
+    };
+
+    const create = await requestWithEnv("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/no-delete.jpg" }),
+    }, env);
+
+    expect(create.status).toBe(201);
+
+    const list = await requestWithEnv("/api/list", undefined, env);
+    expect(list.status).toBe(200);
+    const listBody = await json(list);
+    expect(Array.isArray(listBody)).toBe(true);
+    expect(listBody).toHaveLength(1);
   });
 
   it("reads admin token hashes from KV without exposing the original token", async () => {
