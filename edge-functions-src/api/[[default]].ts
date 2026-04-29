@@ -1,5 +1,55 @@
 // Source of truth for EdgeOne Pages Functions. Run `npm run build:functions`
 // to generate edge-functions/api/[[default]].js for deployment.
+
+type KvValue = string | ArrayBuffer | ArrayBufferView | ReadableStream;
+
+type KvNamespace = {
+    get(key: string): Promise<unknown>;
+    put(key: string, value: KvValue): Promise<unknown>;
+    delete?: (key: string) => Promise<unknown>;
+    list?: (...args: unknown[]) => Promise<unknown>;
+};
+
+type EdgeKvConstructor = new (options: { namespace: string }) => KvNamespace;
+type RuntimeBinding = string | KvNamespace | undefined;
+type RuntimeBindingRecord = Record<string, RuntimeBinding> & {
+    env?: RuntimeBindingRecord;
+    bindings?: RuntimeBindingRecord;
+};
+type RuntimeEnv = RuntimeBindingRecord | undefined;
+type RuntimeGlobals = typeof globalThis & {
+    ADMIN_TOKEN?: string;
+    ADMIN_TOKEN_SHA256?: string;
+    EdgeKV?: EdgeKvConstructor;
+    __ENV?: Record<string, string | undefined>;
+    process?: {
+        env?: Record<string, string | undefined>;
+    };
+};
+type EdgeOnePagesContext = {
+    request: Request;
+    env?: RuntimeEnv;
+};
+type ImageRecord = {
+    id: string;
+    url: string;
+    title: string;
+    tags: string[];
+    createdAt: string;
+};
+type StatsRecord = {
+    totalRequests: number;
+    lastRequestAt: string | null;
+    dailyRequests: Record<string, number>;
+};
+
+declare const images_kv: KvNamespace | undefined;
+declare const IMAGES_KV: KvNamespace | undefined;
+declare const images: KvNamespace | undefined;
+declare const stats_kv: KvNamespace | undefined;
+declare const STATS_KV: KvNamespace | undefined;
+declare const stats: KvNamespace | undefined;
+
 const MAX_BATCH_SIZE = 500;
 const DEFAULT_LIST_PAGE_SIZE = 24;
 const MAX_LIST_PAGE_SIZE = 60;
@@ -20,9 +70,9 @@ const KV_BINDING_NAMES = {
 // such as images_kv and stats_kv. The EdgeKV constructor remains
 // as a local-test/legacy fallback.
 // ============================================================
-let _legacyKvImages = null;
-let _legacyKvStats = null;
-function getKvImages(runtimeEnv) {
+let _legacyKvImages: KvNamespace | null = null;
+let _legacyKvStats: KvNamespace | null = null;
+function getKvImages(runtimeEnv?: RuntimeEnv) {
     const directBinding = getDirectKvBinding(() => images_kv)
         || getDirectKvBinding(() => IMAGES_KV)
         || getDirectKvBinding(() => images);
@@ -35,7 +85,7 @@ function getKvImages(runtimeEnv) {
         return _legacyKvImages;
     });
 }
-function getKvStats(runtimeEnv) {
+function getKvStats(runtimeEnv?: RuntimeEnv) {
     const directBinding = getDirectKvBinding(() => stats_kv)
         || getDirectKvBinding(() => STATS_KV)
         || getDirectKvBinding(() => stats);
@@ -48,7 +98,7 @@ function getKvStats(runtimeEnv) {
         return _legacyKvStats;
     });
 }
-function getDirectKvBinding(readBinding) {
+function getDirectKvBinding(readBinding: () => unknown) {
     try {
         const binding = readBinding();
         return isKvNamespace(binding) ? binding : undefined;
@@ -57,7 +107,7 @@ function getDirectKvBinding(readBinding) {
         return undefined;
     }
 }
-function getRuntimeKv(runtimeEnv, bindingNames, namespace, fallback) {
+function getRuntimeKv(runtimeEnv: RuntimeEnv, bindingNames: string[], namespace: string, fallback: () => KvNamespace) {
     for (const name of bindingNames) {
         const envBinding = getEnvBinding(runtimeEnv, name);
         if (isKvNamespace(envBinding))
@@ -68,23 +118,23 @@ function getRuntimeKv(runtimeEnv, bindingNames, namespace, fallback) {
     }
     return fallback();
 }
-function createLegacyKv(namespace) {
-    const EdgeKV = globalThis.EdgeKV;
+function createLegacyKv(namespace: string) {
+    const EdgeKV = (globalThis as RuntimeGlobals).EdgeKV;
     if (!EdgeKV) {
         throw new Error(`EdgeOne KV binding is missing. Bind namespace "${namespace}" as "${namespace}_kv".`);
     }
     return new EdgeKV({ namespace });
 }
-function isKvNamespace(value) {
+function isKvNamespace(value: unknown): value is KvNamespace {
     return isJsonObject(value)
         && typeof value.get === 'function'
         && typeof value.put === 'function';
 }
-function hasRuntimeKvBinding(runtimeEnv, bindingNames) {
-    const runtime = globalThis;
+function hasRuntimeKvBinding(runtimeEnv: RuntimeEnv, bindingNames: string[]) {
+    const runtime = globalThis as RuntimeGlobals & Record<string, unknown>;
     return bindingNames.some(name => isKvNamespace(getEnvBinding(runtimeEnv, name)) || isKvNamespace(runtime[name]));
 }
-function getKvHealth(runtimeEnv) {
+function getKvHealth(runtimeEnv?: RuntimeEnv) {
     return {
         imagesBound: Boolean(getDirectKvBinding(() => images_kv)
             || getDirectKvBinding(() => IMAGES_KV)
@@ -96,7 +146,7 @@ function getKvHealth(runtimeEnv) {
             || hasRuntimeKvBinding(runtimeEnv, KV_BINDING_NAMES.stats)),
     };
 }
-function parseStoredJson(value, fallback) {
+function parseStoredJson(value: unknown, fallback: unknown): unknown {
     if (typeof value !== 'string') {
         return value === undefined ? fallback : value;
     }
@@ -107,7 +157,7 @@ function parseStoredJson(value, fallback) {
         return fallback;
     }
 }
-function sanitizeStoredImage(value) {
+function sanitizeStoredImage(value: unknown): ImageRecord | null {
     if (!isJsonObject(value))
         return null;
     const imageUrl = normalizeImageUrl(value.url);
@@ -127,23 +177,23 @@ function sanitizeStoredImage(value) {
         createdAt,
     };
 }
-function sanitizeStoredImages(value) {
+function sanitizeStoredImages(value: unknown): ImageRecord[] {
     if (!Array.isArray(value))
         return [];
-    return value.map(sanitizeStoredImage).filter((item) => Boolean(item));
+    return value.map(sanitizeStoredImage).filter((item): item is ImageRecord => Boolean(item));
 }
-function getRuntimeSecret(name, runtimeEnv) {
-    const runtime = globalThis;
+function getRuntimeSecret(name: string, runtimeEnv?: RuntimeEnv) {
+    const runtime = globalThis as RuntimeGlobals & Record<string, string | undefined>;
     return getEnvString(runtimeEnv, name)
         || runtime[name]
         || runtime.__ENV?.[name]
         || runtime.process?.env?.[name];
 }
-function getEnvString(runtimeEnv, name) {
+function getEnvString(runtimeEnv: RuntimeEnv, name: string) {
     const value = getEnvBinding(runtimeEnv, name);
     return typeof value === 'string' ? value : undefined;
 }
-function getEnvBinding(runtimeEnv, name) {
+function getEnvBinding(runtimeEnv: RuntimeEnv, name: string): RuntimeBinding {
     if (!runtimeEnv || typeof runtimeEnv !== 'object')
         return undefined;
     const directValue = runtimeEnv[name];
@@ -154,17 +204,17 @@ function getEnvBinding(runtimeEnv, name) {
         return envValue;
     return 'bindings' in runtimeEnv ? runtimeEnv.bindings?.[name] : undefined;
 }
-async function getAllImages(runtimeEnv) {
+async function getAllImages(runtimeEnv?: RuntimeEnv): Promise<ImageRecord[]> {
     const data = await getKvImages(runtimeEnv).get('all');
     if (!data)
         return [];
     const parsed = parseStoredJson(data, []);
     return sanitizeStoredImages(parsed);
 }
-async function saveAllImages(images, runtimeEnv) {
+async function saveAllImages(images: ImageRecord[], runtimeEnv?: RuntimeEnv) {
     await getKvImages(runtimeEnv).put('all', JSON.stringify(images));
 }
-async function getStats(runtimeEnv) {
+async function getStats(runtimeEnv?: RuntimeEnv): Promise<StatsRecord> {
     const data = await getKvStats(runtimeEnv).get('data');
     if (!data)
         return { totalRequests: 0, lastRequestAt: null, dailyRequests: {} };
@@ -184,10 +234,10 @@ async function getStats(runtimeEnv) {
         dailyRequests,
     };
 }
-async function saveStats(stats, runtimeEnv) {
+async function saveStats(stats: StatsRecord, runtimeEnv?: RuntimeEnv) {
     await getKvStats(runtimeEnv).put('data', JSON.stringify(stats));
 }
-async function getAdminConfig(runtimeEnv) {
+async function getAdminConfig(runtimeEnv?: RuntimeEnv) {
     const data = await getKvStats(runtimeEnv).get(ADMIN_CONFIG_KEY);
     if (!data)
         return { tokenSha256: null, updatedAt: null };
@@ -224,10 +274,10 @@ function getRecentStatsDateKeys(days = 7, date = new Date()) {
 // ============================================================
 // Validation helpers
 // ============================================================
-function isJsonObject(value) {
+function isJsonObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-async function readJsonObject(request) {
+async function readJsonObject(request: Request): Promise<Record<string, unknown> | null> {
     try {
         const body = await request.json();
         return isJsonObject(body) ? body : null;
@@ -236,10 +286,10 @@ async function readJsonObject(request) {
         return null;
     }
 }
-function isSha256Hex(value) {
+function isSha256Hex(value: string) {
     return /^[a-f0-9]{64}$/i.test(value);
 }
-function normalizeImageUrl(value) {
+function normalizeImageUrl(value: unknown): string | null {
     if (typeof value !== 'string')
         return null;
     const trimmed = value.trim();
@@ -253,13 +303,13 @@ function normalizeImageUrl(value) {
         return null;
     }
 }
-function normalizeTitle(value, fallback = '未命名图片') {
+function normalizeTitle(value: unknown, fallback = '未命名图片') {
     if (typeof value !== 'string')
         return fallback;
     const trimmed = value.trim();
     return trimmed ? trimmed.slice(0, MAX_TITLE_LENGTH) : fallback;
 }
-function normalizeTags(value) {
+function normalizeTags(value: unknown): string[] | null {
     if (value === undefined)
         return [];
     if (!Array.isArray(value))
@@ -272,7 +322,7 @@ function normalizeTags(value) {
         .filter(Boolean);
     return [...new Set(tags)].slice(0, MAX_TAGS_PER_IMAGE);
 }
-function normalizePositiveInt(value, fallback, max = Number.MAX_SAFE_INTEGER) {
+function normalizePositiveInt(value: string | null, fallback: number, max = Number.MAX_SAFE_INTEGER) {
     if (!value)
         return fallback;
     const parsed = Number.parseInt(value, 10);
@@ -280,14 +330,14 @@ function normalizePositiveInt(value, fallback, max = Number.MAX_SAFE_INTEGER) {
         return fallback;
     return max ? Math.min(parsed, max) : parsed;
 }
-function getBearerToken(request) {
+function getBearerToken(request: Request) {
     const header = request.headers.get('Authorization') || request.headers.get('authorization');
     if (!header)
         return null;
     const match = header.match(/^Bearer\s+(.+)$/i);
     return match?.[1]?.trim() || null;
 }
-function timingSafeEqualString(left, right) {
+function timingSafeEqualString(left: string, right: string) {
     const encoder = new TextEncoder();
     const leftBytes = encoder.encode(left);
     const rightBytes = encoder.encode(right);
@@ -298,13 +348,13 @@ function timingSafeEqualString(left, right) {
     }
     return diff === 0;
 }
-async function sha256Hex(value) {
+async function sha256Hex(value: string) {
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
     return Array.from(new Uint8Array(digest))
         .map(byte => byte.toString(16).padStart(2, '0'))
         .join('');
 }
-async function verifyAdminRequest(request, runtimeEnv) {
+async function verifyAdminRequest(request: Request, runtimeEnv?: RuntimeEnv) {
     const token = getBearerToken(request);
     if (!token) {
         return json({ error: 'Admin token required' }, 401);
@@ -325,7 +375,7 @@ async function verifyAdminRequest(request, runtimeEnv) {
     }
     return json({ error: 'Admin token is not configured' }, 503);
 }
-async function handleAdminVerify(request, runtimeEnv) {
+async function handleAdminVerify(request: Request, runtimeEnv?: RuntimeEnv) {
     const authError = await verifyAdminRequest(request, runtimeEnv);
     if (authError)
         return authError;
@@ -352,7 +402,7 @@ function noStoreHeaders() {
         Vary: 'Accept, Accept-Encoding',
     };
 }
-function json(body, status = 200) {
+function json(body: unknown, status = 200) {
     return new Response(JSON.stringify(body), {
         status,
         headers: {
@@ -366,7 +416,7 @@ function json(body, status = 200) {
 // Route handlers
 // ============================================================
 // GET /api/random — 随机返回一张图片（核心 API）
-async function handleRandomImage(request, runtimeEnv) {
+async function handleRandomImage(request: Request, runtimeEnv?: RuntimeEnv) {
     const url = new URL(request.url);
     const tag = url.searchParams.get('tag') || url.searchParams.get('type');
     const format = url.searchParams.get('format');
@@ -418,7 +468,7 @@ async function handleRandomImage(request, runtimeEnv) {
     });
 }
 // GET /api/list — 获取图片列表，支持分页参数
-async function handleListImages(request, runtimeEnv) {
+async function handleListImages(request: Request, runtimeEnv?: RuntimeEnv) {
     const url = new URL(request.url);
     const images = await getAllImages(runtimeEnv);
     const pageParam = url.searchParams.get('page');
@@ -454,7 +504,7 @@ async function handleListImages(request, runtimeEnv) {
     });
 }
 // POST /api/batch — 批量添加图片
-async function handleBatchCreateImages(request, runtimeEnv) {
+async function handleBatchCreateImages(request: Request, runtimeEnv?: RuntimeEnv) {
     const body = await readJsonObject(request);
     if (!body) {
         return json({ error: 'Request body must be a valid JSON object' }, 400);
@@ -508,7 +558,7 @@ async function handleBatchCreateImages(request, runtimeEnv) {
     }, 201);
 }
 // POST /api/create — 添加新图片
-async function handleCreateImage(request, runtimeEnv) {
+async function handleCreateImage(request: Request, runtimeEnv?: RuntimeEnv) {
     const body = await readJsonObject(request);
     if (!body) {
         return json({ error: 'Request body must be a valid JSON object' }, 400);
@@ -537,7 +587,7 @@ async function handleCreateImage(request, runtimeEnv) {
     return json(newImage, 201);
 }
 // PUT /api/update/:id — 更新图片信息
-async function handleUpdateImage(request, id, runtimeEnv) {
+async function handleUpdateImage(request: Request, id: string, runtimeEnv?: RuntimeEnv) {
     const body = await readJsonObject(request);
     if (!body) {
         return json({ error: 'Request body must be a valid JSON object' }, 400);
@@ -570,7 +620,7 @@ async function handleUpdateImage(request, id, runtimeEnv) {
     return json(images[index]);
 }
 // DELETE /api/delete/:id — 删除图片
-async function handleDeleteImage(id, runtimeEnv) {
+async function handleDeleteImage(id: string, runtimeEnv?: RuntimeEnv) {
     const images = await getAllImages(runtimeEnv);
     const filtered = images.filter(img => img.id !== id);
     if (filtered.length === images.length) {
@@ -580,7 +630,7 @@ async function handleDeleteImage(id, runtimeEnv) {
     return json({ success: true, deletedId: id });
 }
 // GET /api/stats — 获取统计信息
-async function handleStats(runtimeEnv) {
+async function handleStats(runtimeEnv?: RuntimeEnv) {
     const stats = await getStats(runtimeEnv);
     const images = await getAllImages(runtimeEnv);
     const today = getStatsDateKey();
@@ -589,7 +639,7 @@ async function handleStats(runtimeEnv) {
     for (const dateKey of recentDateKeys) {
         dailyRequests[dateKey] = stats.dailyRequests[dateKey] || 0;
     }
-    const tags = new Set();
+    const tags = new Set<string>();
     for (const image of images) {
         for (const tag of image.tags) {
             tags.add(tag);
@@ -608,7 +658,7 @@ async function handleStats(runtimeEnv) {
 // Main fetch handler
 // ============================================================
 const handler = {
-    async fetch(request, runtimeEnv) {
+    async fetch(request: Request, runtimeEnv?: RuntimeEnv) {
         const url = new URL(request.url);
         const pathname = url.pathname;
         // CORS preflight
@@ -620,20 +670,21 @@ const handler = {
                 },
             });
         }
-        try {
-            // GET /api/health
-            if (pathname === '/api/health') {
-                if (request.method === 'GET')
-                    return json({
-                        ok: true,
-                        runtime: 'edgeone-pages',
-                        buildId: API_BUILD_ID,
-                        timestamp: new Date().toISOString(),
-                        kv: getKvHealth(runtimeEnv),
-                    });
-                return json({ error: 'Method Not Allowed' }, 405);
-            }
-            // --- 路由匹配 ---
+    try {
+        // GET /api/health
+        if (pathname === '/api/health') {
+            if (request.method === 'GET')
+                return json({
+                    ok: true,
+                    runtime: 'edgeone-pages',
+                    buildId: API_BUILD_ID,
+                    timestamp: new Date().toISOString(),
+                    kv: getKvHealth(runtimeEnv),
+                });
+            return json({ error: 'Method Not Allowed' }, 405);
+        }
+
+        // --- 路由匹配 ---
             // GET /api/random
             if (pathname === '/api/random') {
                 if (request.method === 'GET')
@@ -713,7 +764,7 @@ const handler = {
         }
     },
 };
-async function onRequest(context) {
+async function onRequest(context: EdgeOnePagesContext) {
     return handler.fetch(context.request, context.env);
 }
 export default onRequest;

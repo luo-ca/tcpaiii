@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getRecentStatsDateKeys, getStatsDateKey, handler } from "../../edge-functions/api/[[default]].js";
+import { getRecentStatsDateKeys, getStatsDateKey, handler } from "../../edge-functions-src/api/[[default]]";
 
 type Store = Record<string, Map<string, string>>;
-type TestKv = ReturnType<typeof edgeOneKv>;
+type TestKv = {
+  get(key: string): Promise<string | undefined>;
+  put(key: string, value: string | ArrayBuffer | ReadableStream): Promise<void>;
+  delete?: (key: string) => Promise<boolean>;
+};
 
 const store: Store = {};
 const ADMIN_TOKEN = "test-admin-token";
@@ -59,7 +63,7 @@ function edgeOneKv(namespace: string, options: { delete?: boolean } = {}) {
     },
     ...(options.delete === false ? {} : {
       delete(key: string) {
-      return Promise.resolve(store[namespace].delete(key));
+        return Promise.resolve(store[namespace].delete(key));
       },
     }),
   };
@@ -167,27 +171,33 @@ describe("functions api", () => {
     await expect(json(response)).resolves.toMatchObject({
       ok: true,
       runtime: "edgeone-pages",
-      buildId: "edgeone-js-kv-diagnostics-2026-04-29",
+      buildId: "edgeone-js-kv-safe-2026-04-29",
       kv: {
-        bindings: {
-          images_kv: {
-            runtimeEnv: {
-              present: true,
-              isKvNamespace: true,
-              hasGet: true,
-              hasPut: true,
-            },
-          },
-          stats_kv: {
-            runtimeEnv: {
-              present: true,
-              isKvNamespace: true,
-              hasGet: true,
-              hasPut: true,
-            },
-          },
+        imagesBound: true,
+        statsBound: true,
+      },
+    });
+  });
+
+  it("does not expose internal error messages", async () => {
+    vi.stubGlobal("EdgeKV", undefined);
+
+    const response = await requestWithEnv("/api/list?page=1", undefined, {
+      images_kv: {
+        get() {
+          throw new Error("sensitive kv failure");
+        },
+        put() {
+          throw new Error("unused");
         },
       },
+      stats_kv: edgeOneKv("safe-error-stats"),
+    });
+
+    expect(response.status).toBe(500);
+    await expect(json(response)).resolves.toEqual({
+      error: "Internal Server Error",
+      buildId: "edgeone-js-kv-safe-2026-04-29",
     });
   });
 
@@ -442,6 +452,28 @@ describe("functions api", () => {
     const body = await response.json();
     expect(Array.isArray(body)).toBe(true);
     expect(body).toHaveLength(1);
+  });
+
+  it("ignores malformed image records from KV", async () => {
+    store.images.set("all", JSON.stringify([
+      { id: "bad-url", url: "javascript:alert(1)", title: "bad", tags: ["x"] },
+      { id: "bad-tags", url: "https://cdn.example.test/bad-tags.jpg", tags: "x" },
+      { id: "valid", url: "https://cdn.example.test/valid.jpg", title: "valid", tags: ["ok"] },
+    ]));
+
+    const response = await request("/api/list?page=1&pageSize=10");
+
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({
+      total: 1,
+      items: [
+        expect.objectContaining({
+          id: "valid",
+          url: "https://cdn.example.test/valid.jpg",
+          tags: ["ok"],
+        }),
+      ],
+    });
   });
 
   it("paginates list responses with search and tag filters", async () => {
