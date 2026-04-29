@@ -275,8 +275,8 @@ describe("functions api", () => {
     vi.stubGlobal("ADMIN_TOKEN", undefined);
     vi.stubGlobal("ADMIN_TOKEN_SHA256", undefined);
 
-    store.stats.set("admin-config", JSON.stringify({
-      tokenSha256: "6fd7037e967d6ad6c35bfe044cce9dfdcf8bd38c7649e444a235f183968cfc2f",
+    store.stats.set("admin_config", JSON.stringify({
+      tokenSha256: "dad71b15942cd6eda584c5b3c4dfa25fa06ef7a0da8619ff9a6ec460c6121a8e",
       updatedAt: "2026-04-29T00:00:00.000Z",
     }));
 
@@ -299,7 +299,7 @@ describe("functions api", () => {
 
     expect(wrong.status).toBe(403);
 
-    expect(store.stats.get("admin-config")).not.toContain("kv-secret");
+    expect(store.stats.get("admin_config")).not.toContain("kv-secret");
   });
 
   it("does not expose a public admin bootstrap endpoint", async () => {

@@ -3,7 +3,7 @@ const DEFAULT_LIST_PAGE_SIZE = 24;
 const MAX_LIST_PAGE_SIZE = 60;
 const ALLOWED_IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 const STATS_TIME_ZONE = 'Asia/Shanghai';
-const ADMIN_CONFIG_KEY = 'admin-config';
+const ADMIN_CONFIG_KEY = 'admin_config';
 const API_BUILD_ID = 'edgeone-js-kv-diagnostics-2026-04-29';
 const KV_BINDING_NAMES = {
     images: ['images_kv', 'IMAGES_KV', 'images'],

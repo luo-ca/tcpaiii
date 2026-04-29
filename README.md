@@ -38,7 +38,7 @@ npm run build
 EdgeOne Pages 控制台里创建两个 KV 命名空间，并绑定到项目变量：
 
 - `images_kv`：保存图库数据，主要 key 为 `all`。
-- `stats_kv`：保存统计和管理配置，主要 key 为 `data` 与 `admin-config`。
+- `stats_kv`：保存统计和管理配置，主要 key 为 `data` 与 `admin_config`。
 
 控制台里的“变量名称”才是函数代码访问 KV 时使用的名字；“命名空间”只是实际存储空间。当前代码读取的变量名是 `images_kv` 和 `stats_kv`，所以可以绑定为“变量名称 `images_kv` -> 命名空间 `images_kv`”、“变量名称 `stats_kv` -> 命名空间 `stats_kv`”。如果改成其他变量名称，也要同步修改函数代码。
 
@@ -56,7 +56,7 @@ Authorization: Bearer <ADMIN_TOKEN>
 
 - 推荐：在 EdgeOne Pages 环境变量中配置 `ADMIN_TOKEN`。
 - 可选：配置 `ADMIN_TOKEN_SHA256` 为管理密钥的 SHA-256 十六进制摘要。
-- 可选：在 `stats_kv` 中写入 `admin-config` 记录，内容为 `{"tokenSha256":"<管理密钥 SHA-256 十六进制摘要>","updatedAt":"2026-04-29T00:00:00.000Z"}`，避免保存明文。
+- 可选：在 `stats_kv` 中写入 `admin_config` 记录，内容为 `{"tokenSha256":"<管理密钥 SHA-256 十六进制摘要>","updatedAt":"2026-04-29T00:00:00.000Z"}`，避免保存明文。EdgeOne KV key 只能使用数字、字母、冒号和下划线。
 
 两种环境变量同时存在时优先使用 `ADMIN_TOKEN`。如果没有配置管理密钥，写接口会返回 `503 Admin token is not configured`，不会允许任何人添加、编辑或删除图片。
 
