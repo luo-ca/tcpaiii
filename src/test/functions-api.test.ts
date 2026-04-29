@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getRecentStatsDateKeys, getStatsDateKey, handler } from "../../functions/index";
+import { getRecentStatsDateKeys, getStatsDateKey, handler } from "../../edge-functions/api/[[default]]";
 
 type Store = Record<string, Map<string, string>>;
 
@@ -37,8 +37,29 @@ function request(path: string, init?: RequestInit) {
   return handler.fetch(new Request(`https://example.test${path}`, init));
 }
 
-function requestWithEnv(path: string, init: RequestInit | undefined, env: Record<string, string>) {
+function requestWithEnv(path: string, init: RequestInit | undefined, env: Record<string, string | ReturnType<typeof edgeOneKv>>) {
   return handler.fetch(new Request(`https://example.test${path}`, init), env);
+}
+
+function edgeOneKv(namespace: string) {
+  store[namespace] ??= new Map();
+
+  return {
+    get(key: string) {
+      return Promise.resolve(store[namespace].get(key));
+    },
+    put(key: string, value: string | ArrayBuffer | ReadableStream) {
+      if (typeof value !== "string") {
+        throw new Error("MockEdgeOneKV only supports string values");
+      }
+
+      store[namespace].set(key, value);
+      return Promise.resolve();
+    },
+    delete(key: string) {
+      return Promise.resolve(store[namespace].delete(key));
+    },
+  };
 }
 
 function adminHeaders(): Record<string, string> {
@@ -157,6 +178,32 @@ describe("functions api", () => {
     });
 
     expect(response.status).toBe(201);
+  });
+
+  it("uses EdgeOne Pages KV bindings from runtime env", async () => {
+    vi.stubGlobal("EdgeKV", undefined);
+
+    const env = {
+      ADMIN_TOKEN,
+      images_kv: edgeOneKv("edgeone-images"),
+      stats_kv: edgeOneKv("edgeone-stats"),
+    };
+
+    const create = await requestWithEnv("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/edgeone-kv.jpg", tags: ["edgeone"] }),
+    }, env);
+
+    expect(create.status).toBe(201);
+    expect(store["edgeone-images"].get("all")).toContain("edgeone-kv.jpg");
+
+    const random = await requestWithEnv("/api/random?tag=edgeone&format=json", undefined, env);
+    expect(random.status).toBe(200);
+    await expect(json(random)).resolves.toMatchObject({
+      url: "https://cdn.example.test/edgeone-kv.jpg",
+    });
+    expect(store["edgeone-stats"].get("data")).toContain("\"totalRequests\":1");
   });
 
   it("reads admin token hashes from KV without exposing the original token", async () => {

@@ -2,9 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
-import fs from "fs";
 
-const hasEsaConfig = fs.existsSync(path.resolve(__dirname, "esa.jsonc"));
+const apiProxyTarget = process.env.API_PROXY_TARGET;
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -14,11 +13,11 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
-    ...(hasEsaConfig
+    ...(apiProxyTarget
       ? {
           proxy: {
             "/api": {
-              target: "http://127.0.0.1:18080",
+              target: apiProxyTarget,
               changeOrigin: true,
             },
           },

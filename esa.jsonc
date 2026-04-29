@@ -1,7 +1,0 @@
-{
-  "name": "tcpaiii",
-  "entry": "./functions/index.ts",
-  "assets": {
-    "directory": "./dist"
-  }
-}

@@ -97,7 +97,7 @@ type ApiErrorPayload = {
 
 type AdminAuthStatus = 'empty' | 'unverified' | 'checking' | 'valid' | 'invalid' | 'unconfigured';
 
-const API_HTML_FALLBACK_MESSAGE = 'API 请求返回了页面 HTML，说明 /api 路由当前没有命中函数，请检查 ESA 路由是否已绑定到 t.paiii.cn/api/*。';
+const API_HTML_FALLBACK_MESSAGE = 'API 请求返回了页面 HTML，说明 /api 路由当前没有命中 EdgeOne Pages 函数，请检查 edge-functions/api/[[default]] 是否已随项目部署。';
 
 const HEADER_TABS: Array<{ key: AppTab; label: string; icon: typeof Shuffle }> = [
   { key: 'random', label: '随机', icon: Shuffle },
@@ -1160,7 +1160,7 @@ function Changelog() {
       date: '2026-04-29',
       title: 'Pages 化与图库升级',
       items: [
-        '脱离 PHP 接口，改为 ESA Functions & Pages 与 EdgeKV 提供图片服务',
+        '脱离 PHP 接口，改为 EdgeOne Pages Functions 与 KV 提供图片服务',
         '新增图库展示与管理能力，支持图片标签、搜索和在线预览',
         '图库分页加入页码、首页末页、跳转页数和每页数量选择',
         '优化接口缓存、分页加载、相邻页预取和图片加载性能',
@@ -1385,7 +1385,7 @@ function GalleryPage() {
       const message = getErrorMessage(err, '管理密钥校验失败');
       if (message.includes('not configured')) {
         setAdminAuthStatus('unconfigured');
-        toast.error('服务端未配置管理密钥，请先在 ESA 环境变量配置 ADMIN_TOKEN');
+        toast.error('服务端未配置管理密钥，请先在 EdgeOne Pages 环境变量配置 ADMIN_TOKEN');
       } else {
         setAdminAuthStatus('invalid');
         toast.error(message);
@@ -2106,8 +2106,8 @@ export default function App() {
                   {[
                     { icon: Shield, title: 'URL 校验', desc: '添加图片时自动校验 URL 格式' },
                     { icon: Database, title: '去重检测', desc: '相同 URL 自动拒绝' },
-                    { icon: Zap, title: '边缘计算', desc: 'ESA 边缘节点，延迟 <50ms' },
-                    { icon: Globe, title: 'EdgeKV 存储', desc: '数据持久化在边缘节点' },
+                    { icon: Zap, title: '边缘计算', desc: 'EdgeOne 边缘节点，延迟 <50ms' },
+                    { icon: Globe, title: 'KV 存储', desc: '数据持久化在边缘节点' },
                     { icon: Code, title: 'CORS 支持', desc: '所有接口支持跨域请求' },
                     { icon: ExternalLink, title: '302 重定向', desc: '支持 redirect 模式直链' },
                   ].map((item, i) => (

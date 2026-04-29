@@ -1,13 +1,20 @@
-// EdgeKV 全局类型声明（阿里云 ESA Edge Runtime 内置对象）
-declare class EdgeKV {
-  constructor(options: { namespace: string });
-  get(key: string): Promise<string | undefined>;
-  get(key: string, options: { type: 'json' }): Promise<object | undefined>;
-  get(key: string, options: { type: 'arrayBuffer' }): Promise<ArrayBuffer | undefined>;
-  get(key: string, options: { type: 'stream' }): Promise<ReadableStream | undefined>;
-  put(key: string, value: string | ArrayBuffer | ReadableStream): Promise<void>;
-  delete(key: string): Promise<boolean>;
-}
+type KvValue = string | ArrayBuffer | ArrayBufferView | ReadableStream;
+
+type KvNamespace = {
+  get(key: string): Promise<string | undefined | null>;
+  get(key: string, options: { type: 'json' }): Promise<object | undefined | null>;
+  get(key: string, options: { type: 'arrayBuffer' }): Promise<ArrayBuffer | undefined | null>;
+  get(key: string, options: { type: 'stream' }): Promise<ReadableStream | undefined | null>;
+  put(key: string, value: KvValue): Promise<void>;
+  delete(key: string): Promise<boolean | void>;
+};
+
+type EdgeKvConstructor = new (options: { namespace: string }) => KvNamespace;
+
+declare const images_kv: KvNamespace | undefined;
+declare const stats_kv: KvNamespace | undefined;
+declare const IMAGES_KV: KvNamespace | undefined;
+declare const STATS_KV: KvNamespace | undefined;
 
 type ImageRecord = {
   id: string;
@@ -29,17 +36,29 @@ type AdminConfig = {
 };
 
 type JsonObject = Record<string, unknown>;
+type RuntimeBinding = string | KvNamespace | undefined;
+type RuntimeBindingRecord = Record<string, RuntimeBinding>;
 type RuntimeGlobals = typeof globalThis & {
   ADMIN_TOKEN?: string;
   ADMIN_TOKEN_SHA256?: string;
+  EdgeKV?: EdgeKvConstructor;
+  images_kv?: KvNamespace;
+  stats_kv?: KvNamespace;
+  IMAGES_KV?: KvNamespace;
+  STATS_KV?: KvNamespace;
   __ENV?: Record<string, string | undefined>;
   process?: {
     env?: Record<string, string | undefined>;
   };
 };
-type RuntimeEnv = Record<string, string | undefined> | {
-  env?: Record<string, string | undefined>;
-  bindings?: Record<string, string | undefined>;
+type RuntimeEnv = RuntimeBindingRecord | {
+  env?: RuntimeBindingRecord;
+  bindings?: RuntimeBindingRecord;
+};
+type EdgeOnePagesContext = {
+  request: Request;
+  env?: RuntimeEnv;
+  waitUntil?: (task: Promise<unknown>) => void;
 };
 
 const MAX_BATCH_SIZE = 500;
@@ -50,24 +69,78 @@ const STATS_TIME_ZONE = 'Asia/Shanghai';
 const ADMIN_CONFIG_KEY = 'admin-config';
 
 // ============================================================
-// KV Helpers (懒加载 EdgeKV，避免模块顶层初始化导致崩溃)
+// KV Helpers
+// EdgeOne Pages KV is exposed through project-bound variables
+// such as images_kv and stats_kv. The EdgeKV constructor remains
+// as a local-test/legacy fallback.
 // ============================================================
 
-let _kvImages: EdgeKV | null = null;
-let _kvStats: EdgeKV | null = null;
+let _legacyKvImages: KvNamespace | null = null;
+let _legacyKvStats: KvNamespace | null = null;
 
-function getKvImages(): EdgeKV {
-  if (!_kvImages) {
-    _kvImages = new EdgeKV({ namespace: 'images' });
-  }
-  return _kvImages;
+function getKvImages(runtimeEnv?: RuntimeEnv): KvNamespace {
+  const directBinding = getDirectKvBinding(() => images_kv) || getDirectKvBinding(() => IMAGES_KV);
+  if (directBinding) return directBinding;
+
+  return getRuntimeKv(runtimeEnv, ['images_kv', 'IMAGES_KV'], 'images', () => {
+    if (!_legacyKvImages) {
+      _legacyKvImages = createLegacyKv('images');
+    }
+    return _legacyKvImages;
+  });
 }
 
-function getKvStats(): EdgeKV {
-  if (!_kvStats) {
-    _kvStats = new EdgeKV({ namespace: 'stats' });
+function getKvStats(runtimeEnv?: RuntimeEnv): KvNamespace {
+  const directBinding = getDirectKvBinding(() => stats_kv) || getDirectKvBinding(() => STATS_KV);
+  if (directBinding) return directBinding;
+
+  return getRuntimeKv(runtimeEnv, ['stats_kv', 'STATS_KV'], 'stats', () => {
+    if (!_legacyKvStats) {
+      _legacyKvStats = createLegacyKv('stats');
+    }
+    return _legacyKvStats;
+  });
+}
+
+function getDirectKvBinding(readBinding: () => unknown): KvNamespace | undefined {
+  try {
+    const binding = readBinding();
+    return isKvNamespace(binding) ? binding : undefined;
+  } catch {
+    return undefined;
   }
-  return _kvStats;
+}
+
+function getRuntimeKv(
+  runtimeEnv: RuntimeEnv | undefined,
+  bindingNames: string[],
+  namespace: string,
+  fallback: () => KvNamespace
+): KvNamespace {
+  for (const name of bindingNames) {
+    const envBinding = getEnvBinding(runtimeEnv, name);
+    if (isKvNamespace(envBinding)) return envBinding;
+
+    const globalBinding = (globalThis as RuntimeGlobals)[name as keyof RuntimeGlobals];
+    if (isKvNamespace(globalBinding)) return globalBinding;
+  }
+
+  return fallback();
+}
+
+function createLegacyKv(namespace: string): KvNamespace {
+  const EdgeKV = (globalThis as RuntimeGlobals).EdgeKV;
+  if (!EdgeKV) {
+    throw new Error(`EdgeOne KV binding is missing. Bind namespace "${namespace}" as "${namespace}_kv".`);
+  }
+  return new EdgeKV({ namespace });
+}
+
+function isKvNamespace(value: unknown): value is KvNamespace {
+  return isJsonObject(value)
+    && typeof value.get === 'function'
+    && typeof value.put === 'function'
+    && typeof value.delete === 'function';
 }
 
 function parseStoredJson<T>(value: unknown, fallback: T): T {
@@ -84,15 +157,20 @@ function parseStoredJson<T>(value: unknown, fallback: T): T {
 
 function getRuntimeSecret(name: 'ADMIN_TOKEN' | 'ADMIN_TOKEN_SHA256', runtimeEnv?: RuntimeEnv): string | undefined {
   const runtime = globalThis as RuntimeGlobals;
-  return getEnvSecret(runtimeEnv, name)
+  return getEnvString(runtimeEnv, name)
     || runtime[name]
     || runtime.__ENV?.[name]
     || runtime.process?.env?.[name];
 }
 
-function getEnvSecret(runtimeEnv: RuntimeEnv | undefined, name: 'ADMIN_TOKEN' | 'ADMIN_TOKEN_SHA256'): string | undefined {
+function getEnvString(runtimeEnv: RuntimeEnv | undefined, name: string): string | undefined {
+  const value = getEnvBinding(runtimeEnv, name);
+  return typeof value === 'string' ? value : undefined;
+}
+
+function getEnvBinding(runtimeEnv: RuntimeEnv | undefined, name: string): RuntimeBinding {
   if (!runtimeEnv || typeof runtimeEnv !== 'object') return undefined;
-  const directValue = (runtimeEnv as Record<string, string | undefined>)[name];
+  const directValue = (runtimeEnv as RuntimeBindingRecord)[name];
   if (directValue) return directValue;
 
   const envValue = 'env' in runtimeEnv ? runtimeEnv.env?.[name] : undefined;
@@ -101,20 +179,20 @@ function getEnvSecret(runtimeEnv: RuntimeEnv | undefined, name: 'ADMIN_TOKEN' | 
   return 'bindings' in runtimeEnv ? runtimeEnv.bindings?.[name] : undefined;
 }
 
-async function getAllImages(): Promise<ImageRecord[]> {
-  const data = await getKvImages().get('all');
+async function getAllImages(runtimeEnv?: RuntimeEnv): Promise<ImageRecord[]> {
+  const data = await getKvImages(runtimeEnv).get('all');
   if (!data) return [];
 
   const parsed = parseStoredJson<unknown>(data, []);
   return Array.isArray(parsed) ? parsed : [];
 }
 
-async function saveAllImages(images: ImageRecord[]): Promise<void> {
-  await getKvImages().put('all', JSON.stringify(images));
+async function saveAllImages(images: ImageRecord[], runtimeEnv?: RuntimeEnv): Promise<void> {
+  await getKvImages(runtimeEnv).put('all', JSON.stringify(images));
 }
 
-async function getStats(): Promise<Stats> {
-  const data = await getKvStats().get('data');
+async function getStats(runtimeEnv?: RuntimeEnv): Promise<Stats> {
+  const data = await getKvStats(runtimeEnv).get('data');
   if (!data) return { totalRequests: 0, lastRequestAt: null, dailyRequests: {} };
 
   const parsed = parseStoredJson<JsonObject>(data, {});
@@ -132,12 +210,12 @@ async function getStats(): Promise<Stats> {
   };
 }
 
-async function saveStats(stats: Stats): Promise<void> {
-  await getKvStats().put('data', JSON.stringify(stats));
+async function saveStats(stats: Stats, runtimeEnv?: RuntimeEnv): Promise<void> {
+  await getKvStats(runtimeEnv).put('data', JSON.stringify(stats));
 }
 
-async function getAdminConfig(): Promise<AdminConfig> {
-  const data = await getKvStats().get(ADMIN_CONFIG_KEY);
+async function getAdminConfig(runtimeEnv?: RuntimeEnv): Promise<AdminConfig> {
+  const data = await getKvStats(runtimeEnv).get(ADMIN_CONFIG_KEY);
   if (!data) return { tokenSha256: null, updatedAt: null };
 
   const parsed = parseStoredJson<JsonObject>(data, {});
@@ -282,7 +360,7 @@ async function verifyAdminRequest(request: Request, runtimeEnv?: RuntimeEnv): Pr
     return timingSafeEqualString(candidateHash, tokenHash) ? null : json({ error: 'Invalid admin token' }, 403);
   }
 
-  const adminConfig = await getAdminConfig();
+  const adminConfig = await getAdminConfig(runtimeEnv);
   if (adminConfig.tokenSha256) {
     const candidateHash = await sha256Hex(token);
     return timingSafeEqualString(candidateHash, adminConfig.tokenSha256) ? null : json({ error: 'Invalid admin token' }, 403);
@@ -338,7 +416,7 @@ function json(body: unknown, status = 200): Response {
 // ============================================================
 
 // GET /api/random — 随机返回一张图片（核心 API）
-async function handleRandomImage(request: Request): Promise<Response> {
+async function handleRandomImage(request: Request, runtimeEnv?: RuntimeEnv): Promise<Response> {
   const url = new URL(request.url);
   const tag = url.searchParams.get('tag') || url.searchParams.get('type');
   const format = url.searchParams.get('format');
@@ -346,7 +424,7 @@ async function handleRandomImage(request: Request): Promise<Response> {
     || format === 'json'
     || url.searchParams.get('redirect') === 'false';
 
-  const images = await getAllImages();
+  const images = await getAllImages(runtimeEnv);
   if (images.length === 0) {
     return json({ error: 'No images available' }, 404);
   }
@@ -367,13 +445,13 @@ async function handleRandomImage(request: Request): Promise<Response> {
 
   // 异步更新统计（不阻塞响应）
   try {
-    const stats = await getStats();
+    const stats = await getStats(runtimeEnv);
     const now = new Date();
     const today = getStatsDateKey(now);
     stats.totalRequests++;
     stats.lastRequestAt = now.toISOString();
     stats.dailyRequests[today] = (stats.dailyRequests[today] ?? 0) + 1;
-    await saveStats(stats);
+    await saveStats(stats, runtimeEnv);
   } catch {
     // 统计失败不影响主流程
   }
@@ -399,9 +477,9 @@ async function handleRandomImage(request: Request): Promise<Response> {
 }
 
 // GET /api/list — 获取图片列表，支持分页参数
-async function handleListImages(request: Request): Promise<Response> {
+async function handleListImages(request: Request, runtimeEnv?: RuntimeEnv): Promise<Response> {
   const url = new URL(request.url);
-  const images = await getAllImages();
+  const images = await getAllImages(runtimeEnv);
   const pageParam = url.searchParams.get('page');
   const pageSizeParam = url.searchParams.get('pageSize');
   const search = url.searchParams.get('search')?.trim().toLowerCase() ?? '';
@@ -446,7 +524,7 @@ async function handleListImages(request: Request): Promise<Response> {
 }
 
 // POST /api/batch — 批量添加图片
-async function handleBatchCreateImages(request: Request): Promise<Response> {
+async function handleBatchCreateImages(request: Request, runtimeEnv?: RuntimeEnv): Promise<Response> {
   const body = await readJsonObject(request);
 
   if (!body) {
@@ -461,7 +539,7 @@ async function handleBatchCreateImages(request: Request): Promise<Response> {
     return json({ error: `Maximum ${MAX_BATCH_SIZE} images per batch request` }, 400);
   }
 
-  const images = await getAllImages();
+  const images = await getAllImages(runtimeEnv);
   const existingUrls = new Set(images.map(img => img.url));
   const results: Array<{ success: boolean; url: string; id?: string; error?: string }> = [];
 
@@ -502,7 +580,7 @@ async function handleBatchCreateImages(request: Request): Promise<Response> {
     results.push({ success: true, url: trimmedUrl, id: newImage.id });
   }
 
-  await saveAllImages(images);
+  await saveAllImages(images, runtimeEnv);
 
   const successCount = results.filter(r => r.success).length;
   return json({
@@ -514,7 +592,7 @@ async function handleBatchCreateImages(request: Request): Promise<Response> {
 }
 
 // POST /api/create — 添加新图片
-async function handleCreateImage(request: Request): Promise<Response> {
+async function handleCreateImage(request: Request, runtimeEnv?: RuntimeEnv): Promise<Response> {
   const body = await readJsonObject(request);
 
   if (!body) {
@@ -531,7 +609,7 @@ async function handleCreateImage(request: Request): Promise<Response> {
     return json({ error: 'tags must be an array of strings' }, 400);
   }
 
-  const images = await getAllImages();
+  const images = await getAllImages(runtimeEnv);
 
   const newImage: ImageRecord = {
     id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -546,20 +624,20 @@ async function handleCreateImage(request: Request): Promise<Response> {
   }
 
   images.push(newImage);
-  await saveAllImages(images);
+  await saveAllImages(images, runtimeEnv);
 
   return json(newImage, 201);
 }
 
 // PUT /api/update/:id — 更新图片信息
-async function handleUpdateImage(request: Request, id: string): Promise<Response> {
+async function handleUpdateImage(request: Request, id: string, runtimeEnv?: RuntimeEnv): Promise<Response> {
   const body = await readJsonObject(request);
 
   if (!body) {
     return json({ error: 'Request body must be a valid JSON object' }, 400);
   }
 
-  const images = await getAllImages();
+  const images = await getAllImages(runtimeEnv);
   const index = images.findIndex(img => img.id === id);
 
   if (index === -1) {
@@ -589,27 +667,27 @@ async function handleUpdateImage(request: Request, id: string): Promise<Response
     tags: nextTags,
   };
 
-  await saveAllImages(images);
+  await saveAllImages(images, runtimeEnv);
   return json(images[index]);
 }
 
 // DELETE /api/delete/:id — 删除图片
-async function handleDeleteImage(id: string): Promise<Response> {
-  const images = await getAllImages();
+async function handleDeleteImage(id: string, runtimeEnv?: RuntimeEnv): Promise<Response> {
+  const images = await getAllImages(runtimeEnv);
   const filtered = images.filter(img => img.id !== id);
 
   if (filtered.length === images.length) {
     return json({ error: 'Image not found' }, 404);
   }
 
-  await saveAllImages(filtered);
+  await saveAllImages(filtered, runtimeEnv);
   return json({ success: true, deletedId: id });
 }
 
 // GET /api/stats — 获取统计信息
-async function handleStats(): Promise<Response> {
-  const stats = await getStats();
-  const images = await getAllImages();
+async function handleStats(runtimeEnv?: RuntimeEnv): Promise<Response> {
+  const stats = await getStats(runtimeEnv);
+  const images = await getAllImages(runtimeEnv);
   const today = getStatsDateKey();
   const recentDateKeys = getRecentStatsDateKeys();
 
@@ -649,13 +727,13 @@ const handler = {
 
       // GET /api/random
       if (pathname === '/api/random') {
-        if (request.method === 'GET') return handleRandomImage(request);
+        if (request.method === 'GET') return handleRandomImage(request, runtimeEnv);
         return json({ error: 'Method Not Allowed' }, 405);
       }
 
       // GET /api/list
       if (pathname === '/api/list') {
-        if (request.method === 'GET') return handleListImages(request);
+        if (request.method === 'GET') return handleListImages(request, runtimeEnv);
         return json({ error: 'Method Not Allowed' }, 405);
       }
 
@@ -670,7 +748,7 @@ const handler = {
         if (request.method === 'POST') {
           const authError = await verifyAdminRequest(request, runtimeEnv);
           if (authError) return authError;
-          return handleBatchCreateImages(request);
+          return handleBatchCreateImages(request, runtimeEnv);
         }
         return json({ error: 'Method Not Allowed' }, 405);
       }
@@ -680,7 +758,7 @@ const handler = {
         if (request.method === 'POST') {
           const authError = await verifyAdminRequest(request, runtimeEnv);
           if (authError) return authError;
-          return handleCreateImage(request);
+          return handleCreateImage(request, runtimeEnv);
         }
         return json({ error: 'Method Not Allowed' }, 405);
       }
@@ -691,7 +769,7 @@ const handler = {
         if (request.method === 'PUT') {
           const authError = await verifyAdminRequest(request, runtimeEnv);
           if (authError) return authError;
-          return handleUpdateImage(request, updateMatch[1]);
+          return handleUpdateImage(request, updateMatch[1], runtimeEnv);
         }
         return json({ error: 'Method Not Allowed' }, 405);
       }
@@ -702,14 +780,14 @@ const handler = {
         if (request.method === 'DELETE') {
           const authError = await verifyAdminRequest(request, runtimeEnv);
           if (authError) return authError;
-          return handleDeleteImage(deleteMatch[1]);
+          return handleDeleteImage(deleteMatch[1], runtimeEnv);
         }
         return json({ error: 'Method Not Allowed' }, 405);
       }
 
       // GET /api/stats
       if (pathname === '/api/stats') {
-        if (request.method === 'GET') return handleStats();
+        if (request.method === 'GET') return handleStats(runtimeEnv);
         return json({ error: 'Method Not Allowed' }, 405);
       }
 
@@ -723,7 +801,12 @@ const handler = {
   },
 };
 
+async function onRequest(context: EdgeOnePagesContext): Promise<Response> {
+  return handler.fetch(context.request, context.env);
+}
+
 export default handler;
 
 export { handler };
+export { onRequest };
 export { getRecentStatsDateKeys, getStatsDateKey };
