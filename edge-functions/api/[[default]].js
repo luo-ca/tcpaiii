@@ -6,6 +6,9 @@ const MAX_LIST_PAGE_SIZE = 60;
 const MAX_TITLE_LENGTH = 120;
 const MAX_TAG_LENGTH = 40;
 const MAX_TAGS_PER_IMAGE = 20;
+const MAX_TRACKED_SITES = 500;
+const MAX_JSON_BODY_BYTES = 256 * 1024;
+const IMAGE_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/;
 const ALLOWED_IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 const STATS_TIME_ZONE = 'Asia/Shanghai';
 const ADMIN_CONFIG_KEY = 'admin_config';
@@ -114,6 +117,8 @@ function sanitizeStoredImage(value) {
     if (!imageUrl)
         return null;
     const tags = normalizeTags(value.tags);
+    if (!tags)
+        return null;
     const createdAt = typeof value.createdAt === 'string' && value.createdAt.trim()
         ? value.createdAt.trim()
         : new Date(0).toISOString();
@@ -123,7 +128,7 @@ function sanitizeStoredImage(value) {
             : `img-${createdAt}-${imageUrl}`,
         url: imageUrl,
         title: normalizeTitle(value.title),
-        tags: tags || [],
+        tags,
         createdAt,
     };
 }
@@ -167,21 +172,32 @@ async function saveAllImages(images, runtimeEnv) {
 async function getStats(runtimeEnv) {
     const data = await getKvStats(runtimeEnv).get('data');
     if (!data)
-        return { totalRequests: 0, lastRequestAt: null, dailyRequests: {} };
+        return { totalRequests: 0, lastRequestAt: null, dailyRequests: {}, sites: {} };
     const parsed = parseStoredJson(data, {});
     const parsedStats = isJsonObject(parsed) ? parsed : {};
     const dailyRequests = {};
     if (isJsonObject(parsedStats.dailyRequests)) {
-        for (const entry of Object.entries(parsedStats.dailyRequests)) {
-            if (typeof entry[1] === 'number' && Number.isFinite(entry[1])) {
-                dailyRequests[entry[0]] = entry[1];
+        for (const [dateKey, count] of Object.entries(parsedStats.dailyRequests)) {
+            if (isStatsDateKey(dateKey)) {
+                dailyRequests[dateKey] = normalizeStatCount(count);
+            }
+        }
+    }
+    const sites = {};
+    if (isJsonObject(parsedStats.sites)) {
+        for (const [site, count] of Object.entries(parsedStats.sites)) {
+            if (typeof site === 'string' && isValidSiteKey(site)) {
+                sites[site] = normalizeStatCount(count);
             }
         }
     }
     return {
-        totalRequests: typeof parsedStats.totalRequests === 'number' ? parsedStats.totalRequests : 0,
-        lastRequestAt: typeof parsedStats.lastRequestAt === 'string' ? parsedStats.lastRequestAt : null,
+        totalRequests: normalizeStatCount(parsedStats.totalRequests),
+        lastRequestAt: typeof parsedStats.lastRequestAt === 'string' && !Number.isNaN(Date.parse(parsedStats.lastRequestAt))
+            ? parsedStats.lastRequestAt
+            : null,
         dailyRequests,
+        sites,
     };
 }
 async function saveStats(stats, runtimeEnv) {
@@ -214,6 +230,14 @@ function getStatsDateKey(date = new Date()) {
     }
     return `${parts[0]}-${parts[1]}-${parts[2]}`;
 }
+function isStatsDateKey(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+function normalizeStatCount(value) {
+    return typeof value === 'number' && Number.isFinite(value)
+        ? Math.max(0, Math.floor(value))
+        : 0;
+}
 function getRecentStatsDateKeys(days = 7, date = new Date()) {
     return Array.from({ length: days }, (_, index) => {
         const day = new Date(date);
@@ -229,8 +253,16 @@ function isJsonObject(value) {
 }
 async function readJsonObject(request) {
     try {
-        const body = await request.json();
-        return isJsonObject(body) ? body : null;
+        const contentLength = Number(request.headers.get('content-length'));
+        if (Number.isFinite(contentLength) && contentLength > MAX_JSON_BODY_BYTES) {
+            return null;
+        }
+        const body = await request.text();
+        if (!body || new TextEncoder().encode(body).byteLength > MAX_JSON_BODY_BYTES) {
+            return null;
+        }
+        const parsed = JSON.parse(body);
+        return isJsonObject(parsed) ? parsed : null;
     }
     catch {
         return null;
@@ -247,11 +279,37 @@ function normalizeImageUrl(value) {
         return null;
     try {
         const parsed = new URL(trimmed);
-        return ALLOWED_IMAGE_PROTOCOLS.has(parsed.protocol) ? trimmed : null;
+        if (!ALLOWED_IMAGE_PROTOCOLS.has(parsed.protocol) || parsed.username || parsed.password) {
+            return null;
+        }
+        return parsed.toString();
     }
     catch {
         return null;
     }
+}
+function isValidImageId(value) {
+    return IMAGE_ID_PATTERN.test(value);
+}
+function isAscii(value) {
+    return Array.from(value).every(char => char.charCodeAt(0) <= 0x7F);
+}
+function decodeRouteSegment(value) {
+    try {
+        return decodeURIComponent(value);
+    }
+    catch {
+        return null;
+    }
+}
+function sortTags(tags) {
+    return tags.sort((left, right) => {
+        const leftAscii = isAscii(left);
+        const rightAscii = isAscii(right);
+        if (leftAscii !== rightAscii)
+            return leftAscii ? -1 : 1;
+        return left.localeCompare(right, 'zh-CN');
+    });
 }
 function normalizeTitle(value, fallback = '未命名图片') {
     if (typeof value !== 'string')
@@ -279,6 +337,50 @@ function normalizePositiveInt(value, fallback, max = Number.MAX_SAFE_INTEGER) {
     if (!Number.isFinite(parsed) || parsed < 1)
         return fallback;
     return max ? Math.min(parsed, max) : parsed;
+}
+function isValidHostname(value) {
+    if (!value || value.length > 253)
+        return false;
+    if (value === 'localhost')
+        return true;
+    if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(value)) {
+        return value.split('.').every(part => {
+            const parsed = Number(part);
+            return Number.isInteger(parsed) && parsed >= 0 && parsed <= 255;
+        });
+    }
+    return value.split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label));
+}
+function isValidSiteKey(value) {
+    const [hostname, port, extra] = value.split(':');
+    if (extra !== undefined || !isValidHostname(hostname))
+        return false;
+    if (port === undefined)
+        return true;
+    if (!/^\d{1,5}$/.test(port))
+        return false;
+    const parsedPort = Number(port);
+    return parsedPort >= 1 && parsedPort <= 65535;
+}
+function getRequestSite(request) {
+    const source = request.headers.get('Origin') || request.headers.get('Referer');
+    if (!source)
+        return null;
+    try {
+        const parsed = new URL(source);
+        if (!ALLOWED_IMAGE_PROTOCOLS.has(parsed.protocol))
+            return null;
+        const site = `${parsed.hostname.toLowerCase()}${parsed.port ? `:${parsed.port}` : ''}`;
+        return isValidSiteKey(site) ? site : null;
+    }
+    catch {
+        return null;
+    }
+}
+function pruneSites(sites) {
+    return Object.fromEntries(Object.entries(sites)
+        .sort((left, right) => right[1] - left[1])
+        .slice(0, MAX_TRACKED_SITES));
 }
 function getBearerToken(request) {
     const header = request.headers.get('Authorization') || request.headers.get('authorization');
@@ -394,6 +496,11 @@ async function handleRandomImage(request, runtimeEnv) {
         stats.totalRequests++;
         stats.lastRequestAt = now.toISOString();
         stats.dailyRequests[today] = (stats.dailyRequests[today] ?? 0) + 1;
+        const site = getRequestSite(request);
+        if (site) {
+            stats.sites[site] = (stats.sites[site] ?? 0) + 1;
+            stats.sites = pruneSites(stats.sites);
+        }
         await saveStats(stats, runtimeEnv);
     }
     catch {
@@ -538,6 +645,9 @@ async function handleCreateImage(request, runtimeEnv) {
 }
 // PUT /api/update/:id — 更新图片信息
 async function handleUpdateImage(request, id, runtimeEnv) {
+    if (!isValidImageId(id)) {
+        return json({ error: 'Invalid image id' }, 400);
+    }
     const body = await readJsonObject(request);
     if (!body) {
         return json({ error: 'Request body must be a valid JSON object' }, 400);
@@ -571,6 +681,9 @@ async function handleUpdateImage(request, id, runtimeEnv) {
 }
 // DELETE /api/delete/:id — 删除图片
 async function handleDeleteImage(id, runtimeEnv) {
+    if (!isValidImageId(id)) {
+        return json({ error: 'Invalid image id' }, 400);
+    }
     const images = await getAllImages(runtimeEnv);
     const filtered = images.filter(img => img.id !== id);
     if (filtered.length === images.length) {
@@ -600,8 +713,9 @@ async function handleStats(runtimeEnv) {
         todayRequests: stats.dailyRequests[today] || 0,
         lastRequestAt: stats.lastRequestAt,
         totalImages: images.length,
+        totalSites: Object.keys(stats.sites).length,
         dailyRequests,
-        tags: Array.from(tags).sort((a, b) => a.localeCompare(b, 'zh-CN')),
+        tags: sortTags(Array.from(tags)),
     });
 }
 // ============================================================
@@ -673,24 +787,30 @@ const handler = {
                 return json({ error: 'Method Not Allowed' }, 405);
             }
             // PUT /api/update/:id
-            const updateMatch = pathname.match(/^\/api\/update\/(.+)$/);
+            const updateMatch = pathname.match(/^\/api\/update\/([^/]+)$/);
             if (updateMatch) {
                 if (request.method === 'PUT') {
                     const authError = await verifyAdminRequest(request, runtimeEnv);
                     if (authError)
                         return authError;
-                    return await handleUpdateImage(request, updateMatch[1], runtimeEnv);
+                    const imageId = decodeRouteSegment(updateMatch[1]);
+                    return imageId
+                        ? await handleUpdateImage(request, imageId, runtimeEnv)
+                        : json({ error: 'Invalid image id' }, 400);
                 }
                 return json({ error: 'Method Not Allowed' }, 405);
             }
             // DELETE /api/delete/:id
-            const deleteMatch = pathname.match(/^\/api\/delete\/(.+)$/);
+            const deleteMatch = pathname.match(/^\/api\/delete\/([^/]+)$/);
             if (deleteMatch) {
                 if (request.method === 'DELETE') {
                     const authError = await verifyAdminRequest(request, runtimeEnv);
                     if (authError)
                         return authError;
-                    return await handleDeleteImage(deleteMatch[1], runtimeEnv);
+                    const imageId = decodeRouteSegment(deleteMatch[1]);
+                    return imageId
+                        ? await handleDeleteImage(imageId, runtimeEnv)
+                        : json({ error: 'Invalid image id' }, 400);
                 }
                 return json({ error: 'Method Not Allowed' }, 405);
             }

@@ -74,6 +74,7 @@ interface Stats {
   todayRequests: number;
   lastRequestAt: string | null;
   totalImages: number;
+  totalSites?: number;
   dailyRequests?: Record<string, number>;
   tags: string[];
 }
@@ -830,7 +831,7 @@ function RealtimeStats() {
   const statCards = [
     { label: '总调用量', value: formatNumber(stats?.totalRequests ?? 0), icon: TrendingUp, color: 'text-blue-500', sub: '累计请求总次数' },
     { label: '今日调用', value: formatNumber(stats?.todayRequests ?? 0), icon: Clock, color: 'text-indigo-500', sub: `${stats?.lastRequestAt ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN') : '暂无数据'}` },
-    { label: '接入站点', value: formatNumber(1), icon: Globe, color: 'text-cyan-500', sub: '使用本 API 的网站' },
+    { label: '接入站点', value: formatNumber(stats?.totalSites ?? 0), icon: Globe, color: 'text-cyan-500', sub: '按来源域名去重' },
     { label: '图片总数', value: formatNumber(stats?.totalImages ?? 0), icon: Layers, color: 'text-fuchsia-500', sub: `${stats?.tags?.length ?? 0} 个分类` },
   ];
 

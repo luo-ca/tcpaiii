@@ -365,6 +365,36 @@ describe("functions api", () => {
     });
   });
 
+  it("rejects image URLs with embedded credentials", async () => {
+    const response = await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://user:pass@cdn.example.test/private.jpg" }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(json(response)).resolves.toMatchObject({
+      error: "url must be a valid http(s) URL",
+    });
+  });
+
+  it("rejects oversized JSON bodies before parsing", async () => {
+    const oversizedTitle = "x".repeat(256 * 1024);
+    const response = await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        url: "https://cdn.example.test/oversized.jpg",
+        title: oversizedTitle,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(json(response)).resolves.toMatchObject({
+      error: "Request body must be a valid JSON object",
+    });
+  });
+
   it("normalizes title and deduplicates tags when creating images", async () => {
     const response = await request("/api/create", {
       method: "POST",
@@ -381,6 +411,27 @@ describe("functions api", () => {
       url: "https://cdn.example.test/image.jpg",
       title: "风景图",
       tags: ["风景", "自然"],
+    });
+  });
+
+  it("rejects invalid image ids on mutating routes", async () => {
+    const update = await request("/api/update/bad%2Fid", {
+      method: "PUT",
+      headers: adminHeaders(),
+      body: JSON.stringify({ title: "bad" }),
+    });
+    const remove = await request("/api/delete/%E0%A4%A", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+
+    expect(update.status).toBe(400);
+    await expect(json(update)).resolves.toMatchObject({
+      error: "Invalid image id",
+    });
+    expect(remove.status).toBe(400);
+    await expect(json(remove)).resolves.toMatchObject({
+      error: "Invalid image id",
     });
   });
 
@@ -628,6 +679,35 @@ describe("functions api", () => {
       dailyRequests: expect.objectContaining({
         [getStatsDateKey()]: 2,
       }),
+    });
+  });
+
+  it("tracks unique integration sites from random image request origins", async () => {
+    await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/site-stats.jpg", tags: ["site"] }),
+    });
+
+    await request("/api/random?tag=site&format=json", {
+      headers: { Origin: "https://example-a.test" },
+    });
+    await request("/api/random?tag=site&format=json", {
+      headers: { Referer: "https://example-b.test/docs/page" },
+    });
+    await request("/api/random?tag=site&format=json", {
+      headers: { Origin: "https://example-a.test" },
+    });
+    await request("/api/random?tag=site&format=json", {
+      headers: { Origin: "data:text/plain,bad" },
+    });
+
+    const stats = await request("/api/stats");
+
+    expect(stats.status).toBe(200);
+    await expect(json(stats)).resolves.toMatchObject({
+      totalRequests: 4,
+      totalSites: 2,
     });
   });
 
