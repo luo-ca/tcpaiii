@@ -58,6 +58,11 @@ type CachedStatsState = {
     expiresAt: number;
     stats: StatsRecord;
 };
+type ImagesMetaRecord = {
+    totalImages: number;
+    tags: string[];
+    updatedAt: string;
+};
 type ExecutionContextLike = {
     waitUntil?: (promise: Promise<unknown>) => void;
 };
@@ -81,6 +86,7 @@ const IMAGE_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/;
 const ALLOWED_IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 const STATS_TIME_ZONE = 'Asia/Shanghai';
 const ADMIN_CONFIG_KEY = 'admin_config';
+const IMAGES_META_KEY = 'meta';
 const API_BUILD_ID = 'edgeone-js-kv-safe-2026-04-29';
 const KV_CACHE_TTL_MS = 10_000;
 const KV_BINDING_NAMES = {
@@ -246,6 +252,25 @@ function buildImageIndex(images: ImageRecord[]): ImageIndex {
         urlSet,
     };
 }
+function buildImagesMeta(images: ImageRecord[]): ImagesMetaRecord {
+    return {
+        totalImages: images.length,
+        tags: buildImageIndex(images).sortedTags,
+        updatedAt: new Date().toISOString(),
+    };
+}
+function sanitizeImagesMeta(value: unknown): ImagesMetaRecord | null {
+    if (!isJsonObject(value) || !Array.isArray(value.tags))
+        return null;
+    const tags = value.tags.filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0);
+    if (typeof value.totalImages !== 'number' || !Number.isFinite(value.totalImages))
+        return null;
+    return {
+        totalImages: Math.max(0, Math.floor(value.totalImages)),
+        tags: sortTags([...new Set(tags)]),
+        updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : new Date(0).toISOString(),
+    };
+}
 function getRuntimeSecret(name: string, runtimeEnv?: RuntimeEnv) {
     const runtime = globalThis as RuntimeGlobals & Record<string, string | undefined>;
     return getEnvString(runtimeEnv, name)
@@ -281,6 +306,26 @@ function getCachedStatsState(stats: StatsRecord): CachedStatsState {
         stats: cloneStatsRecord(stats),
     };
 }
+async function getImagesMeta(runtimeEnv?: RuntimeEnv): Promise<ImagesMetaRecord> {
+    if (_cachedImagesState && _cachedImagesState.expiresAt > Date.now()) {
+        return {
+            totalImages: _cachedImagesState.images.length,
+            tags: _cachedImagesState.index.sortedTags,
+            updatedAt: new Date().toISOString(),
+        };
+    }
+    const data = await getKvImages(runtimeEnv).get(IMAGES_META_KEY);
+    const meta = sanitizeImagesMeta(parseStoredJson(data, null));
+    if (meta) {
+        return meta;
+    }
+    const imagesState = await getImagesState(runtimeEnv);
+    return {
+        totalImages: imagesState.images.length,
+        tags: imagesState.index.sortedTags,
+        updatedAt: new Date().toISOString(),
+    };
+}
 async function getImagesState(runtimeEnv?: RuntimeEnv): Promise<CachedImagesState> {
     if (_cachedImagesState && _cachedImagesState.expiresAt > Date.now()) {
         return _cachedImagesState;
@@ -294,7 +339,12 @@ async function getAllImages(runtimeEnv?: RuntimeEnv): Promise<ImageRecord[]> {
     return (await getImagesState(runtimeEnv)).images;
 }
 async function saveAllImages(images: ImageRecord[], runtimeEnv?: RuntimeEnv) {
-    await getKvImages(runtimeEnv).put('all', JSON.stringify(images));
+    const kv = getKvImages(runtimeEnv);
+    const imagesMeta = buildImagesMeta(images);
+    await Promise.all([
+        kv.put('all', JSON.stringify(images)),
+        kv.put(IMAGES_META_KEY, JSON.stringify(imagesMeta)),
+    ]);
     _cachedImagesState = getCachedImagesState(images);
 }
 async function getStats(runtimeEnv?: RuntimeEnv): Promise<StatsRecord> {
@@ -543,6 +593,12 @@ async function sha256Hex(value: string) {
         .map(byte => byte.toString(16).padStart(2, '0'))
         .join('');
 }
+function generateImageId() {
+    if (typeof crypto.randomUUID === 'function') {
+        return `img-${crypto.randomUUID()}`;
+    }
+    return `img-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 async function verifyAdminRequest(request: Request, runtimeEnv?: RuntimeEnv) {
     const token = getBearerToken(request);
     if (!token) {
@@ -586,9 +642,10 @@ function noStoreHeaders() {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
         'CDN-Cache-Control': 'no-store',
         'Surrogate-Control': 'no-store',
+        'Timing-Allow-Origin': '*',
         Pragma: 'no-cache',
         Expires: '0',
-        Vary: 'Accept, Accept-Encoding',
+        Vary: 'Accept, Accept-Encoding, Origin, Referer',
     };
 }
 function json(body: unknown, status = 200) {
@@ -714,8 +771,9 @@ async function handleBatchCreateImages(request: Request, runtimeEnv?: RuntimeEnv
     if (body.images.length > MAX_BATCH_SIZE) {
         return json({ error: `Maximum ${MAX_BATCH_SIZE} images per batch request` }, 400);
     }
-    const images = await getAllImages(runtimeEnv);
-    const existingUrls = new Set(images.map(img => img.url));
+    const imagesState = await getImagesState(runtimeEnv);
+    const images = imagesState.images.slice();
+    const existingUrls = new Set(imagesState.index.urlSet);
     const results = [];
     for (const item of body.images) {
         if (!isJsonObject(item)) {
@@ -737,7 +795,7 @@ async function handleBatchCreateImages(request: Request, runtimeEnv?: RuntimeEnv
             continue;
         }
         const newImage = {
-            id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            id: generateImageId(),
             url: trimmedUrl,
             title: normalizeTitle(item.title),
             tags,
@@ -770,15 +828,16 @@ async function handleCreateImage(request: Request, runtimeEnv?: RuntimeEnv) {
     if (!tags) {
         return json({ error: 'tags must be an array of strings' }, 400);
     }
-    const images = await getAllImages(runtimeEnv);
+    const imagesState = await getImagesState(runtimeEnv);
+    const images = imagesState.images.slice();
     const newImage = {
-        id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: generateImageId(),
         url: imageUrl,
         title: normalizeTitle(body.title),
         tags,
         createdAt: new Date().toISOString(),
     };
-    if (images.some(img => img.url === newImage.url)) {
+    if (imagesState.index.urlSet.has(newImage.url)) {
         return json({ error: 'Image URL already exists' }, 409);
     }
     images.push(newImage);
@@ -794,7 +853,8 @@ async function handleUpdateImage(request: Request, id: string, runtimeEnv?: Runt
     if (!body) {
         return json({ error: 'Request body must be a valid JSON object' }, 400);
     }
-    const images = await getAllImages(runtimeEnv);
+    const imagesState = await getImagesState(runtimeEnv);
+    const images = imagesState.images.slice();
     const index = images.findIndex(img => img.id === id);
     if (index === -1) {
         return json({ error: 'Image not found' }, 404);
@@ -826,9 +886,9 @@ async function handleDeleteImage(id: string, runtimeEnv?: RuntimeEnv) {
     if (!isValidImageId(id)) {
         return json({ error: 'Invalid image id' }, 400);
     }
-    const images = await getAllImages(runtimeEnv);
-    const filtered = images.filter(img => img.id !== id);
-    if (filtered.length === images.length) {
+    const imagesState = await getImagesState(runtimeEnv);
+    const filtered = imagesState.images.filter(img => img.id !== id);
+    if (filtered.length === imagesState.images.length) {
         return json({ error: 'Image not found' }, 404);
     }
     await saveAllImages(filtered, runtimeEnv);
@@ -837,7 +897,7 @@ async function handleDeleteImage(id: string, runtimeEnv?: RuntimeEnv) {
 // GET /api/stats — 获取统计信息
 async function handleStats(runtimeEnv?: RuntimeEnv) {
     const stats = await getStats(runtimeEnv);
-    const imagesState = await getImagesState(runtimeEnv);
+    const imagesMeta = await getImagesMeta(runtimeEnv);
     const today = getStatsDateKey();
     const recentDateKeys = getRecentStatsDateKeys();
     const dailyRequests = {};
@@ -848,10 +908,10 @@ async function handleStats(runtimeEnv?: RuntimeEnv) {
         totalRequests: stats.totalRequests,
         todayRequests: stats.dailyRequests[today] || 0,
         lastRequestAt: stats.lastRequestAt,
-        totalImages: imagesState.images.length,
+        totalImages: imagesMeta.totalImages,
         totalSites: Object.keys(stats.sites).length,
         dailyRequests,
-        tags: imagesState.index.sortedTags,
+        tags: imagesMeta.tags,
     });
 }
 // ============================================================

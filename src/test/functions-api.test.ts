@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getRecentStatsDateKeys, getStatsDateKey, handler, resetRuntimeCaches } from "../../edge-functions-src/api/[[default]]";
 
@@ -89,8 +89,13 @@ describe("functions api", () => {
     }
 
     resetRuntimeCaches();
+    vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal("EdgeKV", MockEdgeKV);
     vi.stubGlobal("ADMIN_TOKEN", ADMIN_TOKEN);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("rejects malformed JSON bodies", async () => {
@@ -488,6 +493,34 @@ describe("functions api", () => {
     await expect(json(response)).resolves.toMatchObject({
       totalImages: 2,
       tags: ["AI", "风景", "自然"],
+    });
+  });
+
+  it("serves stats from stored metadata without reading the full image list", async () => {
+    store.images.set("meta", JSON.stringify({
+      totalImages: 3,
+      tags: ["beta", "alpha"],
+      updatedAt: "2026-04-29T00:00:00.000Z",
+    }));
+    store.stats.set("data", JSON.stringify({
+      totalRequests: 7,
+      lastRequestAt: "2026-04-29T01:02:03.000Z",
+      dailyRequests: {
+        [getStatsDateKey()]: 4,
+      },
+      sites: {
+        "example.test": 2,
+      },
+    }));
+
+    const response = await request("/api/stats");
+
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({
+      totalRequests: 7,
+      totalImages: 3,
+      totalSites: 1,
+      tags: ["alpha", "beta"],
     });
   });
 
