@@ -753,8 +753,8 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
                       ))}
                     </div>
                   </div>
-                  <div className="flex gap-2 shrink-0 sm:ml-3">
-                    <Button size="sm" variant="secondary" className="h-7 text-xs bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-0" onClick={copyUrl}>
+                  <div className="flex flex-wrap gap-2 shrink-0 sm:ml-3 sm:flex-nowrap">
+                    <Button size="sm" variant="secondary" className="h-7 min-w-0 text-xs bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-0" onClick={copyUrl}>
                       {copied ? <Check className="w-3 h-3 mr-1" /> : <CopyIcon className="w-3 h-3 mr-1" />}
                       复制
                     </Button>
@@ -994,7 +994,7 @@ function ApiDocsSection() {
 
       <div className="max-w-4xl mx-auto">
         <Tabs value={activeDocTab} onValueChange={setActiveDocTab}>
-          <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-4 gap-0.5 sm:gap-1 glass rounded-xl p-1 sm:p-1.5 min-h-[2.75rem] mb-6">
+          <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-4 gap-1 glass rounded-xl p-1 sm:p-1.5 min-h-[2.75rem] mb-6">
             <TabsTrigger value="basic" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">基础调用</TabsTrigger>
             <TabsTrigger value="params" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">分类参数</TabsTrigger>
             <TabsTrigger value="json" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">JSON 返回</TabsTrigger>
@@ -1015,7 +1015,7 @@ function ApiDocsSection() {
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">API 地址（默认 302）</p>
-                      <code className="block overflow-x-auto whitespace-nowrap text-sm text-foreground">{randomApiUrl}</code>
+                      <code className="block overflow-x-auto break-all text-sm text-foreground sm:whitespace-nowrap">{randomApiUrl}</code>
                     </div>
                     <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomApiUrl)}>
                       <CopyIcon className="w-3.5 h-3.5" />
@@ -1512,7 +1512,7 @@ function GalleryPage() {
                 autoComplete="off"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge
                 variant={hasVerifiedAdminToken ? 'default' : 'outline'}
                 className={hasVerifiedAdminToken ? 'bg-emerald-600 text-white border-0' : 'text-muted-foreground'}
@@ -1578,7 +1578,7 @@ function GalleryPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge
                 variant={selectedTag === null ? 'default' : 'outline'}
-                className={`cursor-pointer ${
+                className={`max-w-full cursor-pointer ${
                   selectedTag === null ? 'bg-primary text-primary-foreground border-0' : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
                 }`}
                 onClick={() => {
@@ -1592,7 +1592,7 @@ function GalleryPage() {
                 <Badge
                   key={tag}
                   variant={selectedTag === tag ? 'default' : 'outline'}
-                  className={`cursor-pointer ${
+                  className={`max-w-full cursor-pointer ${
                     selectedTag === tag ? 'bg-primary text-primary-foreground border-0' : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
                   }`}
                   onClick={() => {
@@ -1722,8 +1722,9 @@ function GalleryPage() {
             <span>每页 {imagesQuery.data?.pageSize ?? pageSize} 张</span>
             <span>第 {page} / {totalPages} 页</span>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex flex-wrap items-center gap-1">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+            <div className="-mx-1 overflow-x-auto px-1 pb-1">
+              <div className="flex min-w-max items-center gap-1">
               <Button
                 variant="outline"
                 size="sm"
@@ -1783,7 +1784,9 @@ function GalleryPage() {
               >
                 末页
               </Button>
+              </div>
             </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <form onSubmit={handlePageJump} className="flex items-center gap-2">
               <Label htmlFor="gallery-page-jump" className="text-xs text-muted-foreground">
                 跳至
@@ -1818,6 +1821,7 @@ function GalleryPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
             </div>
           </div>
         </div>
@@ -2108,7 +2112,7 @@ export default function App() {
   };
 
   return (
-    <div id="top" className="min-h-screen relative overflow-hidden page-bg">
+    <div id="top" className="relative min-h-screen overflow-x-hidden page-bg">
       <AmbientBackground />
       <Header activeTab={activeTab} onTabChange={handleTabChange} />
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getRecentStatsDateKeys, getStatsDateKey, handler } from "../../edge-functions-src/api/[[default]]";
+import { getRecentStatsDateKeys, getStatsDateKey, handler, resetRuntimeCaches } from "../../edge-functions-src/api/[[default]]";
 
 type Store = Record<string, Map<string, string>>;
 type TestKv = {
@@ -88,6 +88,7 @@ describe("functions api", () => {
       store[namespace].clear();
     }
 
+    resetRuntimeCaches();
     vi.stubGlobal("EdgeKV", MockEdgeKV);
     vi.stubGlobal("ADMIN_TOKEN", ADMIN_TOKEN);
   });

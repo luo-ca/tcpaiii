@@ -13,6 +13,7 @@ const ALLOWED_IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 const STATS_TIME_ZONE = 'Asia/Shanghai';
 const ADMIN_CONFIG_KEY = 'admin_config';
 const API_BUILD_ID = 'edgeone-js-kv-safe-2026-04-29';
+const KV_CACHE_TTL_MS = 10000;
 const KV_BINDING_NAMES = {
     images: ['images_kv', 'IMAGES_KV', 'images'],
     stats: ['stats_kv', 'STATS_KV', 'stats'],
@@ -25,6 +26,12 @@ const KV_BINDING_NAMES = {
 // ============================================================
 let _legacyKvImages = null;
 let _legacyKvStats = null;
+let _cachedImagesState = null;
+let _cachedStatsState = null;
+function resetRuntimeCaches() {
+    _cachedImagesState = null;
+    _cachedStatsState = null;
+}
 function getKvImages(runtimeEnv) {
     const directBinding = getDirectKvBinding(() => images_kv)
         || getDirectKvBinding(() => IMAGES_KV)
@@ -137,6 +144,38 @@ function sanitizeStoredImages(value) {
         return [];
     return value.map(sanitizeStoredImage).filter((item) => Boolean(item));
 }
+function cloneStatsRecord(stats) {
+    return {
+        totalRequests: stats.totalRequests,
+        lastRequestAt: stats.lastRequestAt,
+        dailyRequests: { ...stats.dailyRequests },
+        sites: { ...stats.sites },
+    };
+}
+function buildImageIndex(images) {
+    const byTag = new Map();
+    const tagSet = new Set();
+    const urlSet = new Set();
+    for (const image of images) {
+        urlSet.add(image.url);
+        for (const tag of image.tags) {
+            tagSet.add(tag);
+            const normalizedTag = tag.toLowerCase();
+            const group = byTag.get(normalizedTag);
+            if (group) {
+                group.push(image);
+            }
+            else {
+                byTag.set(normalizedTag, [image]);
+            }
+        }
+    }
+    return {
+        byTag,
+        sortedTags: sortTags(Array.from(tagSet)),
+        urlSet,
+    };
+}
 function getRuntimeSecret(name, runtimeEnv) {
     const runtime = globalThis;
     return getEnvString(runtimeEnv, name)
@@ -159,20 +198,45 @@ function getEnvBinding(runtimeEnv, name) {
         return envValue;
     return 'bindings' in runtimeEnv ? runtimeEnv.bindings?.[name] : undefined;
 }
-async function getAllImages(runtimeEnv) {
+function getCachedImagesState(images) {
+    return {
+        expiresAt: Date.now() + KV_CACHE_TTL_MS,
+        images,
+        index: buildImageIndex(images),
+    };
+}
+function getCachedStatsState(stats) {
+    return {
+        expiresAt: Date.now() + KV_CACHE_TTL_MS,
+        stats: cloneStatsRecord(stats),
+    };
+}
+async function getImagesState(runtimeEnv) {
+    if (_cachedImagesState && _cachedImagesState.expiresAt > Date.now()) {
+        return _cachedImagesState;
+    }
     const data = await getKvImages(runtimeEnv).get('all');
-    if (!data)
-        return [];
-    const parsed = parseStoredJson(data, []);
-    return sanitizeStoredImages(parsed);
+    const images = data ? sanitizeStoredImages(parseStoredJson(data, [])) : [];
+    _cachedImagesState = getCachedImagesState(images);
+    return _cachedImagesState;
+}
+async function getAllImages(runtimeEnv) {
+    return (await getImagesState(runtimeEnv)).images;
 }
 async function saveAllImages(images, runtimeEnv) {
     await getKvImages(runtimeEnv).put('all', JSON.stringify(images));
+    _cachedImagesState = getCachedImagesState(images);
 }
 async function getStats(runtimeEnv) {
+    if (_cachedStatsState && _cachedStatsState.expiresAt > Date.now()) {
+        return cloneStatsRecord(_cachedStatsState.stats);
+    }
     const data = await getKvStats(runtimeEnv).get('data');
-    if (!data)
-        return { totalRequests: 0, lastRequestAt: null, dailyRequests: {}, sites: {} };
+    if (!data) {
+        const emptyStats = { totalRequests: 0, lastRequestAt: null, dailyRequests: {}, sites: {} };
+        _cachedStatsState = getCachedStatsState(emptyStats);
+        return cloneStatsRecord(emptyStats);
+    }
     const parsed = parseStoredJson(data, {});
     const parsedStats = isJsonObject(parsed) ? parsed : {};
     const dailyRequests = {};
@@ -191,7 +255,7 @@ async function getStats(runtimeEnv) {
             }
         }
     }
-    return {
+    const stats = {
         totalRequests: normalizeStatCount(parsedStats.totalRequests),
         lastRequestAt: typeof parsedStats.lastRequestAt === 'string' && !Number.isNaN(Date.parse(parsedStats.lastRequestAt))
             ? parsedStats.lastRequestAt
@@ -199,9 +263,12 @@ async function getStats(runtimeEnv) {
         dailyRequests,
         sites,
     };
+    _cachedStatsState = getCachedStatsState(stats);
+    return cloneStatsRecord(stats);
 }
 async function saveStats(stats, runtimeEnv) {
     await getKvStats(runtimeEnv).put('data', JSON.stringify(stats));
+    _cachedStatsState = getCachedStatsState(stats);
 }
 async function getAdminConfig(runtimeEnv) {
     const data = await getKvStats(runtimeEnv).get(ADMIN_CONFIG_KEY);
@@ -464,47 +531,52 @@ function json(body, status = 200) {
         },
     });
 }
+async function updateRequestStats(request, runtimeEnv) {
+    const stats = await getStats(runtimeEnv);
+    const now = new Date();
+    const today = getStatsDateKey(now);
+    stats.totalRequests++;
+    stats.lastRequestAt = now.toISOString();
+    stats.dailyRequests[today] = (stats.dailyRequests[today] ?? 0) + 1;
+    const site = getRequestSite(request);
+    if (site) {
+        stats.sites[site] = (stats.sites[site] ?? 0) + 1;
+        stats.sites = pruneSites(stats.sites);
+    }
+    await saveStats(stats, runtimeEnv);
+}
 // ============================================================
 // Route handlers
 // ============================================================
 // GET /api/random — 随机返回一张图片（核心 API）
-async function handleRandomImage(request, runtimeEnv) {
+async function handleRandomImage(request, runtimeEnv, executionContext) {
     const url = new URL(request.url);
     const tag = url.searchParams.get('tag') || url.searchParams.get('type');
     const format = url.searchParams.get('format');
     const wantsJson = url.searchParams.has('json')
         || format === 'json'
         || url.searchParams.get('redirect') === 'false';
-    const images = await getAllImages(runtimeEnv);
-    if (images.length === 0) {
+    const imagesState = await getImagesState(runtimeEnv);
+    if (imagesState.images.length === 0) {
         return json({ error: 'No images available' }, 404);
     }
-    let candidates = images;
+    let candidates = imagesState.images;
     if (tag) {
-        candidates = images.filter(img => img.tags.some(t => t.toLowerCase() === tag.toLowerCase()));
+        candidates = imagesState.index.byTag.get(tag.toLowerCase()) ?? [];
     }
     if (candidates.length === 0) {
         return json({ error: `No images found with tag: ${tag}` }, 404);
     }
     const randomIndex = Math.floor(Math.random() * candidates.length);
     const selected = candidates[randomIndex];
-    // 异步更新统计（不阻塞响应）
-    try {
-        const stats = await getStats(runtimeEnv);
-        const now = new Date();
-        const today = getStatsDateKey(now);
-        stats.totalRequests++;
-        stats.lastRequestAt = now.toISOString();
-        stats.dailyRequests[today] = (stats.dailyRequests[today] ?? 0) + 1;
-        const site = getRequestSite(request);
-        if (site) {
-            stats.sites[site] = (stats.sites[site] ?? 0) + 1;
-            stats.sites = pruneSites(stats.sites);
-        }
-        await saveStats(stats, runtimeEnv);
+    const statsTask = updateRequestStats(request, runtimeEnv).catch(() => {
+        // Ignore stats persistence failures on the hot path.
+    });
+    if (executionContext?.waitUntil) {
+        executionContext.waitUntil(statsTask);
     }
-    catch {
-        // 统计失败不影响主流程
+    else {
+        await statsTask;
     }
     if (wantsJson) {
         return json({
@@ -695,34 +767,28 @@ async function handleDeleteImage(id, runtimeEnv) {
 // GET /api/stats — 获取统计信息
 async function handleStats(runtimeEnv) {
     const stats = await getStats(runtimeEnv);
-    const images = await getAllImages(runtimeEnv);
+    const imagesState = await getImagesState(runtimeEnv);
     const today = getStatsDateKey();
     const recentDateKeys = getRecentStatsDateKeys();
     const dailyRequests = {};
     for (const dateKey of recentDateKeys) {
         dailyRequests[dateKey] = stats.dailyRequests[dateKey] || 0;
     }
-    const tags = new Set();
-    for (const image of images) {
-        for (const tag of image.tags) {
-            tags.add(tag);
-        }
-    }
     return json({
         totalRequests: stats.totalRequests,
         todayRequests: stats.dailyRequests[today] || 0,
         lastRequestAt: stats.lastRequestAt,
-        totalImages: images.length,
+        totalImages: imagesState.images.length,
         totalSites: Object.keys(stats.sites).length,
         dailyRequests,
-        tags: sortTags(Array.from(tags)),
+        tags: imagesState.index.sortedTags,
     });
 }
 // ============================================================
 // Main fetch handler
 // ============================================================
 const handler = {
-    async fetch(request, runtimeEnv) {
+    async fetch(request, runtimeEnv, executionContext) {
         const url = new URL(request.url);
         const pathname = url.pathname;
         // CORS preflight
@@ -751,7 +817,7 @@ const handler = {
             // GET /api/random
             if (pathname === '/api/random') {
                 if (request.method === 'GET')
-                    return await handleRandomImage(request, runtimeEnv);
+                    return await handleRandomImage(request, runtimeEnv, executionContext);
                 return json({ error: 'Method Not Allowed' }, 405);
             }
             // GET /api/list
@@ -834,9 +900,9 @@ const handler = {
     },
 };
 async function onRequest(context) {
-    return handler.fetch(context.request, context.env);
+    return handler.fetch(context.request, context.env, context);
 }
 export default onRequest;
 export { handler };
 export { onRequest };
-export { getRecentStatsDateKeys, getStatsDateKey };
+export { getRecentStatsDateKeys, getStatsDateKey, resetRuntimeCaches };
