@@ -127,13 +127,13 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debouncedValue;
 }
 
-async function copyText(text: string, successMessage = 'Copied to clipboard') {
+async function copyText(text: string, successMessage = '已复制到剪贴板') {
   try {
     await copyToClipboard(text);
     toast.success(successMessage);
     return true;
   } catch (err) {
-    toast.error(getErrorMessage(err, 'Copy failed. Please copy manually.'));
+    toast.error(getErrorMessage(err, '复制失败，请手动复制'));
     return false;
   }
 }
@@ -364,14 +364,14 @@ function AddImageDialog({
   }, [open]);
 
   const singleMutation = useMutation({
-    mutationFn: () => createImage({ url: url.trim(), title: title.trim() || 'Untitled image', tags: parseTagsInput(tagsInput) }, adminToken),
+    mutationFn: () => createImage({ url: url.trim(), title: title.trim() || '未命名图片', tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => {
       toast.success('Image added successfully');
       setOpen(false);
       onSuccess();
     },
     onError: err => {
-      toast.error(getErrorMessage(err, 'Failed to add image'));
+      toast.error(getErrorMessage(err, '添加失败'));
     },
   });
 
@@ -385,7 +385,7 @@ function AddImageDialog({
       return;
     }
     if (lines.length > MAX_BATCH_IMAGE_COUNT) {
-      toast.error(`You can import up to ${MAX_BATCH_IMAGE_COUNT} images per batch.`);
+      toast.error(`单次最多添加 ${MAX_BATCH_IMAGE_COUNT} 张图片`);
       return;
     }
 
@@ -395,21 +395,21 @@ function AddImageDialog({
 
     try {
       const result = await batchCreateImages(
-        lines.map((imageUrl, index) => ({ url: imageUrl, title: `Imported image ${index + 1}`, tags })),
+        lines.map((imageUrl, index) => ({ url: imageUrl, title: `图片 ${index + 1}`, tags })),
         adminToken,
       );
       setProgress({ current: result.success, total: lines.length });
 
       if (result.success > 0) {
-        toast.success(`Imported ${result.success} image(s)${result.failed > 0 ? `, failed ${result.failed}` : ""}.`);
+        toast.success(`批量添加完成：成功 ${result.success} 张${result.failed > 0 ? `，失败 ${result.failed} 张` : ""}`);
         setOpen(false);
         onSuccess();
       } else {
         const firstError = result.results.find(item => !item.success)?.error;
-        toast.error(firstError ? `Batch add failed: ${firstError}` : 'Batch add failed. Please check the URL format.');
+        toast.error(firstError ? `全部添加失败：${firstError}` : '全部添加失败，请检查 URL 格式');
       }
     } catch (err) {
-      toast.error(getErrorMessage(err, 'Batch add failed'));
+      toast.error(getErrorMessage(err, '批量添加失败'));
     } finally {
       setLoading(false);
     }
@@ -434,14 +434,14 @@ function AddImageDialog({
       <DialogTrigger asChild>
         <Button className="gap-2 gradient-button rounded-full border-0 text-white">
           <Plus className="w-4 h-4" />
-          Add Images
+          添加图片
         </Button>
       </DialogTrigger>
       <DialogContent className="glass-strong rounded-2xl sm:max-w-lg sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link className="w-5 h-5 text-blue-500" />
-            Add images          </DialogTitle>
+            添加外链图片          </DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-2 mt-2">
@@ -451,7 +451,7 @@ function AddImageDialog({
             onClick={() => setMode('single')}
             className={`text-xs h-8 rounded-full ${mode === 'single' ? 'bg-primary text-primary-foreground' : ''}`}
           >
-            Single
+            单张添加
           </Button>
           <Button
             variant={mode === 'batch' ? 'default' : 'outline'}
@@ -459,7 +459,7 @@ function AddImageDialog({
             onClick={() => setMode('batch')}
             className={`text-xs h-8 rounded-full ${mode === 'batch' ? 'bg-primary text-primary-foreground' : ''}`}
           >
-            Batch
+            批量添加
           </Button>
         </div>
 
@@ -470,21 +470,21 @@ function AddImageDialog({
               <Input id="url" className="rounded-lg bg-secondary/30 border-border/70" placeholder="https://example.com/image.jpg" value={url} onChange={e => setUrl(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input id="title" className="rounded-lg bg-secondary/30 border-border/70" placeholder="Optional title" value={title} onChange={e => setTitle(e.target.value)} />
+              <Label htmlFor="title">标题</Label>
+              <Input id="title" className="rounded-lg bg-secondary/30 border-border/70" placeholder="给图片起个名字" value={title} onChange={e => setTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tags">Tags (comma separated)</Label>
-              <Input id="tags" className="rounded-lg bg-secondary/30 border-border/70" placeholder="landscape, nature, mountain" value={tagsInput} onChange={e => setTagsInput(e.target.value)} />
+              <Label htmlFor="tags">标签（逗号分隔）</Label>
+              <Input id="tags" className="rounded-lg bg-secondary/30 border-border/70" placeholder="风景, 自然, 山脉" value={tagsInput} onChange={e => setTagsInput(e.target.value)} />
             </div>
             <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              Add image            </Button>
+              添加            </Button>
           </form>
         ) : (
           <form onSubmit={handleBatchSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="batch-urls">Image URLs (one per line)</Label>
+              <Label htmlFor="batch-urls">图片地址（每行一个）*</Label>
               <textarea
                 id="batch-urls"
                 placeholder={'https://example.com/image1.jpg\nhttps://example.com/image2.jpg\nhttps://example.com/image3.jpg'}
@@ -494,18 +494,18 @@ function AddImageDialog({
                 rows={6}
                 className="w-full min-h-[140px] rounded-lg border border-border/70 bg-secondary/30 px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y font-mono"
               />
-              <p className="text-xs text-muted-foreground">Duplicate URLs will be merged automatically. Up to {MAX_BATCH_IMAGE_COUNT} images per batch.</p>
+              <p className="text-xs text-muted-foreground">每行一个图片 URL，重复地址会自动合并，单次最多 {MAX_BATCH_IMAGE_COUNT} 张</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="batch-tags">Shared tags for this batch</Label>
-              <Input id="batch-tags" className="rounded-lg bg-secondary/30 border-border/70" placeholder="landscape, nature" value={batchTags} onChange={e => setBatchTags(e.target.value)} />
-              <p className="text-xs text-muted-foreground">These tags will be applied to every imported image.</p>
+              <Label htmlFor="batch-tags">统一标签（逗号分隔，可选）</Label>
+              <Input id="batch-tags" className="rounded-lg bg-secondary/30 border-border/70" placeholder="风景, 自然" value={batchTags} onChange={e => setBatchTags(e.target.value)} />
+              <p className="text-xs text-muted-foreground">所有图片将使用相同的标签</p>
             </div>
 
             {loading && progress.total > 0 && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Import progress</span>
+                  <span>添加进度</span>
                   <span>{progress.current} / {progress.total}</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -519,7 +519,7 @@ function AddImageDialog({
 
             <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              Import images
+              批量添加
             </Button>
           </form>
         )}
@@ -561,7 +561,7 @@ function EditImageDialog({
       onSuccess();
     },
     onError: err => {
-      toast.error(getErrorMessage(err, 'Failed to update image'));
+      toast.error(getErrorMessage(err, '更新失败'));
     },
   });
 
@@ -582,7 +582,7 @@ function EditImageDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/20" aria-label="Edit image">
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/20" aria-label="编辑图片">
           <Edit3 className="w-3.5 h-3.5" />
         </Button>
       </DialogTrigger>
@@ -590,7 +590,7 @@ function EditImageDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit3 className="w-5 h-5 text-blue-500" />
-            Edit image
+            编辑图片
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
@@ -599,16 +599,16 @@ function EditImageDialog({
             <Input id="edit-url" className="rounded-lg bg-secondary/30 border-border/70" value={url} onChange={e => setUrl(e.target.value)} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-title">Title</Label>
+            <Label htmlFor="edit-title">标题</Label>
             <Input id="edit-title" className="rounded-lg bg-secondary/30 border-border/70" value={title} onChange={e => setTitle(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-tags">Tags</Label>
+            <Label htmlFor="edit-tags">标签</Label>
             <Input id="edit-tags" className="rounded-lg bg-secondary/30 border-border/70" value={tagsInput} onChange={e => setTagsInput(e.target.value)} />
           </div>
           <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            Save changes          </Button>
+            保存          </Button>
         </form>
       </DialogContent>
     </Dialog>
@@ -708,16 +708,16 @@ export default function GalleryPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteImage(id, adminToken.trim()),
     onSuccess: () => {
-      toast.success('閸ュ墽澧栧鎻掑灩闂?');
+      toast.success('图片已删除');
       refreshGallery();
     },
     onError: err => {
-      toast.error(getErrorMessage(err, 'Failed to delete image'));
+      toast.error(getErrorMessage(err, '删除失败'));
     },
   });
 
   const handleCopyUrl = async (url: string) => {
-    await copyText(url, 'Image URL copied');
+    await copyText(url, '图片地址已复制');
   };
 
   const goToPage = useCallback((nextPage: number) => {
@@ -749,14 +749,14 @@ export default function GalleryPage() {
   const clearAdminToken = () => {
     setAdminToken('');
     setAdminAuthStatus('empty');
-    toast.success('Admin token cleared');
+    toast.success('管理密钥已清除');
   };
 
   const checkAdminToken = useCallback(async (): Promise<boolean> => {
     const token = adminToken.trim();
     if (!token) {
       setAdminAuthStatus('empty');
-      toast.error('Please enter the admin token first');
+      toast.error('请先填写管理密钥');
       return false;
     }
 
@@ -764,13 +764,13 @@ export default function GalleryPage() {
     try {
       await verifyAdminToken(token);
       setAdminAuthStatus('valid');
-      toast.success('Admin token verified');
+      toast.success('管理密钥校验通过');
       return true;
     } catch (err) {
-      const message = getErrorMessage(err, 'Admin token verification failed');
+      const message = getErrorMessage(err, '管理密钥校验失败');
       if (message.includes('not configured')) {
         setAdminAuthStatus('unconfigured');
-        toast.error('The server admin token is not configured. Set ADMIN_TOKEN in EdgeOne Pages first.');
+        toast.error('服务端未配置管理密钥，请先在 ESA 环境变量配置 ADMIN_TOKEN');
       } else {
         setAdminAuthStatus('invalid');
         toast.error(message);
@@ -790,12 +790,12 @@ export default function GalleryPage() {
   }, [checkAdminToken, hasAdminToken, hasVerifiedAdminToken]);
 
   const adminStatusText = {
-    empty: 'Read only',
-    unverified: 'Not verified',
-    checking: 'Checking',
-    valid: 'Verified',
-    invalid: 'Invalid token',
-    unconfigured: 'Server not configured',
+    empty: '只读模式',
+    unverified: '待校验',
+    checking: '校验中',
+    valid: '已验证',
+    invalid: '密钥错误',
+    unconfigured: '服务端未配置',
   }[adminAuthStatus];
 
   if (isInitialLoading) {
@@ -822,8 +822,8 @@ export default function GalleryPage() {
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-28 text-center">
         <div className="max-w-md mx-auto rounded-2xl border border-red-100 glass-strong p-8">
           <Camera className="w-14 h-14 mx-auto mb-4 text-red-300" />
-          <p className="text-lg font-medium text-foreground">No images yet</p>
-          <p className="text-sm mt-2 text-muted-foreground">{getErrorMessage(imagesQuery.error, 'Failed to load the gallery')}</p>
+          <p className="text-lg font-medium text-foreground">图库加载失败</p>
+          <p className="text-sm mt-2 text-muted-foreground">{getErrorMessage(imagesQuery.error, '请稍后重试')}</p>
           <Button className="mt-5" variant="outline" onClick={() => imagesQuery.refetch()}>
             <RefreshCw className="w-4 h-4 mr-2" />
             重新加载
@@ -838,7 +838,7 @@ export default function GalleryPage() {
       <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">图片管理</h2>
-          <p className="text-muted-foreground text-sm mt-1">Search, review, and maintain the remote image library here.</p>
+          <p className="text-muted-foreground text-sm mt-1">管理你的外链图片库</p>
         </div>
         <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
       </div>
@@ -849,13 +849,13 @@ export default function GalleryPage() {
             <div className="min-w-0 flex-1 space-y-2">
               <Label htmlFor="admin-token" className="flex items-center gap-2 text-sm font-medium">
                 <KeyRound className="h-4 w-4 text-blue-500" />
-                Admin token              </Label>
+                管理密钥              </Label>
               <Input
                 id="admin-token"
                 type="password"
                 value={adminToken}
                 onChange={event => handleAdminTokenChange(event.target.value)}
-                placeholder="Enter the admin token to add, edit, and delete images"
+                placeholder="输入管理密钥后才能添加、编辑、删除"
                 className="bg-secondary/30"
                 autoComplete="off"
               />
@@ -875,11 +875,11 @@ export default function GalleryPage() {
                   disabled={adminAuthStatus === 'checking'}
                 >
                   {adminAuthStatus === 'checking' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-1.5 h-3.5 w-3.5" />}
-                  Verify                </Button>
+                  校验                </Button>
               )}
               {hasAdminToken && (
                 <Button variant="outline" size="sm" onClick={clearAdminToken}>
-                  Clear                </Button>
+                  清除                </Button>
               )}
             </div>
           </div>
@@ -889,8 +889,8 @@ export default function GalleryPage() {
       <div className="grid grid-cols-1 gap-3 mb-5 sm:grid-cols-3">
         {[
           { label: '图片总数', value: totalImages, icon: Image },
-          { label: 'Tag count', value: totalTags, icon: Tag },
-          { label: 'Latest image', value: latestImage ? formatDateTime(latestImage.createdAt) : 'No data', icon: Clock },
+          { label: '标签数量', value: totalTags, icon: Tag },
+          { label: '当前页最新', value: latestImage ? formatDateTime(latestImage.createdAt) : '暂无数据', icon: Clock },
         ].map(item => (
           <Card key={item.label} className="glass-strong rounded-2xl">
             <CardContent className="p-4 flex items-center gap-3">
@@ -917,7 +917,7 @@ export default function GalleryPage() {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Search by title, URL, or tag"
+                placeholder="搜索标题、URL 或标签"
                 className="pl-9"
               />
             </div>
@@ -932,7 +932,7 @@ export default function GalleryPage() {
                   setPage(1);
                 }}
               >
-                All              </Badge>
+                全部              </Badge>
               {tags.map(tag => (
                 <Badge
                   key={tag}
@@ -956,8 +956,8 @@ export default function GalleryPage() {
       {totalImages === 0 && (
         <div className="rounded-2xl border border-dashed border-border glass px-6 py-16 text-center text-muted-foreground">
           <Camera className="w-14 h-14 mx-auto mb-4 opacity-25" />
-          <p className="text-lg font-medium text-foreground">No images in the gallery</p>
-          <p className="text-sm mt-1">Add your first image to start building the shared library.</p>
+          <p className="text-lg font-medium text-foreground">图片库还是空的</p>
+          <p className="text-sm mt-1">添加第一张图片，开始建设你的共享图库。</p>
           <div className="mt-5 flex justify-center">
             <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
           </div>
@@ -967,16 +967,16 @@ export default function GalleryPage() {
       {totalImages > 0 && filteredTotal === 0 && (
         <div className="rounded-2xl border border-dashed border-border glass px-6 py-14 text-center">
           <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-base font-medium text-foreground">No matching images found</p>
-          <p className="text-sm mt-1 text-muted-foreground">Try another keyword or clear the current filters.</p>
-          <Button variant="outline" className="mt-5" onClick={clearFilters}>Clear filters</Button>
+          <p className="text-base font-medium text-foreground">没有找到匹配的图片</p>
+          <p className="text-sm mt-1 text-muted-foreground">换个关键词试试，或者清空当前筛选条件。</p>
+          <Button variant="outline" className="mt-5" onClick={clearFilters}>清空筛选</Button>
         </div>
       )}
 
       {imagesQuery.isFetching && images.length > 0 && (
         <div className="mb-4 flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/55 px-4 py-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Refreshing gallery data...
+          正在刷新图库数据...
         </div>
       )}
 
@@ -1019,7 +1019,7 @@ export default function GalleryPage() {
                             e.stopPropagation();
                             void handleCopyUrl(img.url);
                           }}
-                          aria-label="Copy image URL"
+                          aria-label="复制图片地址"
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </Button>
@@ -1030,25 +1030,25 @@ export default function GalleryPage() {
                               variant="destructive"
                               size="icon"
                               className="w-7 h-7 bg-red-500/30 hover:bg-red-500/50 text-white border-0 backdrop-blur-sm"
-                              aria-label="Delete image"
+                              aria-label="删除图片"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete image</AlertDialogTitle>
-                              <AlertDialogDescription>Are you sure you want to delete &quot;{img.title}&quot;? This action cannot be undone.</AlertDialogDescription>
+                              <AlertDialogTitle>确认删除</AlertDialogTitle>
+                              <AlertDialogDescription>确定要删除「{img.title}」吗？此操作不可撤销。</AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel>取消</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={async () => {
                                   if (await requireAdminToken()) deleteMutation.mutate(img.id);
                                 }}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                Delete                              </AlertDialogAction>
+                                删除                              </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -1065,9 +1065,9 @@ export default function GalleryPage() {
       {filteredTotal > 0 && (
         <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/55 px-4 py-3 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span>Total {filteredTotal}</span>
-            <span>Per page {imagesQuery.data?.pageSize ?? pageSize}</span>
-            <span>Page {page} / {totalPages}</span>
+            <span>共 {filteredTotal} 张</span>
+            <span>每页 {imagesQuery.data?.pageSize ?? pageSize} 张</span>
+            <span>第 {page} / {totalPages} 页</span>
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
             <div className="-mx-1 overflow-x-auto px-1 pb-1">
@@ -1077,16 +1077,16 @@ export default function GalleryPage() {
                   size="sm"
                   disabled={page <= 1 || imagesQuery.isFetching}
                   onClick={() => goToPage(1)}
-                  aria-label="Go to first page"
+                  aria-label="跳转到第一页"
                 >
-                  First                </Button>
+                  首页                </Button>
                 <Button
                   variant="outline"
                   size="icon"
                   className="h-9 w-9"
                   disabled={page <= 1 || imagesQuery.isFetching}
                   onClick={() => goToPage(page - 1)}
-                  aria-label="Previous page"
+                  aria-label="上一页"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -1104,7 +1104,7 @@ export default function GalleryPage() {
                         disabled={imagesQuery.isFetching}
                         onClick={() => goToPage(pageNumber)}
                         aria-current={pageNumber === page ? 'page' : undefined}
-                        aria-label={`Go to page ${pageNumber}`}
+                        aria-label={`第 ${pageNumber} 页`}
                       >
                         {pageNumber}
                       </Button>
@@ -1117,7 +1117,7 @@ export default function GalleryPage() {
                   className="h-9 w-9"
                   disabled={page >= totalPages || imagesQuery.isFetching}
                   onClick={() => goToPage(page + 1)}
-                  aria-label="Next page"
+                  aria-label="下一页"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -1126,15 +1126,15 @@ export default function GalleryPage() {
                   size="sm"
                   disabled={page >= totalPages || imagesQuery.isFetching}
                   onClick={() => goToPage(totalPages)}
-                  aria-label="Go to last page"
+                  aria-label="跳转到最后一页"
                 >
-                  Last                </Button>
+                  末页                </Button>
               </div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <form onSubmit={handlePageJump} className="flex items-center gap-2">
                 <Label htmlFor="gallery-page-jump" className="text-xs text-muted-foreground">
-                  Jump
+                  跳转
                 </Label>
                 <Input
                   id="gallery-page-jump"
@@ -1147,12 +1147,12 @@ export default function GalleryPage() {
                   disabled={imagesQuery.isFetching}
                 />
                 <Button type="submit" variant="outline" size="sm" disabled={imagesQuery.isFetching}>
-                  Go
+                  跳转
                 </Button>
               </form>
               <div className="flex items-center gap-2">
                 <Label htmlFor="gallery-page-size" className="text-xs text-muted-foreground">
-                  Per page
+                  每页
                 </Label>
                 <Select value={String(pageSize)} onValueChange={value => setPageSize(Number(value))}>
                   <SelectTrigger id="gallery-page-size" className="h-9 w-24 bg-background/60">
@@ -1161,7 +1161,7 @@ export default function GalleryPage() {
                   <SelectContent>
                     {GALLERY_PAGE_SIZE_OPTIONS.map(option => (
                       <SelectItem key={option} value={String(option)}>
-                        {option} items
+                        {option} 张
                       </SelectItem>
                     ))}
                   </SelectContent>

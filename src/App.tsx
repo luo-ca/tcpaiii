@@ -112,13 +112,13 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 
-async function copyText(text: string, successMessage = 'Copied to clipboard') {
+async function copyText(text: string, successMessage = '已复制到剪贴板') {
   try {
     await copyToClipboard(text);
     toast.success(successMessage);
     return true;
   } catch (err) {
-    toast.error(getErrorMessage(err, 'Copy failed. Please try again.'));
+    toast.error(getErrorMessage(err, '复制失败，请手动复制'));
     return false;
   }
 }
@@ -398,8 +398,8 @@ function HeroSection({ onShuffle }: { onShuffle: () => void }) {
           className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 text-balance"
           style={{ animation: 'slide-up 0.6s ease-out 0.2s both' }}
         >
-          Free random image API powered by the PAIII community.<br className="hidden sm:block" />
-          Supports direct image links, tag filters, JSON responses, and 302 redirects.
+          免费随机图片 API 服务，由派立方社区驱动<br className="hidden sm:block" />
+          支持外链图片管理、分类筛选、JSON 返回与 302 直链调用。
         </p>
 
         <div
@@ -499,7 +499,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
   };
 
   const handleImageError = () => {
-    const message = 'Image failed to load. Please try again.';
+    const message = '图片加载失败，请重试';
     setImageLoading(false);
     setImageLoaded(false);
     setPreviewError(message);
@@ -508,7 +508,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
 
   const copyUrl = async () => {
     if (!imageUrl) return;
-    const success = await copyText(imageUrl, 'Image URL copied');
+    const success = await copyText(imageUrl, '图片地址已复制');
     if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -526,7 +526,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
     <section id="preview" className="relative z-10 py-14 sm:py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="max-w-4xl mx-auto">
         <div className="section-header animate-slide-up">
-          <h2>Live Preview</h2>
+          <h2>在线预览</h2>
           <p>选择分类并刷新，即时查看随机图片效果</p>
         </div>
 
@@ -566,7 +566,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
             {!imageUrl && !imageLoading && !previewError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50">
                 <Camera className="w-16 h-16 mb-3 opacity-30" />
-                <p className="text-sm">No preview image yet</p>
+                <p className="text-sm">等待加载预览图片</p>
               </div>
             )}
 
@@ -574,7 +574,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
             {previewError && !imageLoading && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/75 p-6 text-center backdrop-blur-md">
                 <Camera className="w-14 h-14 mb-3 text-muted-foreground/30" />
-                <p className="text-sm font-medium text-foreground">Preview failed to load</p>
+                <p className="text-sm font-medium text-foreground">预览加载失败</p>
                 <p className="mt-1 max-w-sm text-xs text-muted-foreground">{previewError}</p>
                 <Button
                   variant="outline"
@@ -692,10 +692,10 @@ function RealtimeStats() {
   const totalRecentRequests = chartData.reduce((sum, item) => sum + item.requests, 0);
   const hasTrendData = chartData.some(item => item.requests > 0);
   const statCards = [
-    { label: 'Total Requests', value: formatNumber(stats?.totalRequests ?? 0), icon: TrendingUp, color: 'text-blue-500', sub: 'All-time request count' },
+    { label: '总调用量', value: formatNumber(stats?.totalRequests ?? 0), icon: TrendingUp, color: 'text-blue-500', sub: '累计请求总次数' },
     { label: '今日调用', value: formatNumber(stats?.todayRequests ?? 0), icon: Clock, color: 'text-indigo-500', sub: `${stats?.lastRequestAt ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN') : '暂无数据'}` },
-    { label: 'Connected Sites', value: formatNumber(stats?.totalSites ?? 0), icon: Globe, color: 'text-cyan-500', sub: 'Source domains tracked' },
-    { label: 'Total Images', value: formatNumber(stats?.totalImages ?? 0), icon: Layers, color: 'text-fuchsia-500', sub: `${stats?.tags?.length ?? 0} tags` },
+    { label: '接入站点', value: formatNumber(stats?.totalSites ?? 0), icon: Globe, color: 'text-cyan-500', sub: '使用本 API 的网站' },
+    { label: '图片总数', value: formatNumber(stats?.totalImages ?? 0), icon: Layers, color: 'text-fuchsia-500', sub: `${stats?.tags?.length ?? 0} 个分类` },
   ];
 
   return (
@@ -703,7 +703,7 @@ function RealtimeStats() {
       <div className="max-w-6xl mx-auto">
         <div className="section-header animate-slide-up">
           <h2>实时统计</h2>
-          <p>API activity and gallery resource overview</p>
+          <p>API 调用数据与图库资源概览</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -801,10 +801,10 @@ function RealtimeStats() {
 
 function WhyChoose() {
   const features = [
-    { icon: Zap, title: 'Fast Response', desc: 'Edge delivery keeps image requests quick and stable.', color: 'from-blue-500 to-cyan-400' },
-    { icon: Shield, title: '绋冲畾鍙潬', desc: 'URL 鏍￠獙銆佸幓閲嶆娴嬶紝鎺ュ彛杈撳嚭绋冲畾', color: 'from-emerald-500 to-teal-400' },
-    { icon: Tag, title: 'Flexible Tags', desc: 'Images can be organized by tag for random and targeted access.', color: 'from-indigo-500 to-violet-500' },
-    { icon: Heart, title: 'Open Usage', desc: 'Works well for frontend pages, Markdown embeds, and scripts.', color: 'from-fuchsia-500 to-pink-500' },
+    { icon: Zap, title: '极速响应', desc: '边缘节点加速，毫秒级响应，图片秒开', color: 'from-blue-500 to-cyan-400' },
+    { icon: Shield, title: '稳定可靠', desc: 'URL 校验、去重检测，接口输出稳定', color: 'from-emerald-500 to-teal-400' },
+    { icon: Tag, title: '丰富分类', desc: '按标签组织图片，支持随机和定向调用', color: 'from-indigo-500 to-violet-500' },
+    { icon: Heart, title: '开放使用', desc: '无需复杂配置，前端、Markdown、脚本均可接入', color: 'from-fuchsia-500 to-pink-500' },
   ];
 
   return (
@@ -857,7 +857,7 @@ function ApiDocsSection() {
       <div className="max-w-4xl mx-auto">
         <Tabs value={activeDocTab} onValueChange={setActiveDocTab}>
           <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-4 gap-1 glass rounded-xl p-1 sm:p-1.5 min-h-[2.75rem] mb-6">
-            <TabsTrigger value="basic" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">Basic Usage</TabsTrigger>
+            <TabsTrigger value="basic" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">基础调用</TabsTrigger>
             <TabsTrigger value="params" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">分类参数</TabsTrigger>
             <TabsTrigger value="json" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">JSON 返回</TabsTrigger>
             <TabsTrigger value="advanced" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">高级用法</TabsTrigger>
@@ -869,14 +869,14 @@ function ApiDocsSection() {
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Code className="w-5 h-5 text-blue-500" />
-                  <span className="text-sm font-medium">Basic Usage</span>
+                  <span className="text-sm font-medium">基础调用</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">The endpoint returns a 302 redirect by default. Append format=json when you need metadata.</p>
+                <p className="text-xs text-muted-foreground mb-3">默认返回 302 图片直链；需要 JSON 元数据时追加 format=json</p>
 
                 <div className="space-y-2">
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground mb-1">API URL (default 302)</p>
+                      <p className="text-xs text-muted-foreground mb-1">API 地址（默认 302）</p>
                       <code className="block overflow-x-auto break-all text-sm text-foreground sm:whitespace-nowrap">{randomApiUrl}</code>
                     </div>
                     <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomApiUrl)}>
@@ -937,7 +937,7 @@ function ApiDocsSection() {
                   <Code className="w-5 h-5 text-cyan-500" />
                   <span className="text-sm font-medium">JSON 返回模式</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">Append format=json to receive metadata such as image URL, title, tags, and creation time.</p>
+                <p className="text-xs text-muted-foreground mb-3">追加 format=json 返回 JSON 数据，包含图片 URL、标题、标签等信息</p>
                 <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg mb-3 sm:flex-row sm:items-center sm:justify-between">
                   <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{randomJsonApiUrl}</code>
                   <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomJsonApiUrl)}>
@@ -950,8 +950,8 @@ function ApiDocsSection() {
 {`{
   "id": "img-001",
   "url": "https://example.com/image.jpg",
-  "title": "Sample image",
-  "tags": ["acg", "featured"],
+  "title": "二次元插画",
+  "tags": ["acg", "二次元"],
   "createdAt": "2025-01-15T08:00:00Z"
 }`}
                   </pre>
@@ -1000,8 +1000,8 @@ function ImageSubmission() {
   return (
     <section id="contribute" className="relative z-10 py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="section-header animate-slide-up">
-        <h2>Contribute Images</h2>
-        <p>Contribute high-quality images and help grow the gallery.</p>
+        <h2>图片投稿</h2>
+        <p>欢迎投稿高质量图片，共建优质图片库</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
@@ -1013,7 +1013,7 @@ function ImageSubmission() {
               </div>
               <div>
                 <h3 className="font-semibold text-sm">QQ 联系</h3>
-                <p className="text-xs text-muted-foreground">Add this QQ contact to submit image sources directly.</p>
+                <p className="text-xs text-muted-foreground">添加 QQ 好友投稿图片资源</p>
               </div>
             </div>
             <div className="bg-muted/40 rounded-lg p-3 text-center">
@@ -1030,13 +1030,13 @@ function ImageSubmission() {
               </div>
               <div>
                 <h3 className="font-semibold text-sm">社区发帖</h3>
-                <p className="text-xs text-muted-foreground">Post your submission in the PAIII community board.</p>
+                <p className="text-xs text-muted-foreground">在派立方社区发帖投稿</p>
               </div>
             </div>
             <div className="text-center">
               <Button size="sm" className="gradient-button rounded-full border-0 text-white text-xs h-8" asChild>
                 <a href="https://www.paiii.cn/bbs/9" target="_blank" rel="noreferrer">
-                  Open Submission Board
+                  前往投稿
                   <ChevronRight className="w-3 h-3 ml-1" />
                 </a>
               </Button>
@@ -1058,9 +1058,9 @@ function Changelog() {
       date: '2026-04-29',
       title: 'Pages 化与图库升级',
       items: [
-        'Migrated the old PHP endpoint to EdgeOne Pages Functions backed by KV.',
-        'Added gallery browsing and management with tags, search, and live preview.',
-        'Expanded pagination with first/last page, jump-to-page, and page-size controls.',
+        '脱离 PHP 接口，改为 ESA Functions & Pages 与 EdgeKV 提供图片服务',
+        '新增图库展示与管理能力，支持图片标签、搜索和在线预览',
+        '图库分页加入页码、首页末页、跳转页数和每页数量选择',
         '优化接口缓存、分页加载、相邻页预取和图片加载性能',
       ],
     },
@@ -1068,9 +1068,9 @@ function Changelog() {
       date: '2025-06-15',
       title: '展示站与文档',
       items: [
-        '棣栭〉鏂板銆屾洿鏂版棩蹇椼€嶅尯鍧楋紝瀵艰埅鏇存竻鏅扮偣璺宠浆',
-        'Expanded API docs with category usage, list data details, and JSON response examples',
-        '鏂板实时统计鍔熻兘锛氱粺璁¤皟鐢ㄥ拰实时统计瓒嬪娍',
+        '首页新增「更新日志」区块，导航更清晰点跳转',
+        'API 文档扩充：分类与 data 列表说明、JSON 返回（含示例）',
+        '新增实时统计功能：统计调用和实时统计趋势',
         '优化调整了布局和细节，提升性能',
       ],
     },
@@ -1078,8 +1078,8 @@ function Changelog() {
       date: '2025-04-10',
       title: '接口约定',
       items: [
-        '分类统一使用 api/random?tag=xx锛屽苟鍏煎鏃х増 type=xx 参数',
-        'JSON responses now include id, url, title, tags, createdAt, and rolling request stats',
+        '分类统一使用 api/random?tag=xx，并兼容旧版 type=xx 参数',
+        'JSON 返回图片 id、url、title、tags、createdAt，统计接口新增最近 7 天调用数据',
       ],
     },
   ];
@@ -1091,7 +1091,7 @@ function Changelog() {
           <span className="text-xs text-muted-foreground">CHANGELOG</span>
         </div>
         <h2>更新日志</h2>
-        <p>A running record of site, API, and gallery improvements.</p>
+        <p>展示站点与接口说明的调整记录（持续更新）</p>
       </div>
 
       <div className="max-w-3xl mx-auto space-y-6">
@@ -1175,11 +1175,11 @@ export default function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
                     { icon: Shield, title: 'URL 校验', desc: '添加图片时自动校验 URL 格式' },
-                    { icon: Database, title: 'Duplicate protection', desc: 'The same URL is blocked automatically.' },
+                    { icon: Database, title: '重复拦截', desc: '相同 URL 会自动阻止重复添加' },
                     { icon: Zap, title: '边缘计算', desc: 'EdgeOne 边缘节点，延迟<50ms' },
                     { icon: Globe, title: 'KV 存储', desc: '数据持久化在边缘节点' },
-                    { icon: Code, title: 'CORS support', desc: 'All endpoints support cross-origin requests.' },
-                    { icon: ExternalLink, title: '302 redirects', desc: 'Direct-link mode works with redirect responses.' },
+                    { icon: Code, title: 'CORS 支持', desc: '接口支持跨域调用与前端直接接入' },
+                    { icon: ExternalLink, title: '302 直链', desc: '默认以重定向方式返回图片链接' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors">
                       <div className="w-8 h-8 rounded-lg bg-secondary/60 flex items-center justify-center shrink-0 mt-0.5">
@@ -1215,7 +1215,7 @@ export default function App() {
               </div>
               <span className="font-semibold">{APP_NAME}</span>
               <span className="text-muted-foreground text-sm">
-                Copyright {new Date().getFullYear()} PAIII
+                © {new Date().getFullYear()} 派立方
               </span>
             </div>
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
@@ -1230,10 +1230,10 @@ export default function App() {
                   decoding="async"
                   className="h-4 w-4 inline-block mx-0.5"
                 />
-                <span>PAIII provides the site and gallery platform.</span>
+                <span>派立方提供站点与图库平台支持</span>
               </p>
               <p className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
-                <span>CDN support from</span>
+                <span>CDN 支持来自</span>
                 <img
                   src={EDGEONE_LOGO_URL}
                   alt="EdgeOne Logo"
@@ -1243,7 +1243,7 @@ export default function App() {
                   decoding="async"
                   className="h-4 w-auto inline-block mx-0.5"
                 />
-                <span>EdgeOne enterprise services provide CDN support.</span>
+                <span>EdgeOne 企业服务提供 CDN 加速支持</span>
               </p>
             </div>
             <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-y-3 sm:gap-x-8 text-sm text-muted-foreground max-w-full">
