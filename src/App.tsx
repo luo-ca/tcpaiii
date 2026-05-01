@@ -1,40 +1,32 @@
-﻿import { lazy, Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   Camera,
-  Shuffle,
-  Copy,
   ExternalLink,
   BarChart3,
   Image,
-  Loader2,
   Sparkles,
   Tag,
-  Link,
   Check,
   Code,
   Globe,
   Shield,
   Zap,
   Database,
-  ChevronLeft,
   ChevronRight,
+  RefreshCw,
   TrendingUp,
   Clock,
   Layers,
   Heart,
   Mail,
   MessageSquare,
+  Shuffle,
   Copy as CopyIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -64,16 +56,6 @@ interface Stats {
   tags: string[];
 }
 
-interface PaginatedImages {
-  items: ImageRecord[];
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-  hasPrevPage: boolean;
-  hasNextPage: boolean;
-}
-
 type AppTab = 'random' | 'gallery' | 'docs';
 
 type ApiErrorPayload = {
@@ -81,23 +63,18 @@ type ApiErrorPayload = {
   message?: string;
 };
 
-type AdminAuthStatus = 'empty' | 'unverified' | 'checking' | 'valid' | 'invalid' | 'unconfigured';
-
 const API_HTML_FALLBACK_MESSAGE = 'API returned HTML instead of JSON. Please check whether the Edge function is deployed correctly.';
 
 const HEADER_TABS: Array<{ key: AppTab; label: string; icon: typeof Shuffle }> = [
-  { key: 'random', label: '闅忔満', icon: Shuffle },
-  { key: 'gallery', label: '鍥惧簱', icon: Image },
-  { key: 'docs', label: 'API 鏂囨。', icon: Code },
+  { key: 'random', label: '随机', icon: Shuffle },
+  { key: 'gallery', label: '图库', icon: Image },
+  { key: 'docs', label: 'API 文档', icon: Code },
 ];
 
-const APP_NAME = '娲炬鍏?API';
+const APP_NAME = '派次元 API';
 const APP_FALLBACK_DOMAIN = 'https://t.paiii.cn';
 const APP_LOGO_URL = 'https://static.paiii.cn/logo.svg';
 const EDGEONE_LOGO_URL = 'https://edgeone.ai/_next/static/media/headLogo.daeb48ad.png';
-const MAX_BATCH_IMAGE_COUNT = 500;
-const GALLERY_PAGE_SIZE = 24;
-const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 36, 60] as const;
 const EDGEONE_PREVIEW_QUERY_KEYS = ['eo_token', 'eo_time'] as const;
 
 function getAppOrigin(): string {
@@ -134,34 +111,6 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
-function parseTagsInput(value: string): string[] {
-  return [...new Set(value.split(/[,，]/).map(tag => tag.trim()).filter(Boolean))];
-}
-
-function clampNumber(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
-
-function getVisiblePages(currentPage: number, totalPages: number): number[] {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  const middle = clampNumber(currentPage, 3, totalPages - 2);
-  const pages = new Set([1, middle - 1, middle, middle + 1, totalPages]);
-  return [...pages].sort((a, b) => a - b);
-}
-
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedValue(value), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debouncedValue;
-}
 
 async function copyText(text: string, successMessage = 'Copied to clipboard') {
   try {
@@ -174,20 +123,7 @@ async function copyText(text: string, successMessage = 'Copied to clipboard') {
   }
 }
 
-function formatDateTime(value: string | null): string {
-  if (!value) return '鏆傛棤鏁版嵁';
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '鏃堕棿鏃犳晥';
-
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function formatShortDate(value: string): string {
   const [, month, day] = value.split('-');
@@ -242,7 +178,9 @@ function getNonJsonApiMessage(response: Response, body: string, fallback: string
 }
 
 function withNoCacheQuery(input: RequestInfo | URL, init?: RequestInit): RequestInfo | URL {
-  const method = init?.method?.toUpperCase() ?? 'GET';
+  const method = (init?.method
+    || (input instanceof Request ? input.method : undefined)
+    || 'GET').toUpperCase();
   if (method !== 'GET') return input;
 
   const cacheBustValue = String(Date.now());
@@ -257,6 +195,12 @@ function withNoCacheQuery(input: RequestInfo | URL, init?: RequestInit): Request
     const nextUrl = appendCurrentPreviewParams(new URL(input.toString()));
     nextUrl.searchParams.set('_t', cacheBustValue);
     return nextUrl;
+  }
+
+  if (input instanceof Request) {
+    const nextUrl = appendCurrentPreviewParams(new URL(input.url));
+    nextUrl.searchParams.set('_t', cacheBustValue);
+    return new Request(nextUrl.toString(), input);
   }
 
   return input;
@@ -303,7 +247,7 @@ async function apiRequest<T>(input: RequestInfo | URL, init: RequestInit | undef
   try {
     return await response.json() as T;
   } catch {
-    throw new Error(`${fallback}锛氭帴鍙ｈ繑鍥炵殑 JSON 鏃犳硶瑙ｆ瀽`);
+    throw new Error(`${fallback}：接口返回的 JSON 无法解析`);
   }
 }
 
@@ -319,75 +263,10 @@ async function fetchRandomImage(tag?: string): Promise<ImageRecord> {
   return apiRequest<ImageRecord>(`/api/random${query ? `?${query}` : ''}`, undefined, 'Failed to fetch random image');
 }
 
-async function fetchImagesPage(params: {
-  page: number;
-  pageSize: number;
-  search?: string;
-  tag?: string | null;
-}): Promise<PaginatedImages> {
-  const query = new URLSearchParams();
-  query.set('page', String(params.page));
-  query.set('pageSize', String(params.pageSize));
-
-  const search = params.search?.trim();
-  if (search) query.set('search', search);
-  if (params.tag) query.set('tag', params.tag);
-
-  return apiRequest<PaginatedImages>(`/api/list?${query.toString()}`, undefined, 'Failed to fetch images');
-}
-
 async function fetchStats(): Promise<Stats> {
   return apiRequest<Stats>('/api/stats', undefined, 'Failed to fetch stats');
 }
 
-async function verifyAdminToken(adminToken: string): Promise<{ ok: true }> {
-  return apiRequest<{ ok: true }>('/api/admin/verify', {
-    headers: { Authorization: `Bearer ${adminToken}` },
-  }, 'Failed to verify admin token');
-}
-
-function getAdminHeaders(adminToken: string): HeadersInit {
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${adminToken}`,
-  };
-}
-
-async function createImage(data: { url: string; title: string; tags: string[] }, adminToken: string): Promise<ImageRecord> {
-  return apiRequest<ImageRecord>('/api/create', {
-    method: 'POST',
-    headers: getAdminHeaders(adminToken),
-    body: JSON.stringify(data),
-  }, 'Failed to create image');
-}
-
-async function updateImage(id: string, data: { url?: string; title?: string; tags?: string[] }, adminToken: string): Promise<ImageRecord> {
-  return apiRequest<ImageRecord>(`/api/update/${id}`, {
-    method: 'PUT',
-    headers: getAdminHeaders(adminToken),
-    body: JSON.stringify(data),
-  }, 'Failed to update image');
-}
-
-async function deleteImage(id: string, adminToken: string): Promise<void> {
-  await apiRequest<{ success: boolean }>(`/api/delete/${id}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${adminToken}` },
-  }, 'Failed to delete image');
-}
-
-async function batchCreateImages(images: Array<{ url: string; title: string; tags: string[] }>, adminToken: string): Promise<{
-  total: number;
-  success: number;
-  failed: number;
-  results: Array<{ success: boolean; url: string; id?: string; error?: string }>;
-}> {
-  return apiRequest('/api/batch', {
-    method: 'POST',
-    headers: getAdminHeaders(adminToken),
-    body: JSON.stringify({ images }),
-  }, 'Failed to batch create images');
-}
 
 function AmbientBackground() {
   return (
@@ -408,7 +287,7 @@ function Header({ activeTab, onTabChange }: { activeTab: AppTab; onTabChange: (t
             type="button"
             onClick={() => onTabChange('random')}
             className="flex items-center gap-2 group text-left shrink-0 min-w-0 rounded-lg -ml-2 pl-2 pr-1 py-1 hover:bg-secondary/50 transition-colors"
-            aria-label="杩斿洖闅忔満鍥剧墖椤甸潰"
+            aria-label="返回随机图片页面"
           >
             <img
               src={APP_LOGO_URL}
@@ -455,7 +334,7 @@ function Header({ activeTab, onTabChange }: { activeTab: AppTab; onTabChange: (t
               size="icon"
               className="w-9 h-9 hover:bg-secondary/80 transition-colors md:hidden"
               onClick={() => onTabChange(activeTab === 'random' ? 'gallery' : 'random')}
-              aria-label="鍒囨崲椤甸潰"
+              aria-label="切换页面"
             >
               {activeTab === 'random' ? <Image className="w-4 h-4" /> : <Shuffle className="w-4 h-4" />}
             </Button>
@@ -519,8 +398,8 @@ function HeroSection({ onShuffle }: { onShuffle: () => void }) {
           className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 text-balance"
           style={{ animation: 'slide-up 0.6s ease-out 0.2s both' }}
         >
-          鍏嶈垂闅忔満鍥剧墖 API 鏈嶅姟锛岀敱娲剧珛鏂圭ぞ鍖洪┍鍔?          <br className="hidden sm:block" />
-          鏀寔澶栭摼鍥惧簥绠＄悊銆佸垎绫荤瓫閫夈€丣SON 杩斿洖涓?302 鐩撮摼璋冪敤
+          免费随机图片 API 服务，由派立方社区驱动          <br className="hidden sm:block" />
+          鏀寔澶栭摼鍥惧簥绠＄悊銆佸垎绫荤瓫閫夈€丣SON 杩斿洖涓?302 直链调用
         </p>
 
         <div
@@ -532,7 +411,7 @@ function HeroSection({ onShuffle }: { onShuffle: () => void }) {
             onClick={scrollToPreview}
             className="gradient-button rounded-full px-8 text-white border-0"
           >
-            绔嬪嵆浣撻獙
+            立即体验
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
           <Button
@@ -541,7 +420,7 @@ function HeroSection({ onShuffle }: { onShuffle: () => void }) {
             className="rounded-full px-8 glass hover:bg-secondary/50 transition-all hover:border-primary/50"
             onClick={scrollToDocs}
           >
-            API 鏂囨。
+            API 文档
             <Code className="w-4 h-4 ml-1" />
           </Button>
         </div>
@@ -551,7 +430,7 @@ function HeroSection({ onShuffle }: { onShuffle: () => void }) {
 }
 
 // ============================================================
-// Online Preview (闅忔満鍥剧墖灞曠ず鍖?
+// Online Preview (闅忔満图片展示区
 // ============================================================
 
 function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
@@ -593,7 +472,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
       queryClient.invalidateQueries({ queryKey: ['stats'] });
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
-      const message = getErrorMessage(err, '鑾峰彇闅忔満鍥剧墖澶辫触');
+      const message = getErrorMessage(err, '获取随机图片失败');
       setPreviewError(message);
       toast.error(message);
       setImageLoading(false);
@@ -647,8 +526,8 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
     <section id="preview" className="relative z-10 py-14 sm:py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="max-w-4xl mx-auto">
         <div className="section-header animate-slide-up">
-          <h2>鍦ㄧ嚎棰勮</h2>
-          <p>閫夋嫨鍒嗙被骞跺埛鏂帮紝鍗虫椂鏌ョ湅闅忔満鍥剧墖鏁堟灉</p>
+          <h2>在线预览</h2>
+          <p>选择分类并刷新，即时查看随机图片效果</p>
         </div>
 
         <div className="browser-window glass-strong rounded-2xl shadow-2xl shadow-black/5 hover-lift">
@@ -670,20 +549,20 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
               className="h-8 w-8 p-0 shrink-0 hover:bg-primary/10 transition-all"
               onClick={() => shuffleImage(selectedTag)}
               disabled={imageLoading}
-              aria-label="鍒锋柊闅忔満鍥剧墖"
+              aria-label="刷新随机图片"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${imageLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
 
-          {/* 鍥剧墖灞曠ず鍖?*/}
+          {/* 图片展示区*/}
           <div className="relative bg-secondary/30 min-h-[300px] sm:min-h-[400px] aspect-[16/10] flex items-center justify-center overflow-hidden">
-            {/* 楠ㄦ灦灞?*/}
+            {/* 骨架层*/}
             {imageLoading && (
               <div className="absolute inset-0 skeleton-shimmer z-20" />
             )}
 
-            {/* 绌虹姸鎬?*/}
+            {/* 空状态*/}
             {!imageUrl && !imageLoading && !previewError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50">
                 <Camera className="w-16 h-16 mb-3 opacity-30" />
@@ -704,12 +583,12 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
                   onClick={() => shuffleImage(selectedTag)}
                 >
                   <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                  閲嶈瘯
+                  重试
                 </Button>
               </div>
             )}
 
-            {/* 鍥剧墖 */}
+            {/* ͼƬ */}
             {imageUrl && (
               <img
                 key={imageKey}
@@ -740,11 +619,11 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
                   <div className="flex flex-wrap gap-2 shrink-0 sm:ml-3 sm:flex-nowrap">
                     <Button size="sm" variant="secondary" className="h-7 min-w-0 text-xs bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-0" onClick={copyUrl}>
                       {copied ? <Check className="w-3 h-3 mr-1" /> : <CopyIcon className="w-3 h-3 mr-1" />}
-                      澶嶅埗
+                      复制
                     </Button>
                     <Button size="sm" variant="secondary" className="h-7 w-7 p-0 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-0" asChild>
                       <a href={imageUrl} target="_blank" rel="noopener noreferrer">
-                        <span className="sr-only">鎵撳紑鍥剧墖</span>
+                        <span className="sr-only">打开图片</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </Button>
@@ -766,7 +645,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
                 }`}
                 onClick={() => handleSelectTag(undefined)}
               >
-                鍏ㄩ儴
+                全部
               </button>
               {stats?.tags?.map(tag => (
                 <button
@@ -814,7 +693,7 @@ function RealtimeStats() {
   const hasTrendData = chartData.some(item => item.requests > 0);
   const statCards = [
     { label: 'Total Requests', value: formatNumber(stats?.totalRequests ?? 0), icon: TrendingUp, color: 'text-blue-500', sub: 'All-time request count' },
-    { label: '浠婃棩璋冪敤', value: formatNumber(stats?.todayRequests ?? 0), icon: Clock, color: 'text-indigo-500', sub: `${stats?.lastRequestAt ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN') : '鏆傛棤鏁版嵁'}` },
+    { label: '今日调用', value: formatNumber(stats?.todayRequests ?? 0), icon: Clock, color: 'text-indigo-500', sub: `${stats?.lastRequestAt ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN') : '暂无数据'}` },
     { label: 'Connected Sites', value: formatNumber(stats?.totalSites ?? 0), icon: Globe, color: 'text-cyan-500', sub: 'Source domains tracked' },
     { label: 'Total Images', value: formatNumber(stats?.totalImages ?? 0), icon: Layers, color: 'text-fuchsia-500', sub: `${stats?.tags?.length ?? 0} tags` },
   ];
@@ -823,7 +702,7 @@ function RealtimeStats() {
     <section id="stats" className="relative z-10 py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="max-w-6xl mx-auto">
         <div className="section-header animate-slide-up">
-          <h2>瀹炴椂缁熻</h2>
+          <h2>实时统计</h2>
           <p>API activity and gallery resource overview</p>
         </div>
 
@@ -852,7 +731,7 @@ function RealtimeStats() {
                 <span className="text-sm font-medium">7-day trend</span>
               </div>
               <span className="rounded-full bg-secondary/60 px-3 py-1 text-xs text-muted-foreground">
-                杩?7 澶?{formatNumber(totalRecentRequests)} 娆?              </span>
+                近7天{formatNumber(totalRecentRequests)} 次              </span>
             </div>
             <div className="h-44">
               {hasTrendData ? (
@@ -904,7 +783,7 @@ function RealtimeStats() {
                 <div className="flex h-full items-center justify-center text-muted-foreground/40">
                   <div className="text-center">
                     <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                    <p className="text-xs">鏆傛棤璋冪敤鏁版嵁</p>
+                    <p className="text-xs">暂无调用数据</p>
                   </div>
                 </div>
               )}
@@ -932,8 +811,8 @@ function WhyChoose() {
     <section id="features" className="relative z-10 py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="max-w-6xl mx-auto">
         <div className="section-header animate-slide-up">
-          <h2>涓轰粈涔堥€夋嫨闅忔満鍥剧墖 API</h2>
-          <p>绠€鍗曘€佸揩閫熴€佸彲闈犵殑闅忔満鍥剧墖鎺ュ彛鏈嶅姟</p>
+          <h2>为什么选择随机图片 API</h2>
+          <p>简单、快速、可靠的随机图片接口服务</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -971,7 +850,7 @@ function ApiDocsSection() {
   return (
     <section id="api" className="relative z-10 py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="section-header animate-slide-up">
-        <h2>API 鏂囨。</h2>
+        <h2>API 文档</h2>
         <p>Just a few steps to integrate quickly</p>
       </div>
 
@@ -979,13 +858,13 @@ function ApiDocsSection() {
         <Tabs value={activeDocTab} onValueChange={setActiveDocTab}>
           <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-4 gap-1 glass rounded-xl p-1 sm:p-1.5 min-h-[2.75rem] mb-6">
             <TabsTrigger value="basic" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">鍩虹璋冪敤</TabsTrigger>
-            <TabsTrigger value="params" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">鍒嗙被鍙傛暟</TabsTrigger>
-            <TabsTrigger value="json" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">JSON 杩斿洖</TabsTrigger>
-            <TabsTrigger value="advanced" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">楂樼骇鐢ㄦ硶</TabsTrigger>
+            <TabsTrigger value="params" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">分类参数</TabsTrigger>
+            <TabsTrigger value="json" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">JSON 返回</TabsTrigger>
+            <TabsTrigger value="advanced" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">高级用法</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="mt-6 space-y-3">
-            {/* API 鍦板潃 */}
+            {/* API 地址 */}
             <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-3">
@@ -1002,27 +881,27 @@ function ApiDocsSection() {
                     </div>
                     <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomApiUrl)}>
                       <CopyIcon className="w-3.5 h-3.5" />
-                      <span className="ml-1 text-xs">澶嶅埗</span>
+                      <span className="ml-1 text-xs">复制</span>
                     </Button>
                   </div>
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground mb-1">HTML 浣跨敤绀轰緥</p>
-                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`<img src="${randomApiUrl}" alt="闅忔満鍥剧墖" />`}</code>
+                      <p className="text-xs text-muted-foreground mb-1">HTML 使用示例</p>
+                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`<img src="${randomApiUrl}" alt="随机图片" />`}</code>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`<img src="${randomApiUrl}" alt="闅忔満鍥剧墖" />`)}>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`<img src="${randomApiUrl}" alt="随机图片" />`)}>
                       <CopyIcon className="w-3.5 h-3.5" />
-                      <span className="ml-1 text-xs">澶嶅埗</span>
+                      <span className="ml-1 text-xs">复制</span>
                     </Button>
                   </div>
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground mb-1">Markdown 浣跨敤绀轰緥</p>
-                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`![闅忔満鍥剧墖](${randomApiUrl})`}</code>
+                      <p className="text-xs text-muted-foreground mb-1">Markdown 使用示例</p>
+                      <code className="block overflow-x-auto whitespace-nowrap text-xs text-foreground">{`![随机图片](${randomApiUrl})`}</code>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`![闅忔満鍥剧墖](${randomApiUrl})`)}>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(`![随机图片](${randomApiUrl})`)}>
                       <CopyIcon className="w-3.5 h-3.5" />
-                      <span className="ml-1 text-xs">澶嶅埗</span>
+                      <span className="ml-1 text-xs">复制</span>
                     </Button>
                   </div>
                 </div>
@@ -1035,15 +914,15 @@ function ApiDocsSection() {
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Tag className="w-5 h-5 text-indigo-500" />
-                  <span className="text-sm font-medium">鍒嗙被鍙傛暟</span>
+                  <span className="text-sm font-medium">分类参数</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">閫氳繃 tag 鍙傛暟鎸囧畾鍥剧墖鍒嗙被</p>
+                <p className="text-xs text-muted-foreground mb-3">通过 tag 参数指定图片分类</p>
                 <div className="space-y-2">
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{randomTagApiUrl}</code>
                     <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomTagApiUrl)}>
                       <CopyIcon className="w-3.5 h-3.5" />
-                      <span className="ml-1 text-xs">澶嶅埗</span>
+                      <span className="ml-1 text-xs">复制</span>
                     </Button>
                   </div>
                 </div>
@@ -1056,14 +935,14 @@ function ApiDocsSection() {
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Code className="w-5 h-5 text-cyan-500" />
-                  <span className="text-sm font-medium">JSON 杩斿洖妯″紡</span>
+                  <span className="text-sm font-medium">JSON 返回模式</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">杩藉姞 format=json 杩斿洖 JSON 鏁版嵁锛屽寘鍚浘鐗?URL銆佹爣棰樸€佹爣绛剧瓑淇℃伅</p>
+                <p className="text-xs text-muted-foreground mb-3">追加 format=json 返回 JSON 鏁版嵁锛屽寘鍚浘鐗?URL銆佹爣棰樸€佹爣绛剧瓑淇℃伅</p>
                 <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg mb-3 sm:flex-row sm:items-center sm:justify-between">
                   <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{randomJsonApiUrl}</code>
                   <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomJsonApiUrl)}>
                     <CopyIcon className="w-3.5 h-3.5" />
-                    <span className="ml-1 text-xs">澶嶅埗</span>
+                    <span className="ml-1 text-xs">复制</span>
                   </Button>
                 </div>
                 <div className="p-3 bg-muted/40 rounded-lg">
@@ -1086,11 +965,11 @@ function ApiDocsSection() {
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-5 h-5 text-emerald-500" />
-                  <span className="text-sm font-medium">楂樼骇鐢ㄦ硶</span>
+                  <span className="text-sm font-medium">高级用法</span>
                 </div>
                 <div className="space-y-3 text-xs">
                   <div className="p-3 bg-muted/40 rounded-lg">
-                    <p className="text-muted-foreground mb-1">JavaScript 璋冪敤</p>
+                    <p className="text-muted-foreground mb-1">JavaScript 调用</p>
                     <pre className="text-foreground overflow-x-auto">
 {`fetch('/api/random?format=json')
   .then(r => r.json())
@@ -1121,7 +1000,7 @@ function ImageSubmission() {
   return (
     <section id="contribute" className="relative z-10 py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="section-header animate-slide-up">
-        <h2>鍥剧墖鎶曠</h2>
+        <h2>图片投稿</h2>
         <p>Contribute high-quality images and help grow the gallery.</p>
       </div>
 
@@ -1133,8 +1012,8 @@ function ImageSubmission() {
                 <Mail className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">QQ 鑱旂郴</h3>
-                <p className="text-xs text-muted-foreground">娣诲姞 QQ 濂藉弸鎶曠鍥剧墖璧勬簮</p>
+                <h3 className="font-semibold text-sm">QQ 联系</h3>
+                <p className="text-xs text-muted-foreground">添加 QQ 濂藉弸鎶曠鍥剧墖璧勬簮</p>
               </div>
             </div>
             <div className="bg-muted/40 rounded-lg p-3 text-center">
@@ -1150,14 +1029,14 @@ function ImageSubmission() {
                 <MessageSquare className="w-5 h-5 text-indigo-500" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">绀惧尯鍙戝笘</h3>
-                <p className="text-xs text-muted-foreground">鍦ㄦ淳绔嬫柟绀惧尯鍙戝笘鎶曠</p>
+                <h3 className="font-semibold text-sm">社区发帖</h3>
+                <p className="text-xs text-muted-foreground">在派立方社区发帖投稿</p>
               </div>
             </div>
             <div className="text-center">
               <Button size="sm" className="gradient-button rounded-full border-0 text-white text-xs h-8" asChild>
                 <a href="https://www.paiii.cn/bbs/9" target="_blank" rel="noreferrer">
-                  鍓嶅線鎶曠
+                  前往投稿
                   <ChevronRight className="w-3 h-3 ml-1" />
                 </a>
               </Button>
@@ -1177,29 +1056,29 @@ function Changelog() {
   const updates = [
     {
       date: '2026-04-29',
-      title: 'Pages 鍖栦笌鍥惧簱鍗囩骇',
+      title: 'Pages 化与图库升级',
       items: [
-        '鑴辩 PHP 鎺ュ彛锛屾敼涓?EdgeOne Pages Functions 涓?KV 鎻愪緵鍥剧墖鏈嶅姟',
-        '鏂板鍥惧簱灞曠ず涓庣鐞嗚兘鍔涳紝鏀寔鍥剧墖鏍囩銆佹悳绱㈠拰鍦ㄧ嚎棰勮',
+        '鑴辩 PHP 鎺ュ彛锛屾敼涓?EdgeOne Pages Functions 涓?KV 提供图片服务',
+        '鏂板鍥惧簱灞曠ず涓庣鐞嗚兘鍔涳紝鏀寔鍥剧墖鏍囩銆佹悳绱㈠拰在线预览',
         '鍥惧簱鍒嗛〉鍔犲叆椤电爜銆侀椤垫湯椤点€佽烦杞〉鏁板拰姣忛〉鏁伴噺閫夋嫨',
-        '浼樺寲鎺ュ彛缂撳瓨銆佸垎椤靛姞杞姐€佺浉閭婚〉棰勫彇鍜屽浘鐗囧姞杞芥€ц兘',
+        '优化接口缓存、分页加载、相邻页预取和图片加载性能',
       ],
     },
     {
       date: '2025-06-15',
-      title: '灞曠ず绔欎笌鏂囨。',
+      title: '展示站与文档',
       items: [
         '棣栭〉鏂板銆屾洿鏂版棩蹇椼€嶅尯鍧楋紝瀵艰埅鏇存竻鏅扮偣璺宠浆',
         'Expanded API docs with category usage, list data details, and JSON response examples',
-        '鏂板瀹炴椂缁熻鍔熻兘锛氱粺璁¤皟鐢ㄥ拰瀹炴椂缁熻瓒嬪娍',
-        '浼樺寲璋冩暣浜嗗竷灞€鍜岀粏鑺傦紝鎻愬崌鎬ц兘',
+        '鏂板实时统计鍔熻兘锛氱粺璁¤皟鐢ㄥ拰实时统计瓒嬪娍',
+        '优化调整了布局和细节，提升性能',
       ],
     },
     {
       date: '2025-04-10',
-      title: '鎺ュ彛绾﹀畾',
+      title: '接口约定',
       items: [
-        '鍒嗙被缁熶竴浣跨敤 api/random?tag=xx锛屽苟鍏煎鏃х増 type=xx 鍙傛暟',
+        '分类统一使用 api/random?tag=xx锛屽苟鍏煎鏃х増 type=xx 参数',
         'JSON responses now include id, url, title, tags, createdAt, and rolling request stats',
       ],
     },
@@ -1211,7 +1090,7 @@ function Changelog() {
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass text-sm text-muted-foreground mb-4">
           <span className="text-xs text-muted-foreground">CHANGELOG</span>
         </div>
-        <h2>鏇存柊鏃ュ織</h2>
+        <h2>更新日志</h2>
         <p>灞曠ず绔欑偣涓庢帴鍙ｈ鏄庣殑璋冩暣璁板綍锛堟寔缁洿鏂帮級</p>
       </div>
 
@@ -1231,7 +1110,7 @@ function Changelog() {
                 <ul className="space-y-1.5">
                   {update.items.map((item, j) => (
                     <li key={j} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <span className="text-primary mt-1.5 shrink-0 select-none">路</span>
+                      <span className="text-primary mt-1.5 shrink-0 select-none">•</span>
                       {item}
                     </li>
                   ))}
@@ -1291,16 +1170,16 @@ export default function App() {
               <div className="p-6 rounded-2xl glass-strong">
                 <h3 className="font-semibold text-base mb-5 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-blue-500" />
-                  瀹夊叏闃叉姢涓庢€ц兘浼樺寲
+                  安全防护与性能优化
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { icon: Shield, title: 'URL 鏍￠獙', desc: '娣诲姞鍥剧墖鏃惰嚜鍔ㄦ牎楠?URL 鏍煎紡' },
-                    { icon: Database, title: '鍘婚噸妫€娴?', desc: '鐩稿悓 URL 鑷姩鎷掔粷' },
-                    { icon: Zap, title: '杈圭紭璁＄畻', desc: 'EdgeOne 杈圭紭鑺傜偣锛屽欢杩?<50ms' },
-                    { icon: Globe, title: 'KV 瀛樺偍', desc: '鏁版嵁鎸佷箙鍖栧湪杈圭紭鑺傜偣' },
+                    { icon: Shield, title: 'URL 校验', desc: '添加图片时自动校验 URL 格式' },
+                    { icon: Database, title: '去重检测', desc: '相同 URL 鑷姩鎷掔粷' },
+                    { icon: Zap, title: '边缘计算', desc: 'EdgeOne 边缘节点，延迟<50ms' },
+                    { icon: Globe, title: 'KV 存储', desc: '数据持久化在边缘节点' },
                     { icon: Code, title: 'CORS 鏀寔', desc: '鎵€鏈夋帴鍙ｆ敮鎸佽法鍩熻姹?' },
-                    { icon: ExternalLink, title: '302 閲嶅畾鍚?', desc: '鏀寔 redirect 妯″紡鐩撮摼' },
+                    { icon: ExternalLink, title: '302 重定向', desc: '鏀寔 redirect 模式直链' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors">
                       <div className="w-8 h-8 rounded-lg bg-secondary/60 flex items-center justify-center shrink-0 mt-0.5">
@@ -1336,7 +1215,7 @@ export default function App() {
               </div>
               <span className="font-semibold">{APP_NAME}</span>
               <span className="text-muted-foreground text-sm">
-                漏 {new Date().getFullYear()} 娲剧珛鏂?
+                © {new Date().getFullYear()} 派立方
               </span>
             </div>
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
@@ -1372,7 +1251,7 @@ export default function App() {
                 href="#changelog"
                 className="hover:text-foreground transition-colors sm:hidden"
               >
-                鏇存柊鏃ュ織
+                更新日志
               </a>
               <a
                 href="https://paiii.cn"
@@ -1380,7 +1259,7 @@ export default function App() {
                 rel="noopener noreferrer"
                 className="hover:text-foreground transition-colors inline-flex items-center gap-1"
               >
-                娲剧珛鏂圭ぞ鍖?
+                派立方社区
                 <ExternalLink className="w-3 h-3 shrink-0" aria-hidden />
               </a>
               <a
@@ -1398,7 +1277,7 @@ export default function App() {
                 rel="noopener noreferrer"
                 className="hover:text-foreground transition-colors"
               >
-                铚€ICP澶?022012020鍙?4
+                蜀ICP备2022012020号-4
               </a>
             </div>
           </div>

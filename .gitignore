@@ -18,6 +18,13 @@ dist-ssr
 .env.*
 !.env.example
 
+# Temporary files
+tmp_*
+*.bak
+fix-*.py
+fix-*.txt
+vite-dev.log
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

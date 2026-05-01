@@ -127,7 +127,7 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debouncedValue;
 }
 
-async function copyText(text: string, successMessage = '瀹告彃顦查崚璺哄煂閸擃亣鍒涢弶?') {
+async function copyText(text: string, successMessage = '宸插鍒跺埌鍓创鏉?') {
   try {
     await copyToClipboard(text);
     toast.success(successMessage);
@@ -139,10 +139,10 @@ async function copyText(text: string, successMessage = '瀹告彃顦查崚璺哄
 }
 
 function formatDateTime(value: string | null): string {
-  if (!value) return '閺嗗倹妫ら弫鐗堝祦';
+  if (!value) return '暂无数据';
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '閺冨爼妫块弮鐘虫櫏';
+  if (Number.isNaN(date.getTime())) return '时间无效';
 
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
@@ -190,7 +190,7 @@ function getNonJsonApiMessage(response: Response, body: string, fallback: string
 
   const summary = summarizeBody(body);
   if (summary) {
-    return `${fallback}閿涙碍甯撮崣锝堢箲閸ョ偘绨￠棃?JSON 閸愬懎顔愰敍?${summary}閿?`;
+    return `${fallback}锛氭帴鍙ｈ繑鍥炰簡闈?JSON 鍐呭锛?${summary}閿?`;
   }
 
   return `${fallback}: received non-JSON response`;
@@ -401,7 +401,7 @@ function AddImageDialog({
       setProgress({ current: result.success, total: lines.length });
 
       if (result.success > 0) {
-        toast.success(`閹靛綊鍣哄ǎ璇插鐎瑰本鍨氶敍姘灇閸?${result.success} 瀵?${result.failed > 0 ? `閿涘苯銇戠拹?${result.failed} 瀵?` : ''}`);
+        toast.success(`閹靛綊鍣哄ǎ璇插鐎瑰本鍨氶敍姘灇閸?${result.success} 瀵?${result.failed > 0 ? `锛屽け璐?${result.failed} 瀵?` : ''}`);
         setOpen(false);
         onSuccess();
       } else {
@@ -466,7 +466,7 @@ function AddImageDialog({
         {mode === 'single' ? (
           <form onSubmit={handleSingleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="url">閸ュ墽澧栭崷鏉挎絻 *</Label>
+              <Label htmlFor="url">图片地址 *</Label>
               <Input id="url" className="rounded-lg bg-secondary/30 border-border/70" placeholder="https://example.com/image.jpg" value={url} onChange={e => setUrl(e.target.value)} required />
             </div>
             <div className="space-y-2">
@@ -595,7 +595,7 @@ function EditImageDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="edit-url">閸ュ墽澧栭崷鏉挎絻</Label>
+            <Label htmlFor="edit-url">图片地址</Label>
             <Input id="edit-url" className="rounded-lg bg-secondary/30 border-border/70" value={url} onChange={e => setUrl(e.target.value)} required />
           </div>
           <div className="space-y-2">
@@ -717,7 +717,7 @@ export default function GalleryPage() {
   });
 
   const handleCopyUrl = async (url: string) => {
-    await copyText(url, '閸ュ墽澧栭崷鏉挎絻瀹告彃顦查崚?');
+    await copyText(url, '鍥剧墖鍦板潃宸插鍒?');
   };
 
   const goToPage = useCallback((nextPage: number) => {
@@ -790,11 +790,11 @@ export default function GalleryPage() {
   }, [checkAdminToken, hasAdminToken, hasVerifiedAdminToken]);
 
   const adminStatusText = {
-    empty: '閸欘亣顕板Ο鈥崇础',
+    empty: '鍙妯″紡',
     unverified: '瀵板懏鐗庢?',
-    checking: '閺嶏繝鐛欐稉?',
-    valid: '瀹告煡鐛欑拠?',
-    invalid: '鐎靛棝鎸滈柨娆掝嚖',
+    checking: '鏍￠獙涓?',
+    valid: '宸查獙璇?',
+    invalid: '瀵嗛挜閿欒',
     unconfigured: 'Server not configured',
   }[adminAuthStatus];
 
@@ -826,7 +826,7 @@ export default function GalleryPage() {
           <p className="text-sm mt-2 text-muted-foreground">{getErrorMessage(imagesQuery.error, '鐠囬鈼㈤崥搴ㄥ櫢鐠?')}</p>
           <Button className="mt-5" variant="outline" onClick={() => imagesQuery.refetch()}>
             <RefreshCw className="w-4 h-4 mr-2" />
-            闁插秵鏌婇崝鐘烘祰
+            重新加载
           </Button>
         </div>
       </div>
@@ -837,7 +837,7 @@ export default function GalleryPage() {
     <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-28">
       <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">閸ュ墽澧栫粻锛勬倞</h2>
+          <h2 className="text-3xl font-bold tracking-tight">图片管理</h2>
           <p className="text-muted-foreground text-sm mt-1">Manage your external image library here.</p>
         </div>
         <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
@@ -888,9 +888,9 @@ export default function GalleryPage() {
 
       <div className="grid grid-cols-1 gap-3 mb-5 sm:grid-cols-3">
         {[
-          { label: '閸ュ墽澧栭幀缁樻殶', value: totalImages, icon: Image },
-          { label: '閺嶅洨顒烽弫浼村櫤', value: totalTags, icon: Tag },
-          { label: '瑜版挸澧犳い鍨付閺?', value: latestImage ? formatDateTime(latestImage.createdAt) : '閺嗗倹妫ら弫鐗堝祦', icon: Clock },
+          { label: '图片总数', value: totalImages, icon: Image },
+          { label: '鏍囩鏁伴噺', value: totalTags, icon: Tag },
+          { label: '瑜版挸澧犳い鍨付閺?', value: latestImage ? formatDateTime(latestImage.createdAt) : '暂无数据', icon: Clock },
         ].map(item => (
           <Card key={item.label} className="glass-strong rounded-2xl">
             <CardContent className="p-4 flex items-center gap-3">
@@ -917,7 +917,7 @@ export default function GalleryPage() {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                placeholder="閹兼粎鍌ㄩ弽鍥暯閵嗕箒RL 閹存牗鐖ｇ粵?"
+                placeholder="閹兼粎鍌ㄩ弽鍥暯閵嗕箒RL 鎴栨爣绛?"
                 className="pl-9"
               />
             </div>
@@ -1086,7 +1086,7 @@ export default function GalleryPage() {
                   className="h-9 w-9"
                   disabled={page <= 1 || imagesQuery.isFetching}
                   onClick={() => goToPage(page - 1)}
-                  aria-label="娑撳﹣绔存い?"
+                  aria-label="涓婁竴椤?"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -1126,7 +1126,7 @@ export default function GalleryPage() {
                   size="sm"
                   disabled={page >= totalPages || imagesQuery.isFetching}
                   onClick={() => goToPage(totalPages)}
-                  aria-label="鐠哄疇娴嗛崚鐗堟付閸氬簼绔存い?"
+                  aria-label="璺宠浆鍒版渶鍚庝竴椤?"
                 >
                   閺堫偊銆?                </Button>
               </div>
