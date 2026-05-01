@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -190,7 +190,7 @@ function getNonJsonApiMessage(response: Response, body: string, fallback: string
 
   const summary = summarizeBody(body);
   if (summary) {
-    return `${fallback}锛氭帴鍙ｈ繑鍥炰簡闈?JSON 鍐呭锛?${summary}閿?`;
+    return `${fallback}: received non-JSON response: ${summary}`;
   }
 
   return `${fallback}: received non-JSON response`;
@@ -364,14 +364,14 @@ function AddImageDialog({
   }, [open]);
 
   const singleMutation = useMutation({
-    mutationFn: () => createImage({ url: url.trim(), title: title.trim() || '閺堫亜鎳￠崥宥呮禈閻?', tags: parseTagsInput(tagsInput) }, adminToken),
+    mutationFn: () => createImage({ url: url.trim(), title: title.trim() || '?????', tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => {
       toast.success('Image added successfully');
       setOpen(false);
       onSuccess();
     },
     onError: err => {
-      toast.error(getErrorMessage(err, '濞ｈ濮炴径杈Е'));
+      toast.error(getErrorMessage(err, '??????'));
     },
   });
 
@@ -385,7 +385,7 @@ function AddImageDialog({
       return;
     }
     if (lines.length > MAX_BATCH_IMAGE_COUNT) {
-      toast.error(`閸楁洘顐奸張鈧径姘潑閸?${MAX_BATCH_IMAGE_COUNT} 瀵姴娴橀悧?`);
+      toast.error(`??????? ${MAX_BATCH_IMAGE_COUNT} ???`);
       return;
     }
 
@@ -395,13 +395,13 @@ function AddImageDialog({
 
     try {
       const result = await batchCreateImages(
-        lines.map((imageUrl, index) => ({ url: imageUrl, title: `閸ュ墽澧?${index + 1}`, tags })),
+        lines.map((imageUrl, index) => ({ url: imageUrl, title: `???? ${index + 1}`, tags })),
         adminToken,
       );
       setProgress({ current: result.success, total: lines.length });
 
       if (result.success > 0) {
-        toast.success(`閹靛綊鍣哄ǎ璇插鐎瑰本鍨氶敍姘灇閸?${result.success} 瀵?${result.failed > 0 ? `锛屽け璐?${result.failed} 瀵?` : ''}`);
+        toast.success(`???? ${result.success} ???${result.failed > 0 ? `??? ${result.failed} ?` : ""}`);
         setOpen(false);
         onSuccess();
       } else {
@@ -434,14 +434,14 @@ function AddImageDialog({
       <DialogTrigger asChild>
         <Button className="gap-2 gradient-button rounded-full border-0 text-white">
           <Plus className="w-4 h-4" />
-          濞ｈ濮為崶鍓у
+          ????
         </Button>
       </DialogTrigger>
       <DialogContent className="glass-strong rounded-2xl sm:max-w-lg sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link className="w-5 h-5 text-blue-500" />
-            濞ｈ濮炴径鏍懠閸ュ墽澧?          </DialogTitle>
+            ????          </DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-2 mt-2">
@@ -451,7 +451,7 @@ function AddImageDialog({
             onClick={() => setMode('single')}
             className={`text-xs h-8 rounded-full ${mode === 'single' ? 'bg-primary text-primary-foreground' : ''}`}
           >
-            閸楁洖绱跺ǎ璇插
+            ????
           </Button>
           <Button
             variant={mode === 'batch' ? 'default' : 'outline'}
@@ -459,7 +459,7 @@ function AddImageDialog({
             onClick={() => setMode('batch')}
             className={`text-xs h-8 rounded-full ${mode === 'batch' ? 'bg-primary text-primary-foreground' : ''}`}
           >
-            閹靛綊鍣哄ǎ璇插
+            ????
           </Button>
         </div>
 
@@ -471,7 +471,7 @@ function AddImageDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
-              <Input id="title" className="rounded-lg bg-secondary/30 border-border/70" placeholder="缂佹瑥娴橀悧鍥崳娑擃亜鎮曠€?" value={title} onChange={e => setTitle(e.target.value)} />
+              <Input id="title" className="rounded-lg bg-secondary/30 border-border/70" placeholder="????" value={title} onChange={e => setTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="tags">Tags (comma separated)</Label>
@@ -479,7 +479,7 @@ function AddImageDialog({
             </div>
             <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              濞ｈ濮?            </Button>
+              ????            </Button>
           </form>
         ) : (
           <form onSubmit={handleBatchSubmit} className="space-y-4 mt-4">
@@ -497,7 +497,7 @@ function AddImageDialog({
               <p className="text-xs text-muted-foreground">Duplicate URLs will be merged automatically. Up to {MAX_BATCH_IMAGE_COUNT} images per batch.</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="batch-tags">缂佺喍绔撮弽鍥╊劮閿涘牓鈧褰块崚鍡涙閿涘苯褰查柅澶涚礆</Label>
+              <Label htmlFor="batch-tags">???????</Label>
               <Input id="batch-tags" className="rounded-lg bg-secondary/30 border-border/70" placeholder="landscape, nature" value={batchTags} onChange={e => setBatchTags(e.target.value)} />
               <p className="text-xs text-muted-foreground">These tags will be applied to every imported image.</p>
             </div>
@@ -505,7 +505,7 @@ function AddImageDialog({
             {loading && progress.total > 0 && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>濞ｈ濮炴潻娑樺</span>
+                  <span>????</span>
                   <span>{progress.current} / {progress.total}</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -519,7 +519,7 @@ function AddImageDialog({
 
             <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              閹靛綊鍣哄ǎ璇插
+              ????
             </Button>
           </form>
         )}
@@ -712,7 +712,7 @@ export default function GalleryPage() {
       refreshGallery();
     },
     onError: err => {
-      toast.error(getErrorMessage(err, '閸掔娀娅庢径杈Е'));
+      toast.error(getErrorMessage(err, '??????'));
     },
   });
 
@@ -749,7 +749,7 @@ export default function GalleryPage() {
   const clearAdminToken = () => {
     setAdminToken('');
     setAdminAuthStatus('empty');
-    toast.success('缁狅紕鎮婄€靛棝鎸滃鍙夌闂?');
+    toast.success('???????');
   };
 
   const checkAdminToken = useCallback(async (): Promise<boolean> => {
@@ -770,7 +770,7 @@ export default function GalleryPage() {
       const message = getErrorMessage(err, 'Admin token verification failed');
       if (message.includes('not configured')) {
         setAdminAuthStatus('unconfigured');
-        toast.error('閺堝秴濮熺粩顖涙弓闁板秶鐤嗙粻锛勬倞鐎靛棝鎸滈敍宀冾嚞閸忓牆婀?EdgeOne Pages 閻滎垰顣ㄩ崣姗€鍣洪柊宥囩枂 ADMIN_TOKEN');
+        toast.error('??????? ADMIN_TOKEN???? EdgeOne Pages ????????');
       } else {
         setAdminAuthStatus('invalid');
         toast.error(message);
@@ -790,11 +790,11 @@ export default function GalleryPage() {
   }, [checkAdminToken, hasAdminToken, hasVerifiedAdminToken]);
 
   const adminStatusText = {
-    empty: '鍙妯″紡',
-    unverified: '瀵板懏鐗庢?',
-    checking: '鏍￠獙涓?',
-    valid: '宸查獙璇?',
-    invalid: '瀵嗛挜閿欒',
+    empty: '????',
+    unverified: '???',
+    checking: '???',
+    valid: '???',
+    invalid: '????',
     unconfigured: 'Server not configured',
   }[adminAuthStatus];
 
@@ -823,7 +823,7 @@ export default function GalleryPage() {
         <div className="max-w-md mx-auto rounded-2xl border border-red-100 glass-strong p-8">
           <Camera className="w-14 h-14 mx-auto mb-4 text-red-300" />
           <p className="text-lg font-medium text-foreground">No images yet</p>
-          <p className="text-sm mt-2 text-muted-foreground">{getErrorMessage(imagesQuery.error, '鐠囬鈼㈤崥搴ㄥ櫢鐠?')}</p>
+          <p className="text-sm mt-2 text-muted-foreground">{getErrorMessage(imagesQuery.error, '??????')}</p>
           <Button className="mt-5" variant="outline" onClick={() => imagesQuery.refetch()}>
             <RefreshCw className="w-4 h-4 mr-2" />
             重新加载
@@ -838,7 +838,7 @@ export default function GalleryPage() {
       <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">图片管理</h2>
-          <p className="text-muted-foreground text-sm mt-1">Manage your external image library here.</p>
+          <p className="text-muted-foreground text-sm mt-1">?????????????????</p>
         </div>
         <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
       </div>
@@ -849,13 +849,13 @@ export default function GalleryPage() {
             <div className="min-w-0 flex-1 space-y-2">
               <Label htmlFor="admin-token" className="flex items-center gap-2 text-sm font-medium">
                 <KeyRound className="h-4 w-4 text-blue-500" />
-                缁狅紕鎮婄€靛棝鎸?              </Label>
+                ????              </Label>
               <Input
                 id="admin-token"
                 type="password"
                 value={adminToken}
                 onChange={event => handleAdminTokenChange(event.target.value)}
-                placeholder="鏉堟挸鍙嗙粻锛勬倞鐎靛棝鎸滈崥搴㈠閼宠姤鍧婇崝鐘偓浣虹椽鏉堟垯鈧礁鍨归梽?"
+                placeholder="??????????????????"
                 className="bg-secondary/30"
                 autoComplete="off"
               />
@@ -875,7 +875,7 @@ export default function GalleryPage() {
                   disabled={adminAuthStatus === 'checking'}
                 >
                   {adminAuthStatus === 'checking' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-1.5 h-3.5 w-3.5" />}
-                  閺嶏繝鐛?                </Button>
+                  ??                </Button>
               )}
               {hasAdminToken && (
                 <Button variant="outline" size="sm" onClick={clearAdminToken}>
@@ -889,8 +889,8 @@ export default function GalleryPage() {
       <div className="grid grid-cols-1 gap-3 mb-5 sm:grid-cols-3">
         {[
           { label: '图片总数', value: totalImages, icon: Image },
-          { label: '鏍囩鏁伴噺', value: totalTags, icon: Tag },
-          { label: '瑜版挸澧犳い鍨付閺?', value: latestImage ? formatDateTime(latestImage.createdAt) : '暂无数据', icon: Clock },
+          { label: '????', value: totalTags, icon: Tag },
+          { label: '????', value: latestImage ? formatDateTime(latestImage.createdAt) : '????', icon: Clock },
         ].map(item => (
           <Card key={item.label} className="glass-strong rounded-2xl">
             <CardContent className="p-4 flex items-center gap-3">
@@ -917,7 +917,7 @@ export default function GalleryPage() {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                placeholder="閹兼粎鍌ㄩ弽鍥暯閵嗕箒RL 鎴栨爣绛?"
+                placeholder="?????URL ???"
                 className="pl-9"
               />
             </div>
@@ -932,7 +932,7 @@ export default function GalleryPage() {
                   setPage(1);
                 }}
               >
-                閸忋劑鍎?              </Badge>
+                ??              </Badge>
               {tags.map(tag => (
                 <Badge
                   key={tag}
@@ -956,8 +956,8 @@ export default function GalleryPage() {
       {totalImages === 0 && (
         <div className="rounded-2xl border border-dashed border-border glass px-6 py-16 text-center text-muted-foreground">
           <Camera className="w-14 h-14 mx-auto mb-4 opacity-25" />
-          <p className="text-lg font-medium text-foreground">閺嗗倹妫ら崶鍓у</p>
-          <p className="text-sm mt-1">濞ｈ濮炵粭顑跨瀵姴顦婚柧鎯ф禈閻楀洤鎮楅崡鍐插讲瀵偓婵褰佹笟娑㈡閺堝搫娴橀幒銉ュ經</p>
+          <p className="text-lg font-medium text-foreground">????????</p>
+          <p className="text-sm mt-1">??????????????????????</p>
           <div className="mt-5 flex justify-center">
             <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
           </div>
@@ -1030,14 +1030,14 @@ export default function GalleryPage() {
                               variant="destructive"
                               size="icon"
                               className="w-7 h-7 bg-red-500/30 hover:bg-red-500/50 text-white border-0 backdrop-blur-sm"
-                              aria-label="閸掔娀娅庨崶鍓у"
+                              aria-label="????"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>绾喛顓婚崚鐘绘珟</AlertDialogTitle>
+                              <AlertDialogTitle>????</AlertDialogTitle>
                               <AlertDialogDescription>Are you sure you want to delete &quot;{img.title}&quot;? This action cannot be undone.</AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -1048,7 +1048,7 @@ export default function GalleryPage() {
                                 }}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                閸掔娀娅?                              </AlertDialogAction>
+                                ??                              </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -1077,16 +1077,16 @@ export default function GalleryPage() {
                   size="sm"
                   disabled={page <= 1 || imagesQuery.isFetching}
                   onClick={() => goToPage(1)}
-                  aria-label="鐠哄疇娴嗛崚鎵儑娑撯偓妞?"
+                  aria-label="?????"
                 >
-                  妫ｆ牠銆?                </Button>
+                  ??                </Button>
                 <Button
                   variant="outline"
                   size="icon"
                   className="h-9 w-9"
                   disabled={page <= 1 || imagesQuery.isFetching}
                   onClick={() => goToPage(page - 1)}
-                  aria-label="涓婁竴椤?"
+                  aria-label="???"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -1104,7 +1104,7 @@ export default function GalleryPage() {
                         disabled={imagesQuery.isFetching}
                         onClick={() => goToPage(pageNumber)}
                         aria-current={pageNumber === page ? 'page' : undefined}
-                        aria-label={`缁?${pageNumber} 妞?`}
+                        aria-label={`???? ${pageNumber} ?`}
                       >
                         {pageNumber}
                       </Button>
@@ -1117,7 +1117,7 @@ export default function GalleryPage() {
                   className="h-9 w-9"
                   disabled={page >= totalPages || imagesQuery.isFetching}
                   onClick={() => goToPage(page + 1)}
-                  aria-label="娑撳绔存い?"
+                  aria-label="???"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -1126,15 +1126,15 @@ export default function GalleryPage() {
                   size="sm"
                   disabled={page >= totalPages || imagesQuery.isFetching}
                   onClick={() => goToPage(totalPages)}
-                  aria-label="璺宠浆鍒版渶鍚庝竴椤?"
+                  aria-label="??????"
                 >
-                  閺堫偊銆?                </Button>
+                  ??                </Button>
               </div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <form onSubmit={handlePageJump} className="flex items-center gap-2">
                 <Label htmlFor="gallery-page-jump" className="text-xs text-muted-foreground">
-                  鐠哄疇鍤?                </Label>
+                  ??                </Label>
                 <Input
                   id="gallery-page-jump"
                   type="number"
@@ -1146,11 +1146,11 @@ export default function GalleryPage() {
                   disabled={imagesQuery.isFetching}
                 />
                 <Button type="submit" variant="outline" size="sm" disabled={imagesQuery.isFetching}>
-                  鐠哄疇娴?                </Button>
+                  ??                </Button>
               </form>
               <div className="flex items-center gap-2">
                 <Label htmlFor="gallery-page-size" className="text-xs text-muted-foreground">
-                  濮ｅ繘銆?                </Label>
+                  ??                </Label>
                 <Select value={String(pageSize)} onValueChange={value => setPageSize(Number(value))}>
                   <SelectTrigger id="gallery-page-size" className="h-9 w-24 bg-background/60">
                     <SelectValue />
@@ -1158,7 +1158,7 @@ export default function GalleryPage() {
                   <SelectContent>
                     {GALLERY_PAGE_SIZE_OPTIONS.map(option => (
                       <SelectItem key={option} value={String(option)}>
-                        {option} 瀵?
+                        {option} ?
                       </SelectItem>
                     ))}
                   </SelectContent>
