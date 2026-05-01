@@ -118,7 +118,7 @@ async function copyText(text: string, successMessage = 'Copied to clipboard') {
     toast.success(successMessage);
     return true;
   } catch (err) {
-    toast.error(getErrorMessage(err, '????????'));
+    toast.error(getErrorMessage(err, 'Copy failed. Please try again.'));
     return false;
   }
 }
@@ -247,7 +247,7 @@ async function apiRequest<T>(input: RequestInfo | URL, init: RequestInit | undef
   try {
     return await response.json() as T;
   } catch {
-    throw new Error(`${fallback}：接口返回的 JSON 无法解析`);
+    throw new Error(`${fallback}: invalid JSON response`);
   }
 }
 
@@ -398,8 +398,8 @@ function HeroSection({ onShuffle }: { onShuffle: () => void }) {
           className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 text-balance"
           style={{ animation: 'slide-up 0.6s ease-out 0.2s both' }}
         >
-          ?????? API ???????????<br className="hidden sm:block" />
-          ????????????JSON ??? 302 ?????
+          Free random image API powered by the PAIII community.<br className="hidden sm:block" />
+          Supports direct image links, tag filters, JSON responses, and 302 redirects.
         </p>
 
         <div
@@ -499,7 +499,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
   };
 
   const handleImageError = () => {
-    const message = '??????????';
+    const message = 'Image failed to load. Please try again.';
     setImageLoading(false);
     setImageLoaded(false);
     setPreviewError(message);
@@ -526,7 +526,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
     <section id="preview" className="relative z-10 py-14 sm:py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="max-w-4xl mx-auto">
         <div className="section-header animate-slide-up">
-          <h2>????</h2>
+          <h2>Live Preview</h2>
           <p>选择分类并刷新，即时查看随机图片效果</p>
         </div>
 
@@ -566,7 +566,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
             {!imageUrl && !imageLoading && !previewError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50">
                 <Camera className="w-16 h-16 mb-3 opacity-30" />
-                <p className="text-sm">??????</p>
+                <p className="text-sm">No preview image yet</p>
               </div>
             )}
 
@@ -574,7 +574,7 @@ function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
             {previewError && !imageLoading && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/75 p-6 text-center backdrop-blur-md">
                 <Camera className="w-14 h-14 mb-3 text-muted-foreground/30" />
-                <p className="text-sm font-medium text-foreground">??????</p>
+                <p className="text-sm font-medium text-foreground">Preview failed to load</p>
                 <p className="mt-1 max-w-sm text-xs text-muted-foreground">{previewError}</p>
                 <Button
                   variant="outline"
@@ -857,7 +857,7 @@ function ApiDocsSection() {
       <div className="max-w-4xl mx-auto">
         <Tabs value={activeDocTab} onValueChange={setActiveDocTab}>
           <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-4 gap-1 glass rounded-xl p-1 sm:p-1.5 min-h-[2.75rem] mb-6">
-            <TabsTrigger value="basic" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">鍩虹璋冪敤</TabsTrigger>
+            <TabsTrigger value="basic" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">Basic Usage</TabsTrigger>
             <TabsTrigger value="params" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">分类参数</TabsTrigger>
             <TabsTrigger value="json" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">JSON 返回</TabsTrigger>
             <TabsTrigger value="advanced" className="rounded-lg text-xs sm:text-sm px-2 py-2 sm:px-3">高级用法</TabsTrigger>
@@ -869,9 +869,9 @@ function ApiDocsSection() {
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Code className="w-5 h-5 text-blue-500" />
-                  <span className="text-sm font-medium">????</span>
+                  <span className="text-sm font-medium">Basic Usage</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">???? 302 ??????? JSON ??????? format=json?</p>
+                <p className="text-xs text-muted-foreground mb-3">The endpoint returns a 302 redirect by default. Append format=json when you need metadata.</p>
 
                 <div className="space-y-2">
                   <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg sm:flex-row sm:items-center sm:justify-between">
@@ -937,7 +937,7 @@ function ApiDocsSection() {
                   <Code className="w-5 h-5 text-cyan-500" />
                   <span className="text-sm font-medium">JSON 返回模式</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">?? format=json ?? JSON ??????? URL????????????</p>
+                <p className="text-xs text-muted-foreground mb-3">Append format=json to receive metadata such as image URL, title, tags, and creation time.</p>
                 <div className="flex flex-col gap-3 p-3 bg-muted/40 rounded-lg mb-3 sm:flex-row sm:items-center sm:justify-between">
                   <code className="overflow-x-auto whitespace-nowrap text-sm text-foreground">{randomJsonApiUrl}</code>
                   <Button variant="ghost" size="sm" className="h-7 shrink-0 justify-center card-button" onClick={() => copyCode(randomJsonApiUrl)}>
@@ -950,8 +950,8 @@ function ApiDocsSection() {
 {`{
   "id": "img-001",
   "url": "https://example.com/image.jpg",
-  "title": "?????",
-  "tags": ["acg", "???"],
+  "title": "Sample image",
+  "tags": ["acg", "featured"],
   "createdAt": "2025-01-15T08:00:00Z"
 }`}
                   </pre>
@@ -1000,7 +1000,7 @@ function ImageSubmission() {
   return (
     <section id="contribute" className="relative z-10 py-16 px-4 sm:px-6 scroll-mt-20">
       <div className="section-header animate-slide-up">
-        <h2>????</h2>
+        <h2>Contribute Images</h2>
         <p>Contribute high-quality images and help grow the gallery.</p>
       </div>
 
@@ -1013,7 +1013,7 @@ function ImageSubmission() {
               </div>
               <div>
                 <h3 className="font-semibold text-sm">QQ 联系</h3>
-                <p className="text-xs text-muted-foreground">?? QQ ???????????</p>
+                <p className="text-xs text-muted-foreground">Add this QQ contact to submit image sources directly.</p>
               </div>
             </div>
             <div className="bg-muted/40 rounded-lg p-3 text-center">
@@ -1030,13 +1030,13 @@ function ImageSubmission() {
               </div>
               <div>
                 <h3 className="font-semibold text-sm">社区发帖</h3>
-                <p className="text-xs text-muted-foreground">??????????</p>
+                <p className="text-xs text-muted-foreground">Post your submission in the PAIII community board.</p>
               </div>
             </div>
             <div className="text-center">
               <Button size="sm" className="gradient-button rounded-full border-0 text-white text-xs h-8" asChild>
                 <a href="https://www.paiii.cn/bbs/9" target="_blank" rel="noreferrer">
-                  ????
+                  Open Submission Board
                   <ChevronRight className="w-3 h-3 ml-1" />
                 </a>
               </Button>
@@ -1058,9 +1058,9 @@ function Changelog() {
       date: '2026-04-29',
       title: 'Pages 化与图库升级',
       items: [
-        '?? PHP ????? EdgeOne Pages Functions + KV ??????',
-        '??????????????????????????',
-        '???????????????????????',
+        'Migrated the old PHP endpoint to EdgeOne Pages Functions backed by KV.',
+        'Added gallery browsing and management with tags, search, and live preview.',
+        'Expanded pagination with first/last page, jump-to-page, and page-size controls.',
         '优化接口缓存、分页加载、相邻页预取和图片加载性能',
       ],
     },
@@ -1091,7 +1091,7 @@ function Changelog() {
           <span className="text-xs text-muted-foreground">CHANGELOG</span>
         </div>
         <h2>更新日志</h2>
-        <p>???????????????????</p>
+        <p>A running record of site, API, and gallery improvements.</p>
       </div>
 
       <div className="max-w-3xl mx-auto space-y-6">
@@ -1175,11 +1175,11 @@ export default function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
                     { icon: Shield, title: 'URL 校验', desc: '添加图片时自动校验 URL 格式' },
-                    { icon: Database, title: '????', desc: '?? URL ??????' },
+                    { icon: Database, title: 'Duplicate protection', desc: 'The same URL is blocked automatically.' },
                     { icon: Zap, title: '边缘计算', desc: 'EdgeOne 边缘节点，延迟<50ms' },
                     { icon: Globe, title: 'KV 存储', desc: '数据持久化在边缘节点' },
-                    { icon: Code, title: 'CORS ??', desc: '???????????' },
-                    { icon: ExternalLink, title: '302 ???', desc: '?? redirect ????' },
+                    { icon: Code, title: 'CORS support', desc: 'All endpoints support cross-origin requests.' },
+                    { icon: ExternalLink, title: '302 redirects', desc: 'Direct-link mode works with redirect responses.' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors">
                       <div className="w-8 h-8 rounded-lg bg-secondary/60 flex items-center justify-center shrink-0 mt-0.5">
@@ -1215,7 +1215,7 @@ export default function App() {
               </div>
               <span className="font-semibold">{APP_NAME}</span>
               <span className="text-muted-foreground text-sm">
-                ? {new Date().getFullYear()} ???
+                Copyright {new Date().getFullYear()} PAIII
               </span>
             </div>
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
@@ -1230,7 +1230,7 @@ export default function App() {
                   decoding="async"
                   className="h-4 w-4 inline-block mx-0.5"
                 />
-                <span>PAIII ?????????</span>
+                <span>PAIII provides the site and gallery platform.</span>
               </p>
               <p className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
                 <span>CDN support from</span>
@@ -1243,7 +1243,7 @@ export default function App() {
                   decoding="async"
                   className="h-4 w-auto inline-block mx-0.5"
                 />
-                <span>EdgeOne ????? CDN ??</span>
+                <span>EdgeOne enterprise services provide CDN support.</span>
               </p>
             </div>
             <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-y-3 sm:gap-x-8 text-sm text-muted-foreground max-w-full">

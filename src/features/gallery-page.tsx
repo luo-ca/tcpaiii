@@ -127,7 +127,7 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debouncedValue;
 }
 
-async function copyText(text: string, successMessage = '宸插鍒跺埌鍓创鏉?') {
+async function copyText(text: string, successMessage = 'Copied to clipboard') {
   try {
     await copyToClipboard(text);
     toast.success(successMessage);
@@ -364,14 +364,14 @@ function AddImageDialog({
   }, [open]);
 
   const singleMutation = useMutation({
-    mutationFn: () => createImage({ url: url.trim(), title: title.trim() || '?????', tags: parseTagsInput(tagsInput) }, adminToken),
+    mutationFn: () => createImage({ url: url.trim(), title: title.trim() || 'Untitled image', tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => {
       toast.success('Image added successfully');
       setOpen(false);
       onSuccess();
     },
     onError: err => {
-      toast.error(getErrorMessage(err, '??????'));
+      toast.error(getErrorMessage(err, 'Failed to add image'));
     },
   });
 
@@ -385,7 +385,7 @@ function AddImageDialog({
       return;
     }
     if (lines.length > MAX_BATCH_IMAGE_COUNT) {
-      toast.error(`??????? ${MAX_BATCH_IMAGE_COUNT} ???`);
+      toast.error(`You can import up to ${MAX_BATCH_IMAGE_COUNT} images per batch.`);
       return;
     }
 
@@ -395,13 +395,13 @@ function AddImageDialog({
 
     try {
       const result = await batchCreateImages(
-        lines.map((imageUrl, index) => ({ url: imageUrl, title: `???? ${index + 1}`, tags })),
+        lines.map((imageUrl, index) => ({ url: imageUrl, title: `Imported image ${index + 1}`, tags })),
         adminToken,
       );
       setProgress({ current: result.success, total: lines.length });
 
       if (result.success > 0) {
-        toast.success(`???? ${result.success} ???${result.failed > 0 ? `??? ${result.failed} ?` : ""}`);
+        toast.success(`Imported ${result.success} image(s)${result.failed > 0 ? `, failed ${result.failed}` : ""}.`);
         setOpen(false);
         onSuccess();
       } else {
@@ -434,14 +434,14 @@ function AddImageDialog({
       <DialogTrigger asChild>
         <Button className="gap-2 gradient-button rounded-full border-0 text-white">
           <Plus className="w-4 h-4" />
-          ????
+          Add Images
         </Button>
       </DialogTrigger>
       <DialogContent className="glass-strong rounded-2xl sm:max-w-lg sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link className="w-5 h-5 text-blue-500" />
-            ????          </DialogTitle>
+            Add images          </DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-2 mt-2">
@@ -451,7 +451,7 @@ function AddImageDialog({
             onClick={() => setMode('single')}
             className={`text-xs h-8 rounded-full ${mode === 'single' ? 'bg-primary text-primary-foreground' : ''}`}
           >
-            ????
+            Single
           </Button>
           <Button
             variant={mode === 'batch' ? 'default' : 'outline'}
@@ -459,7 +459,7 @@ function AddImageDialog({
             onClick={() => setMode('batch')}
             className={`text-xs h-8 rounded-full ${mode === 'batch' ? 'bg-primary text-primary-foreground' : ''}`}
           >
-            ????
+            Batch
           </Button>
         </div>
 
@@ -471,7 +471,7 @@ function AddImageDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
-              <Input id="title" className="rounded-lg bg-secondary/30 border-border/70" placeholder="????" value={title} onChange={e => setTitle(e.target.value)} />
+              <Input id="title" className="rounded-lg bg-secondary/30 border-border/70" placeholder="Optional title" value={title} onChange={e => setTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="tags">Tags (comma separated)</Label>
@@ -479,7 +479,7 @@ function AddImageDialog({
             </div>
             <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              ????            </Button>
+              Add image            </Button>
           </form>
         ) : (
           <form onSubmit={handleBatchSubmit} className="space-y-4 mt-4">
@@ -497,7 +497,7 @@ function AddImageDialog({
               <p className="text-xs text-muted-foreground">Duplicate URLs will be merged automatically. Up to {MAX_BATCH_IMAGE_COUNT} images per batch.</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="batch-tags">???????</Label>
+              <Label htmlFor="batch-tags">Shared tags for this batch</Label>
               <Input id="batch-tags" className="rounded-lg bg-secondary/30 border-border/70" placeholder="landscape, nature" value={batchTags} onChange={e => setBatchTags(e.target.value)} />
               <p className="text-xs text-muted-foreground">These tags will be applied to every imported image.</p>
             </div>
@@ -505,7 +505,7 @@ function AddImageDialog({
             {loading && progress.total > 0 && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>????</span>
+                  <span>Import progress</span>
                   <span>{progress.current} / {progress.total}</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -519,7 +519,7 @@ function AddImageDialog({
 
             <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              ????
+              Import images
             </Button>
           </form>
         )}
@@ -561,7 +561,7 @@ function EditImageDialog({
       onSuccess();
     },
     onError: err => {
-      toast.error(getErrorMessage(err, '閺囧瓨鏌婃径杈Е'));
+      toast.error(getErrorMessage(err, 'Failed to update image'));
     },
   });
 
@@ -582,7 +582,7 @@ function EditImageDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/20" aria-label="缂傛牞绶崶鍓у">
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/20" aria-label="Edit image">
           <Edit3 className="w-3.5 h-3.5" />
         </Button>
       </DialogTrigger>
@@ -590,7 +590,7 @@ function EditImageDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit3 className="w-5 h-5 text-blue-500" />
-            缂傛牞绶崶鍓у
+            Edit image
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
@@ -608,7 +608,7 @@ function EditImageDialog({
           </div>
           <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            娣囨繂鐡?          </Button>
+            Save changes          </Button>
         </form>
       </DialogContent>
     </Dialog>
@@ -712,12 +712,12 @@ export default function GalleryPage() {
       refreshGallery();
     },
     onError: err => {
-      toast.error(getErrorMessage(err, '??????'));
+      toast.error(getErrorMessage(err, 'Failed to delete image'));
     },
   });
 
   const handleCopyUrl = async (url: string) => {
-    await copyText(url, '鍥剧墖鍦板潃宸插鍒?');
+    await copyText(url, 'Image URL copied');
   };
 
   const goToPage = useCallback((nextPage: number) => {
@@ -749,7 +749,7 @@ export default function GalleryPage() {
   const clearAdminToken = () => {
     setAdminToken('');
     setAdminAuthStatus('empty');
-    toast.success('???????');
+    toast.success('Admin token cleared');
   };
 
   const checkAdminToken = useCallback(async (): Promise<boolean> => {
@@ -770,7 +770,7 @@ export default function GalleryPage() {
       const message = getErrorMessage(err, 'Admin token verification failed');
       if (message.includes('not configured')) {
         setAdminAuthStatus('unconfigured');
-        toast.error('??????? ADMIN_TOKEN???? EdgeOne Pages ????????');
+        toast.error('The server admin token is not configured. Set ADMIN_TOKEN in EdgeOne Pages first.');
       } else {
         setAdminAuthStatus('invalid');
         toast.error(message);
@@ -790,11 +790,11 @@ export default function GalleryPage() {
   }, [checkAdminToken, hasAdminToken, hasVerifiedAdminToken]);
 
   const adminStatusText = {
-    empty: '????',
-    unverified: '???',
-    checking: '???',
-    valid: '???',
-    invalid: '????',
+    empty: 'Read only',
+    unverified: 'Not verified',
+    checking: 'Checking',
+    valid: 'Verified',
+    invalid: 'Invalid token',
     unconfigured: 'Server not configured',
   }[adminAuthStatus];
 
@@ -823,7 +823,7 @@ export default function GalleryPage() {
         <div className="max-w-md mx-auto rounded-2xl border border-red-100 glass-strong p-8">
           <Camera className="w-14 h-14 mx-auto mb-4 text-red-300" />
           <p className="text-lg font-medium text-foreground">No images yet</p>
-          <p className="text-sm mt-2 text-muted-foreground">{getErrorMessage(imagesQuery.error, '??????')}</p>
+          <p className="text-sm mt-2 text-muted-foreground">{getErrorMessage(imagesQuery.error, 'Failed to load the gallery')}</p>
           <Button className="mt-5" variant="outline" onClick={() => imagesQuery.refetch()}>
             <RefreshCw className="w-4 h-4 mr-2" />
             重新加载
@@ -838,7 +838,7 @@ export default function GalleryPage() {
       <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">图片管理</h2>
-          <p className="text-muted-foreground text-sm mt-1">?????????????????</p>
+          <p className="text-muted-foreground text-sm mt-1">Search, review, and maintain the remote image library here.</p>
         </div>
         <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
       </div>
@@ -849,13 +849,13 @@ export default function GalleryPage() {
             <div className="min-w-0 flex-1 space-y-2">
               <Label htmlFor="admin-token" className="flex items-center gap-2 text-sm font-medium">
                 <KeyRound className="h-4 w-4 text-blue-500" />
-                ????              </Label>
+                Admin token              </Label>
               <Input
                 id="admin-token"
                 type="password"
                 value={adminToken}
                 onChange={event => handleAdminTokenChange(event.target.value)}
-                placeholder="??????????????????"
+                placeholder="Enter the admin token to add, edit, and delete images"
                 className="bg-secondary/30"
                 autoComplete="off"
               />
@@ -875,11 +875,11 @@ export default function GalleryPage() {
                   disabled={adminAuthStatus === 'checking'}
                 >
                   {adminAuthStatus === 'checking' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-1.5 h-3.5 w-3.5" />}
-                  ??                </Button>
+                  Verify                </Button>
               )}
               {hasAdminToken && (
                 <Button variant="outline" size="sm" onClick={clearAdminToken}>
-                  濞撳懘娅?                </Button>
+                  Clear                </Button>
               )}
             </div>
           </div>
@@ -889,8 +889,8 @@ export default function GalleryPage() {
       <div className="grid grid-cols-1 gap-3 mb-5 sm:grid-cols-3">
         {[
           { label: '图片总数', value: totalImages, icon: Image },
-          { label: '????', value: totalTags, icon: Tag },
-          { label: '????', value: latestImage ? formatDateTime(latestImage.createdAt) : '????', icon: Clock },
+          { label: 'Tag count', value: totalTags, icon: Tag },
+          { label: 'Latest image', value: latestImage ? formatDateTime(latestImage.createdAt) : 'No data', icon: Clock },
         ].map(item => (
           <Card key={item.label} className="glass-strong rounded-2xl">
             <CardContent className="p-4 flex items-center gap-3">
@@ -917,7 +917,7 @@ export default function GalleryPage() {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                placeholder="?????URL ???"
+                placeholder="Search by title, URL, or tag"
                 className="pl-9"
               />
             </div>
@@ -932,7 +932,7 @@ export default function GalleryPage() {
                   setPage(1);
                 }}
               >
-                ??              </Badge>
+                All              </Badge>
               {tags.map(tag => (
                 <Badge
                   key={tag}
@@ -956,8 +956,8 @@ export default function GalleryPage() {
       {totalImages === 0 && (
         <div className="rounded-2xl border border-dashed border-border glass px-6 py-16 text-center text-muted-foreground">
           <Camera className="w-14 h-14 mx-auto mb-4 opacity-25" />
-          <p className="text-lg font-medium text-foreground">????????</p>
-          <p className="text-sm mt-1">??????????????????????</p>
+          <p className="text-lg font-medium text-foreground">No images in the gallery</p>
+          <p className="text-sm mt-1">Add your first image to start building the shared library.</p>
           <div className="mt-5 flex justify-center">
             <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
           </div>
@@ -968,7 +968,7 @@ export default function GalleryPage() {
         <div className="rounded-2xl border border-dashed border-border glass px-6 py-14 text-center">
           <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
           <p className="text-base font-medium text-foreground">No matching images found</p>
-          <p className="text-sm mt-1 text-muted-foreground">鐠嬪啯鏆ｉ幖婊呭偍鐠囧秵鍨ㄩ弽鍥╊劮缁涙盯鈧鎮楅崘宥堢槸</p>
+          <p className="text-sm mt-1 text-muted-foreground">Try another keyword or clear the current filters.</p>
           <Button variant="outline" className="mt-5" onClick={clearFilters}>Clear filters</Button>
         </div>
       )}
@@ -976,7 +976,7 @@ export default function GalleryPage() {
       {imagesQuery.isFetching && images.length > 0 && (
         <div className="mb-4 flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/55 px-4 py-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          濮濓絽婀崝鐘烘祰瑜版挸澧犳い?
+          Refreshing gallery data...
         </div>
       )}
 
@@ -1030,14 +1030,14 @@ export default function GalleryPage() {
                               variant="destructive"
                               size="icon"
                               className="w-7 h-7 bg-red-500/30 hover:bg-red-500/50 text-white border-0 backdrop-blur-sm"
-                              aria-label="????"
+                              aria-label="Delete image"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>????</AlertDialogTitle>
+                              <AlertDialogTitle>Delete image</AlertDialogTitle>
                               <AlertDialogDescription>Are you sure you want to delete &quot;{img.title}&quot;? This action cannot be undone.</AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -1048,7 +1048,7 @@ export default function GalleryPage() {
                                 }}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                ??                              </AlertDialogAction>
+                                Delete                              </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -1077,16 +1077,16 @@ export default function GalleryPage() {
                   size="sm"
                   disabled={page <= 1 || imagesQuery.isFetching}
                   onClick={() => goToPage(1)}
-                  aria-label="?????"
+                  aria-label="Go to first page"
                 >
-                  ??                </Button>
+                  First                </Button>
                 <Button
                   variant="outline"
                   size="icon"
                   className="h-9 w-9"
                   disabled={page <= 1 || imagesQuery.isFetching}
                   onClick={() => goToPage(page - 1)}
-                  aria-label="???"
+                  aria-label="Previous page"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -1104,7 +1104,7 @@ export default function GalleryPage() {
                         disabled={imagesQuery.isFetching}
                         onClick={() => goToPage(pageNumber)}
                         aria-current={pageNumber === page ? 'page' : undefined}
-                        aria-label={`???? ${pageNumber} ?`}
+                        aria-label={`Go to page ${pageNumber}`}
                       >
                         {pageNumber}
                       </Button>
@@ -1117,7 +1117,7 @@ export default function GalleryPage() {
                   className="h-9 w-9"
                   disabled={page >= totalPages || imagesQuery.isFetching}
                   onClick={() => goToPage(page + 1)}
-                  aria-label="???"
+                  aria-label="Next page"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -1126,15 +1126,16 @@ export default function GalleryPage() {
                   size="sm"
                   disabled={page >= totalPages || imagesQuery.isFetching}
                   onClick={() => goToPage(totalPages)}
-                  aria-label="??????"
+                  aria-label="Go to last page"
                 >
-                  ??                </Button>
+                  Last                </Button>
               </div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <form onSubmit={handlePageJump} className="flex items-center gap-2">
                 <Label htmlFor="gallery-page-jump" className="text-xs text-muted-foreground">
-                  ??                </Label>
+                  Jump
+                </Label>
                 <Input
                   id="gallery-page-jump"
                   type="number"
@@ -1146,11 +1147,13 @@ export default function GalleryPage() {
                   disabled={imagesQuery.isFetching}
                 />
                 <Button type="submit" variant="outline" size="sm" disabled={imagesQuery.isFetching}>
-                  ??                </Button>
+                  Go
+                </Button>
               </form>
               <div className="flex items-center gap-2">
                 <Label htmlFor="gallery-page-size" className="text-xs text-muted-foreground">
-                  ??                </Label>
+                  Per page
+                </Label>
                 <Select value={String(pageSize)} onValueChange={value => setPageSize(Number(value))}>
                   <SelectTrigger id="gallery-page-size" className="h-9 w-24 bg-background/60">
                     <SelectValue />
@@ -1158,7 +1161,7 @@ export default function GalleryPage() {
                   <SelectContent>
                     {GALLERY_PAGE_SIZE_OPTIONS.map(option => (
                       <SelectItem key={option} value={String(option)}>
-                        {option} ?
+                        {option} items
                       </SelectItem>
                     ))}
                   </SelectContent>
