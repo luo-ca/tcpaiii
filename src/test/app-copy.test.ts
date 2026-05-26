@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const appSource = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
 const mainSource = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
+const indexHtml = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
 
 describe("home page copy", () => {
   it("does not contain visible mojibake markers", () => {
@@ -21,8 +22,13 @@ describe("home page copy", () => {
     expect(mainSource).toContain("rootElement.innerHTML");
   });
 
-  it("does not use the API endpoint as the only hero background image", () => {
-    expect(appSource).not.toContain("const heroImageUrl = buildAppUrl('/api/random')");
-    expect(appSource).toContain("HERO_FALLBACK_IMAGE_URL");
+  it("imports icons and components used by the redesigned landing page", () => {
+    expect(appSource).toContain("import { Badge } from '@/components/ui/badge';");
+    expect(appSource).toMatch(/\bSearch,\n\s+TrendingUp,/);
+  });
+
+  it("does not load the console-blocking external script", () => {
+    expect(indexHtml).not.toContain("https://static.paiii.cn/static/gbts.js");
+    expect(indexHtml).not.toContain("disable-devtool-auto");
   });
 });
