@@ -24,6 +24,7 @@ describe("home page copy", () => {
 
   it("imports icons and components used by the redesigned landing page", () => {
     expect(appSource).toContain("import { Badge } from '@/components/ui/badge';");
+    expect(appSource).toContain("import { Input } from '@/components/ui/input';");
     expect(appSource).toMatch(/\bSearch,\n\s+TrendingUp,/);
   });
 

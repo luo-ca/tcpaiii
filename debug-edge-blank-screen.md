@@ -16,15 +16,18 @@ Status: [OPEN]
 - 已移除 `index.html` 中的 `https://static.paiii.cn/static/gbts.js` 和 `disable-devtool-auto`，控制台恢复可见。
 - 用户提供控制台证据：`App.tsx:442 Uncaught ReferenceError: Search is not defined`，发生在 `<HeroSection>`。
 - 用户提供控制台证据：`App.tsx:686 Uncaught ReferenceError: Badge is not defined`，发生在 `<OnlinePreview>`。
-- React 报告上述组件错误并建议添加 Error Boundary；最终 `react-dom.development.js:26962 Uncaught ReferenceError: Search is not defined` 导致根渲染失败。
+- 用户提供控制台证据：`ui-vendor-4-llqrT4.js:24 Uncaught ReferenceError: Input is not defined`，堆栈定位到 `index-DJju1oSo.js:164:8831`，发生在新版 Hero 搜索框渲染阶段。
+- 这与上一轮 `Search`、`Badge` 属于同类问题：重设计 UI 使用了组件但未从对应模块导入。
 
 ## Fix
 - 从 `index.html` 移除 `https://static.paiii.cn/static/gbts.js` 和 `disable-devtool-auto`，避免控制台被隐藏或干扰。
 - 在 `src/App.tsx` 补齐 `Badge` 组件导入。
 - 在 `src/App.tsx` 补齐 `Search` 图标导入。
-- 在 `src/test/app-copy.test.ts` 增加回归测试，确保 `Badge`、`Search` 导入存在，并确保 gbts 脚本不会回归。
+- 在 `src/App.tsx` 补齐 `Input` 组件导入。
+- 在 `src/test/app-copy.test.ts` 增加回归测试，确保 `Input`、`Badge`、`Search` 导入存在，并确保 gbts 脚本不会回归。
 
 ## Verification
+- `npx tsc -p tsconfig.app.json --noEmit` 通过。
 - `npm test` 通过：2 个测试文件，40 个测试。
 - `npm run lint` 通过。
 - `npm run build` 通过，构建产物生成成功。
