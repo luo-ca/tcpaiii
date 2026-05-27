@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const appSource = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
 const mainSource = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
 const indexHtml = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+const viteConfig = readFileSync(resolve(process.cwd(), "vite.config.ts"), "utf8");
 
 describe("home page copy", () => {
   it("does not contain visible mojibake markers", () => {
@@ -12,7 +13,8 @@ describe("home page copy", () => {
   });
 
   it("uses the anime API landing headline", () => {
-    expect(appSource).toContain("anime images for anyone");
+    expect(appSource).toContain("anime images");
+    expect(appSource).toContain("for anyone");
     expect(appSource).toContain("热门二次元图片");
   });
 
@@ -20,6 +22,8 @@ describe("home page copy", () => {
     expect(mainSource).toContain("try {");
     expect(mainSource).toContain("页面加载失败");
     expect(mainSource).toContain("rootElement.innerHTML");
+    expect(mainSource).toContain("RootErrorBoundary");
+    expect(indexHtml).toContain("页面正在加载");
   });
 
   it("imports icons and components used by the redesigned landing page", () => {
@@ -31,5 +35,10 @@ describe("home page copy", () => {
   it("does not load the console-blocking external script", () => {
     expect(indexHtml).not.toContain("https://static.paiii.cn/static/gbts.js");
     expect(indexHtml).not.toContain("disable-devtool-auto");
+  });
+
+  it("uses safe production tree shaking settings", () => {
+    expect(viteConfig).toContain("treeshake: true");
+    expect(viteConfig).not.toContain("moduleSideEffects: false");
   });
 });

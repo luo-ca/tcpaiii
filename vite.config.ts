@@ -81,12 +81,7 @@ export default defineConfig(({ mode }) => ({
           return 'assets/[name]-[hash][extname]';
         },
       },
-      // Rollup 内部优化
-      treeshake: {
-        moduleSideEffects: false,
-        propertyReadSideEffects: false,
-        unknownGlobalSideEffects: false,
-      },
+      treeshake: true,
     },
     // 放宽 chunk 大小警告阈值（大部分包已被合理分割）
     chunkSizeWarningLimit: 500,
