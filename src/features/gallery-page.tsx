@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -125,6 +125,56 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   }, [value, delayMs]);
 
   return debouncedValue;
+}
+
+/**
+ * useLazyImage — IntersectionObserver-based lazy loading hook.
+ * Returns a ref to attach to the container element and the current load state.
+ *
+ * States:
+ *  - 'idle'    : element not yet in viewport, don't load src
+ *  - 'loading' : element entered viewport, img is downloading
+ *  - 'loaded'  : img fully decoded and painted
+ *  - 'error'   : img failed to load
+ */
+type LazyImageState = 'idle' | 'loading' | 'loaded' | 'error';
+
+function useLazyImage(src: string, eager = false): {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  activeSrc: string | undefined;
+  state: LazyImageState;
+  onLoad: () => void;
+  onError: () => void;
+} {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [state, setState] = useState<LazyImageState>(eager ? 'loading' : 'idle');
+
+  // Once eager or intersection triggers, activate src
+  const activeSrc = state !== 'idle' ? src : undefined;
+
+  useEffect(() => {
+    if (eager) return; // already started above
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setState('loading');
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }, // start loading 200 px before the element enters the viewport
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [eager]);
+
+  const onLoad = useCallback(() => setState('loaded'), []);
+  const onError = useCallback(() => setState('error'), []);
+
+  return { containerRef, activeSrc, state, onLoad, onError };
 }
 
 async function copyText(text: string, successMessage = '已复制到剪贴板') {
@@ -615,6 +665,140 @@ function EditImageDialog({
   );
 }
 
+/** Standalone image card with IntersectionObserver lazy loading + skeleton. */
+function ImageCard({
+  img,
+  index,
+  adminToken,
+  onCopyUrl,
+  onDelete,
+  onRefresh,
+  onRequireToken,
+  isDeleting,
+}: {
+  img: ImageRecord;
+  index: number;
+  adminToken: string;
+  onCopyUrl: (url: string) => void;
+  onDelete: (id: string) => void;
+  onRefresh: () => void;
+  onRequireToken: () => Promise<boolean>;
+  isDeleting: boolean;
+}) {
+  // First 6 cards load eagerly (above the fold), the rest use IntersectionObserver.
+  const eager = index < 6;
+  const { containerRef, activeSrc, state, onLoad, onError } = useLazyImage(img.url, eager);
+
+  return (
+    <Card
+      className="group overflow-hidden glass-card rounded-2xl border-white/60 animate-fade-in"
+      style={{ animationDelay: `${Math.min(index, 12) * 0.04}s` }}
+    >
+      <CardContent className="p-0">
+        <div ref={containerRef} className="relative aspect-video overflow-hidden bg-muted/50">
+          {/* Skeleton placeholder — visible while idle or loading */}
+          {state !== 'loaded' && state !== 'error' && (
+            <div className="absolute inset-0 skeleton-shimmer" aria-hidden="true" />
+          )}
+
+          {/* Error state */}
+          {state === 'error' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/40 text-muted-foreground/50">
+              <Image className="w-8 h-8 opacity-40" />
+              <span className="text-xs">加载失败</span>
+            </div>
+          )}
+
+          {/* Actual image — rendered once activeSrc is set */}
+          {activeSrc && (
+            <img
+              src={activeSrc}
+              alt={img.title}
+              className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-108 ${
+                state === 'loaded' ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{ willChange: 'transform' }}
+              decoding="async"
+              onLoad={onLoad}
+              onError={onError}
+            />
+          )}
+
+          {/* Hover overlay (desktop) */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300" />
+          {/* Mobile always-visible overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent sm:hidden" />
+
+          {/* Info overlay */}
+          <div className="absolute inset-x-0 bottom-0 p-3.5 translate-y-1 sm:translate-y-2 sm:group-hover:translate-y-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300">
+            <div className="flex items-end justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h4 className="text-white font-semibold text-sm truncate leading-snug">{img.title}</h4>
+                <div className="flex gap-1 mt-1.5 flex-wrap">
+                  {img.tags.map(tag => (
+                    <span
+                      key={tag}
+                      className="text-[10px] bg-white/15 backdrop-blur-sm text-white/85 px-1.5 py-0.5 rounded-full border border-white/10"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="w-7 h-7 rounded-lg bg-white/18 hover:bg-white/28 text-white border-0 backdrop-blur-sm transition-colors"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onCopyUrl(img.url);
+                  }}
+                  aria-label="复制图片地址"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </Button>
+                <EditImageDialog image={img} adminToken={adminToken} onSuccess={onRefresh} onRequireToken={onRequireToken} />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="w-7 h-7 rounded-lg bg-red-500/28 hover:bg-red-500/50 text-white border-0 backdrop-blur-sm transition-colors"
+                      aria-label="删除图片"
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="glass-strong rounded-2xl border-white/60">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>确认删除</AlertDialogTitle>
+                      <AlertDialogDescription>确定要删除「{img.title}」吗？此操作不可撤销。</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="rounded-xl">取消</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          if (await onRequireToken()) onDelete(img.id);
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
+                      >
+                        删除
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 export default function GalleryPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -835,82 +1019,99 @@ export default function GalleryPage() {
 
   return (
     <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-28">
-      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 mb-7 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">图片管理</h2>
-          <p className="text-muted-foreground text-sm mt-1">管理你的外链图片库</p>
+          <h2 className="text-3xl font-black tracking-tight">图片管理</h2>
+          <p className="text-muted-foreground text-sm mt-1.5">管理你的外链图片库 · 支持批量导入与搜索</p>
         </div>
         <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
       </div>
 
-      <Card className="glass-strong rounded-2xl mb-5">
-        <CardContent className="p-4">
+      {/* Admin Token Card */}
+      <Card className="glass-strong rounded-2xl mb-5 border-white/60">
+        <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0 flex-1 space-y-2">
-              <Label htmlFor="admin-token" className="flex items-center gap-2 text-sm font-medium">
-                <KeyRound className="h-4 w-4 text-blue-500" />
-                管理密钥              </Label>
+              <Label htmlFor="admin-token" className="flex items-center gap-2 text-sm font-semibold">
+                <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <KeyRound className="h-3.5 w-3.5 text-blue-500" />
+                </div>
+                管理密钥
+              </Label>
               <Input
                 id="admin-token"
                 type="password"
                 value={adminToken}
                 onChange={event => handleAdminTokenChange(event.target.value)}
                 placeholder="输入管理密钥后才能添加、编辑、删除"
-                className="bg-secondary/30"
+                className="bg-secondary/30 rounded-xl"
                 autoComplete="off"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge
                 variant={hasVerifiedAdminToken ? 'default' : 'outline'}
-                className={hasVerifiedAdminToken ? 'bg-emerald-600 text-white border-0' : 'text-muted-foreground'}
+                className={`rounded-full text-xs px-2.5 py-0.5 ${
+                  hasVerifiedAdminToken
+                    ? 'bg-emerald-600 text-white border-0 shadow-sm'
+                    : adminAuthStatus === 'invalid'
+                      ? 'bg-red-50 text-red-600 border-red-100'
+                      : 'text-muted-foreground border-border'
+                }`}
               >
+                {adminAuthStatus === 'checking' && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
                 {adminStatusText}
               </Badge>
               {hasAdminToken && (
                 <Button
                   variant="outline"
                   size="sm"
+                  className="rounded-xl h-8 text-xs"
                   onClick={() => void checkAdminToken()}
                   disabled={adminAuthStatus === 'checking'}
                 >
                   {adminAuthStatus === 'checking' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-1.5 h-3.5 w-3.5" />}
-                  校验                </Button>
+                  校验
+                </Button>
               )}
               {hasAdminToken && (
-                <Button variant="outline" size="sm" onClick={clearAdminToken}>
-                  清除                </Button>
+                <Button variant="outline" size="sm" className="rounded-xl h-8 text-xs" onClick={clearAdminToken}>
+                  清除
+                </Button>
               )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-3 mb-5 sm:grid-cols-3">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
         {[
-          { label: '图片总数', value: totalImages, icon: Image },
-          { label: '标签数量', value: totalTags, icon: Tag },
-          { label: '当前页最新', value: latestImage ? formatDateTime(latestImage.createdAt) : '暂无数据', icon: Clock },
+          { label: '图片总数', value: totalImages, icon: Image, color: 'text-blue-500', bg: 'bg-blue-50' },
+          { label: '标签数量', value: totalTags, icon: Tag, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+          { label: '当前页最新', value: latestImage ? formatDateTime(latestImage.createdAt) : '暂无数据', icon: Clock, color: 'text-cyan-500', bg: 'bg-cyan-50' },
         ].map(item => (
-          <Card key={item.label} className="glass-strong rounded-2xl">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-secondary/60 flex items-center justify-center shrink-0">
-                <item.icon className="w-4 h-4 text-blue-500" />
+          <Card key={item.label} className="glass-strong rounded-2xl border-white/60">
+            <CardContent className="p-3.5 sm:p-4 flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}>
+                <item.icon className={`w-4.5 h-4.5 ${item.color}`} />
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">{item.label}</p>
-                <p className="truncate text-lg font-semibold text-foreground">{item.value}</p>
+                <p className="truncate text-base sm:text-lg font-bold text-foreground">{item.value}</p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <Card className="glass-strong rounded-2xl mb-6">
+      {/* Search & Filter Card */}
+      <Card className="glass-strong rounded-2xl mb-6 border-white/60">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
               <Input
                 value={searchTerm}
                 onChange={e => {
@@ -918,27 +1119,32 @@ export default function GalleryPage() {
                   setPage(1);
                 }}
                 placeholder="搜索标题、URL 或标签"
-                className="pl-9"
+                className="pl-9 rounded-xl bg-secondary/30"
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                variant={selectedTag === null ? 'default' : 'outline'}
-                className={`max-w-full cursor-pointer ${
-                  selectedTag === null ? 'bg-primary text-primary-foreground border-0' : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
+                  selectedTag === null
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/60'
                 }`}
                 onClick={() => {
                   setSelectedTag(null);
                   setPage(1);
                 }}
               >
-                全部              </Badge>
+                全部
+              </button>
               {tags.map(tag => (
-                <Badge
+                <button
                   key={tag}
-                  variant={selectedTag === tag ? 'default' : 'outline'}
-                  className={`max-w-full cursor-pointer ${
-                    selectedTag === tag ? 'bg-primary text-primary-foreground border-0' : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  type="button"
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
+                    selectedTag === tag
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/60'
                   }`}
                   onClick={() => {
                     setSelectedTag(tag);
@@ -946,7 +1152,7 @@ export default function GalleryPage() {
                   }}
                 >
                   {tag}
-                </Badge>
+                </button>
               ))}
             </div>
           </div>
@@ -954,22 +1160,26 @@ export default function GalleryPage() {
       </Card>
 
       {totalImages === 0 && (
-        <div className="rounded-2xl border border-dashed border-border glass px-6 py-16 text-center text-muted-foreground">
-          <Camera className="w-14 h-14 mx-auto mb-4 opacity-25" />
-          <p className="text-lg font-medium text-foreground">图片库还是空的</p>
-          <p className="text-sm mt-1">添加第一张图片，开始建设你的共享图库。</p>
-          <div className="mt-5 flex justify-center">
+        <div className="rounded-2xl border border-dashed border-border/50 glass px-6 py-20 text-center">
+          <div className="w-20 h-20 rounded-3xl bg-secondary/60 flex items-center justify-center mx-auto mb-5">
+            <Camera className="w-10 h-10 opacity-30" />
+          </div>
+          <p className="text-lg font-bold text-foreground">图片库还是空的</p>
+          <p className="text-sm mt-2 text-muted-foreground max-w-xs mx-auto">添加第一张图片，开始建设你的共享图库。</p>
+          <div className="mt-6 flex justify-center">
             <AddImageDialog adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
           </div>
         </div>
       )}
 
       {totalImages > 0 && filteredTotal === 0 && (
-        <div className="rounded-2xl border border-dashed border-border glass px-6 py-14 text-center">
-          <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-base font-medium text-foreground">没有找到匹配的图片</p>
-          <p className="text-sm mt-1 text-muted-foreground">换个关键词试试，或者清空当前筛选条件。</p>
-          <Button variant="outline" className="mt-5" onClick={clearFilters}>清空筛选</Button>
+        <div className="rounded-2xl border border-dashed border-border/50 glass px-6 py-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-secondary/60 flex items-center justify-center mx-auto mb-4">
+            <Search className="w-8 h-8 text-muted-foreground/30" />
+          </div>
+          <p className="text-base font-bold text-foreground">没有找到匹配的图片</p>
+          <p className="text-sm mt-2 text-muted-foreground">换个关键词试试，或者清空当前筛选条件。</p>
+          <Button variant="outline" className="mt-5 rounded-xl" onClick={clearFilters}>清空筛选</Button>
         </div>
       )}
 
@@ -982,90 +1192,24 @@ export default function GalleryPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {images.map((img, index) => (
-          <Card
+          <ImageCard
             key={img.id}
-            className="group overflow-hidden glass rounded-2xl animate-fade-in hover-lift"
-            style={{ animationDelay: `${Math.min(index, 12) * 0.035}s` }}
-          >
-            <CardContent className="p-0">
-              <div className="relative aspect-video overflow-hidden bg-muted">
-                <img
-                  src={img.url}
-                  alt={img.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading={index < 6 ? 'eager' : 'lazy'}
-                  decoding="async"
-                />
-                <div className="absolute inset-0 bg-black/50 sm:bg-black/0 sm:group-hover:bg-black/60 transition-colors duration-300" />
-                <div className="absolute inset-0 flex items-end p-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300 translate-y-0 sm:translate-y-2 sm:group-hover:translate-y-0">
-                  <div className="w-full">
-                    <div className="flex items-end justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-white font-medium text-sm truncate">{img.title}</h4>
-                        <div className="flex gap-1 mt-1.5 flex-wrap">
-                          {img.tags.map(tag => (
-                            <span key={tag} className="text-xs bg-white/15 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-full">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="w-7 h-7 bg-white/15 hover:bg-white/25 text-white border-0 backdrop-blur-sm"
-                          onClick={e => {
-                            e.stopPropagation();
-                            void handleCopyUrl(img.url);
-                          }}
-                          aria-label="复制图片地址"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </Button>
-                        <EditImageDialog image={img} adminToken={adminToken.trim()} onSuccess={refreshGallery} onRequireToken={requireAdminToken} />
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="w-7 h-7 bg-red-500/30 hover:bg-red-500/50 text-white border-0 backdrop-blur-sm"
-                              aria-label="删除图片"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>确认删除</AlertDialogTitle>
-                              <AlertDialogDescription>确定要删除「{img.title}」吗？此操作不可撤销。</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>取消</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={async () => {
-                                  if (await requireAdminToken()) deleteMutation.mutate(img.id);
-                                }}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                删除                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            img={img}
+            index={index}
+            adminToken={adminToken.trim()}
+            onCopyUrl={url => void handleCopyUrl(url)}
+            onDelete={id => deleteMutation.mutate(id)}
+            onRefresh={refreshGallery}
+            onRequireToken={requireAdminToken}
+            isDeleting={deleteMutation.isPending}
+          />
         ))}
       </div>
 
       {filteredTotal > 0 && (
-        <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/55 px-4 py-3 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span>共 {filteredTotal} 张</span>
+        <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-border/50 bg-background/60 glass px-4 py-3.5 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+            <span className="font-medium text-foreground/70">共 <span className="text-foreground font-bold">{filteredTotal}</span> 张</span>
             <span>每页 {imagesQuery.data?.pageSize ?? pageSize} 张</span>
             <span>第 {page} / {totalPages} 页</span>
           </div>
@@ -1075,20 +1219,22 @@ export default function GalleryPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="rounded-xl text-xs h-8 px-3"
                   disabled={page <= 1 || imagesQuery.isFetching}
                   onClick={() => goToPage(1)}
                   aria-label="跳转到第一页"
                 >
-                  首页                </Button>
+                  首页
+                </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-8 w-8 rounded-xl"
                   disabled={page <= 1 || imagesQuery.isFetching}
                   onClick={() => goToPage(page - 1)}
                   aria-label="上一页"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-3.5 w-3.5" />
                 </Button>
                 {visiblePages.map((pageNumber, index) => {
                   const previousPage = visiblePages[index - 1];
@@ -1096,11 +1242,15 @@ export default function GalleryPage() {
 
                   return (
                     <div key={pageNumber} className="flex items-center gap-1">
-                      {hasGap && <span className="flex h-9 w-6 items-center justify-center text-muted-foreground/70">...</span>}
+                      {hasGap && (
+                        <span className="flex h-8 w-6 items-center justify-center text-muted-foreground/50 text-xs">
+                          ···
+                        </span>
+                      )}
                       <Button
                         variant={pageNumber === page ? 'default' : 'outline'}
                         size="icon"
-                        className="h-9 w-9"
+                        className={`h-8 w-8 rounded-xl text-xs ${pageNumber === page ? 'shadow-sm' : ''}`}
                         disabled={imagesQuery.isFetching}
                         onClick={() => goToPage(pageNumber)}
                         aria-current={pageNumber === page ? 'page' : undefined}
@@ -1114,26 +1264,28 @@ export default function GalleryPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-8 w-8 rounded-xl"
                   disabled={page >= totalPages || imagesQuery.isFetching}
                   onClick={() => goToPage(page + 1)}
                   aria-label="下一页"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
+                  className="rounded-xl text-xs h-8 px-3"
                   disabled={page >= totalPages || imagesQuery.isFetching}
                   onClick={() => goToPage(totalPages)}
                   aria-label="跳转到最后一页"
                 >
-                  末页                </Button>
+                  末页
+                </Button>
               </div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <form onSubmit={handlePageJump} className="flex items-center gap-2">
-                <Label htmlFor="gallery-page-jump" className="text-xs text-muted-foreground">
+                <Label htmlFor="gallery-page-jump" className="text-xs text-muted-foreground shrink-0">
                   跳转
                 </Label>
                 <Input
@@ -1143,19 +1295,19 @@ export default function GalleryPage() {
                   max={totalPages}
                   value={pageJumpInput}
                   onChange={event => setPageJumpInput(event.target.value)}
-                  className="h-9 w-20 bg-background/60 text-center"
+                  className="h-8 w-18 bg-background/60 text-center rounded-xl text-sm"
                   disabled={imagesQuery.isFetching}
                 />
-                <Button type="submit" variant="outline" size="sm" disabled={imagesQuery.isFetching}>
-                  跳转
+                <Button type="submit" variant="outline" size="sm" className="h-8 rounded-xl text-xs" disabled={imagesQuery.isFetching}>
+                  GO
                 </Button>
               </form>
               <div className="flex items-center gap-2">
-                <Label htmlFor="gallery-page-size" className="text-xs text-muted-foreground">
+                <Label htmlFor="gallery-page-size" className="text-xs text-muted-foreground shrink-0">
                   每页
                 </Label>
                 <Select value={String(pageSize)} onValueChange={value => setPageSize(Number(value))}>
-                  <SelectTrigger id="gallery-page-size" className="h-9 w-24 bg-background/60">
+                  <SelectTrigger id="gallery-page-size" className="h-8 w-22 bg-background/60 rounded-xl text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
