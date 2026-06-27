@@ -9,11 +9,11 @@
     "moduleDetection": "force",
     "rootDir": "edge-functions-src",
     "outDir": "edge-functions",
-    "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitAny": false,
-    "noFallthroughCasesInSwitch": false
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["edge-functions-src/**/*.ts"]
 }
