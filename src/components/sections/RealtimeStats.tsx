@@ -98,7 +98,7 @@ export function RealtimeStats() {
                       <card.icon className={`w-5 h-5 ${card.color}`} />
                     </div>
                     <div
-                      className={`absolute top-0 right-0 w-16 h-16 rounded-full bg-gradient-to-b ${card.gradientFrom} ${card.gradientTo} opacity-40`}
+                      className={`absolute top-0 right-0 w-12 h-12 rounded-full bg-gradient-to-b ${card.gradientFrom} ${card.gradientTo} opacity-25`}
                     />
                   </div>
                   <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight stat-value">
@@ -126,40 +126,51 @@ export function RealtimeStats() {
                 </span>
               </div>
             </div>
-            <div className="h-48">
+            <div className="relative h-56">
               {hasTrendData ? (
-                <div
-                  className="flex h-full items-end gap-2 sm:gap-3"
-                  role="img"
-                  aria-label={`近 7 天调用趋势，共 ${formatNumber(totalRecentRequests)} 次`}
-                >
-                  {chartData.map((item) => (
-                    <div
-                      key={item.fullDate}
-                      className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5 self-stretch"
-                      title={`${item.fullDate}：${formatNumber(item.requests)} 次`}
-                    >
-                      <span className="text-[11px] font-semibold tabular-nums text-foreground/70">
-                        {item.requests > 0 ? formatNumber(item.requests) : ''}
-                      </span>
-                      <div className="flex w-full flex-1 items-end">
-                        <div
-                          className="w-full rounded-t-lg bg-gradient-to-t from-blue-600/80 to-cyan-400/80 transition-all"
-                          style={{
-                            height:
-                              item.requests > 0 && maxDayRequests > 0
-                                ? `${Math.max(6, (item.requests / maxDayRequests) * 100)}%`
-                                : '2px',
-                            opacity: item.requests > 0 ? 1 : 0.25,
-                          }}
-                        />
+                <>
+                  {/* faint gridlines */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-0 top-0 bottom-9 flex flex-col justify-between"
+                  >
+                    {[0, 1, 2, 3].map((line) => (
+                      <div key={line} className="border-t border-dashed border-slate-200/80" />
+                    ))}
+                  </div>
+                  <div
+                    className="relative flex h-full items-stretch gap-1 sm:gap-2"
+                    role="img"
+                    aria-label={`近 7 天调用趋势，共 ${formatNumber(totalRecentRequests)} 次`}
+                  >
+                    {chartData.map((item) => (
+                      <div
+                        key={item.fullDate}
+                        className="flex min-w-0 flex-1 flex-col items-center justify-end"
+                        title={`${item.fullDate}：${formatNumber(item.requests)} 次`}
+                      >
+                        <span className="flex h-5 items-end text-[11px] font-semibold tabular-nums text-foreground/70">
+                          {item.requests > 0 ? formatNumber(item.requests) : ''}
+                        </span>
+                        <div className="flex h-32 w-full items-end justify-center sm:h-36">
+                          <div
+                            className="w-8 rounded-t-md bg-gradient-to-t from-blue-600 to-cyan-400 transition-all hover:brightness-110 sm:w-12"
+                            style={{
+                              height:
+                                item.requests > 0 && maxDayRequests > 0
+                                  ? `${Math.max(8, (item.requests / maxDayRequests) * 100)}%`
+                                  : '2px',
+                              opacity: item.requests > 0 ? 1 : 0.3,
+                            }}
+                          />
+                        </div>
+                        <span className="mt-2 text-[11px] tabular-nums text-muted-foreground">
+                          {item.date}
+                        </span>
                       </div>
-                      <span className="text-[11px] tabular-nums text-muted-foreground">
-                        {item.date}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground/40">
                   <div className="text-center">

@@ -24,6 +24,7 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedApi, setCopiedApi] = useState(false);
   const queryClient = useQueryClient();
   const prevTriggerRef = useRef(0);
   const initialLoadRef = useRef(false);
@@ -111,6 +112,14 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
     }
   };
 
+  const copyApiUrl = async () => {
+    const success = await copyText(randomApiUrl, 'API 地址已复制');
+    if (success) {
+      setCopiedApi(true);
+      setTimeout(() => setCopiedApi(false), 2000);
+    }
+  };
+
   useEffect(() => {
     const handleExternalTag = (event: Event) => {
       const tag =
@@ -137,7 +146,7 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
             </p>
             <h2 className="text-3xl font-black tracking-tight sm:text-4xl">热门二次元图片</h2>
             <p className="mt-2 text-muted-foreground text-sm">
-              刷新随机图片，复制可直接接入的图片地址。
+              每次刷新随机一张，复制地址即可接入你的网站。
             </p>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/60 rounded-full px-3 py-1.5">
@@ -271,18 +280,34 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
             </div>
 
             {/* Sidebar Info Panel */}
-            <div className="flex flex-col justify-between gap-5 bg-white/65 p-5 sm:p-6">
+            <div className="flex flex-col gap-5 bg-white/65 p-5 sm:p-6">
               <div>
-                <Badge className="mb-4 rounded-full bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-50 text-xs">
-                  Random API
-                </Badge>
-                <h3 className="text-2xl font-black tracking-tight leading-tight">
-                  一键获得
-                  <br />
-                  可用图片
+                <div className="mb-4 flex items-center justify-between gap-2">
+                  <Badge className="rounded-full bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-50 text-xs">
+                    Random API
+                  </Badge>
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="relative flex h-2 w-2">
+                      <span
+                        className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
+                          imageLoading ? 'bg-amber-400' : 'bg-emerald-400'
+                        }`}
+                      />
+                      <span
+                        className={`relative inline-flex h-2 w-2 rounded-full ${
+                          imageLoading ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                      />
+                    </span>
+                    {imageLoading ? '加载中' : '实时可用'}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-black tracking-tight leading-snug">
+                  复制即用，一行接入
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                  当前预览直接调用线上随机接口，复制地址即可在网页、Markdown 或应用中使用。
+                <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
+                  每次请求返回一张不同的图片，直接用在网页、Markdown 或 CSS 背景里，无需申请
+                  Key。
                 </p>
               </div>
 
@@ -298,10 +323,23 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
                     <div className="w-1.5 h-1.5 rounded-full bg-white/15" />
                   </div>
                 </div>
-                <div className="p-3">
-                  <code className="block break-all text-xs text-slate-300 leading-relaxed">
+                <div className="flex items-center gap-1 p-2 pl-3">
+                  <code className="min-w-0 flex-1 truncate font-mono text-xs text-slate-300">
                     {randomApiUrl}
                   </code>
+                  <button
+                    type="button"
+                    onClick={() => void copyApiUrl()}
+                    aria-label="复制 API 地址"
+                    title="复制 API 地址"
+                    className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                  >
+                    {copiedApi ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                    ) : (
+                      <CopyIcon className="h-3.5 w-3.5" />
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -320,10 +358,15 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
                 <Button
                   variant="outline"
                   className="rounded-xl h-10 bg-white/70 hover:bg-white/90 transition-all duration-200"
-                  onClick={() => copyText(randomApiUrl, 'API 地址已复制')}
+                  onClick={() => void copyUrl()}
+                  disabled={!imageUrl}
                 >
-                  <CopyIcon className="mr-1.5 h-3.5 w-3.5" />
-                  复制 API
+                  {copied ? (
+                    <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <CopyIcon className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  {copied ? '已复制' : '复制图片'}
                 </Button>
               </div>
             </div>
