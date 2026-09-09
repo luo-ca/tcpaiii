@@ -50,10 +50,6 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
             return 'react-vendor';
           }
-          // 图表库（仅在用到时加载）
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
-            return 'chart-vendor';
-          }
           // Radix UI 组件库
           if (id.includes('node_modules/@radix-ui/')) {
             return 'ui-vendor';

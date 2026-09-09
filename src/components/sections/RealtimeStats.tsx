@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { TrendingUp, Clock, Globe, Layers, BarChart3 } from 'lucide-react';
 import type { Stats } from '@/lib/types';
 import { fetchStats } from '@/lib/api';
@@ -30,6 +28,7 @@ export function RealtimeStats() {
   }));
   const totalRecentRequests = chartData.reduce((sum, item) => sum + item.requests, 0);
   const hasTrendData = chartData.some((item) => item.requests > 0);
+  const maxDayRequests = chartData.reduce((max, item) => Math.max(max, item.requests), 0);
 
   const statCards = [
     {
@@ -129,52 +128,38 @@ export function RealtimeStats() {
             </div>
             <div className="h-48">
               {hasTrendData ? (
-                <ChartContainer
-                  config={{
-                    requests: {
-                      label: 'Requests',
-                      color: 'hsl(222 89% 55%)',
-                    },
-                  }}
-                  className="h-full w-full"
+                <div
+                  className="flex h-full items-end gap-2 sm:gap-3"
+                  role="img"
+                  aria-label={`近 7 天调用趋势，共 ${formatNumber(totalRecentRequests)} 次`}
                 >
-                  <AreaChart data={chartData} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="requestsTrend" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-requests)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="var(--color-requests)" stopOpacity={0.01} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} strokeDasharray="3 4" stroke="rgba(15,23,42,0.06)" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      tick={{ fontSize: 11, fill: 'rgba(15,23,42,0.45)' }}
-                    />
-                    <YAxis
-                      width={32}
-                      tickLine={false}
-                      axisLine={false}
-                      allowDecimals={false}
-                      tick={{ fontSize: 11, fill: 'rgba(15,23,42,0.45)' }}
-                    />
-                    <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent indicator="line" labelKey="fullDate" />}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="requests"
-                      stroke="var(--color-requests)"
-                      strokeWidth={2.5}
-                      fill="url(#requestsTrend)"
-                      dot={{ r: 3, strokeWidth: 2, fill: 'white' }}
-                      activeDot={{ r: 5, strokeWidth: 2 }}
-                    />
-                  </AreaChart>
-                </ChartContainer>
+                  {chartData.map((item) => (
+                    <div
+                      key={item.fullDate}
+                      className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5 self-stretch"
+                      title={`${item.fullDate}：${formatNumber(item.requests)} 次`}
+                    >
+                      <span className="text-[11px] font-semibold tabular-nums text-foreground/70">
+                        {item.requests > 0 ? formatNumber(item.requests) : ''}
+                      </span>
+                      <div className="flex w-full flex-1 items-end">
+                        <div
+                          className="w-full rounded-t-lg bg-gradient-to-t from-blue-600/80 to-cyan-400/80 transition-all"
+                          style={{
+                            height:
+                              item.requests > 0 && maxDayRequests > 0
+                                ? `${Math.max(6, (item.requests / maxDayRequests) * 100)}%`
+                                : '2px',
+                            opacity: item.requests > 0 ? 1 : 0.25,
+                          }}
+                        />
+                      </div>
+                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                        {item.date}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground/40">
                   <div className="text-center">

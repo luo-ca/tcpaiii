@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Shuffle, Sparkles, Image, Tag, TrendingUp, Globe } from 'lucide-react';
 import type { Stats } from '@/lib/types';
 import { HERO_FALLBACK_IMAGE_URL } from '@/lib/constants';
-import { fetchRandomImage, fetchStats } from '@/lib/api';
+import { fetchRandomImageWithFallback, fetchStats } from '@/lib/api';
 import { formatNumber } from '@/lib/helpers';
 
 export function HeroSection({ onShuffle }: { onShuffle: () => void }) {
@@ -28,7 +28,7 @@ export function HeroSection({ onShuffle }: { onShuffle: () => void }) {
   useEffect(() => {
     let cancelled = false;
 
-    fetchRandomImage()
+    fetchRandomImageWithFallback()
       .then((image) => {
         if (!cancelled && image.url) {
           setHeroImageUrl(image.url);
@@ -45,6 +45,14 @@ export function HeroSection({ onShuffle }: { onShuffle: () => void }) {
     };
   }, []);
 
+  const handleHeroImageError = () => {
+    // If even the fallback image fails (blocked CDN/AI endpoint), keep the
+    // gradient overlay + copy visible instead of a broken-image icon.
+    setHeroImageUrl((current) =>
+      current === HERO_FALLBACK_IMAGE_URL ? '' : HERO_FALLBACK_IMAGE_URL,
+    );
+  };
+
   const handleSubmit = () => {
     const keyword = tagInput.trim();
     const preview = document.getElementById('preview');
@@ -58,13 +66,16 @@ export function HeroSection({ onShuffle }: { onShuffle: () => void }) {
   return (
     <section className="relative isolate min-h-[640px] overflow-hidden pt-20 sm:pt-24">
       {/* Hero Background */}
-      <img
-        src={heroImageUrl}
-        alt="派次元随机图片背景"
-        className="absolute inset-0 -z-20 h-full w-full object-cover"
-        loading="eager"
-        fetchPriority="high"
-      />
+      {heroImageUrl ? (
+        <img
+          src={heroImageUrl}
+          alt="派次元随机图片背景"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+          onError={handleHeroImageError}
+        />
+      ) : null}
       {/* Gradient Overlay */}
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(4,8,20,0.40)_0%,rgba(4,8,20,0.68)_60%,rgba(4,8,20,0.85)_100%)]" />
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_30%,rgba(59,100,246,0.20),transparent)]" />

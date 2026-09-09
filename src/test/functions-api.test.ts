@@ -756,4 +756,65 @@ describe("functions api", () => {
       "2026-04-29",
     ]);
   });
+
+  it("still returns 302 when stats persistence fails on the hot path", async () => {
+    vi.stubGlobal("EdgeKV", undefined);
+
+    const imagesKv = edgeOneKv("hot-path-images");
+    const workingStatsKv = edgeOneKv("hot-path-stats");
+    const env = { ADMIN_TOKEN, images_kv: imagesKv, stats_kv: workingStatsKv };
+
+    const create = await requestWithEnv("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/hot-path.jpg", tags: ["hot"] }),
+    }, env);
+    expect(create.status).toBe(201);
+
+    const failingStatsKv = {
+      get() {
+        return Promise.resolve(undefined);
+      },
+      put() {
+        return Promise.reject(new Error("stats KV down"));
+      },
+    };
+    const failingEnv = { ADMIN_TOKEN, images_kv: imagesKv, stats_kv: failingStatsKv };
+
+    const response = await requestWithEnv("/api/random?tag=hot", undefined, failingEnv);
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Location")).toBe("https://cdn.example.test/hot-path.jpg");
+  });
+
+  it("does not block random responses on stats writes without waitUntil", async () => {
+    vi.stubGlobal("EdgeKV", undefined);
+
+    const imagesKv = edgeOneKv("bounded-images");
+    const slowStatsKv = {
+      get() {
+        return Promise.resolve(undefined);
+      },
+      put() {
+        return new Promise<string>((resolve) => {
+          setTimeout(() => resolve(undefined as unknown as string), 5000);
+        });
+      },
+    };
+    const env = { ADMIN_TOKEN, images_kv: imagesKv, stats_kv: slowStatsKv };
+
+    const create = await requestWithEnv("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/bounded.jpg", tags: ["bounded"] }),
+    }, env);
+    expect(create.status).toBe(201);
+
+    const startedAt = Date.now();
+    const response = await requestWithEnv("/api/random?tag=bounded&format=json", undefined, env);
+    const elapsedMs = Date.now() - startedAt;
+
+    expect(response.status).toBe(200);
+    // Bounded wait: slow stats KV must not stall the hot path for seconds.
+    expect(elapsedMs).toBeLessThan(3000);
+  });
 });

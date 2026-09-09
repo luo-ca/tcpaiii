@@ -3,7 +3,9 @@
 // ============================================================
 
 import type { ImageRecord, Stats, PaginatedImages } from './types';
+import { HERO_FALLBACK_IMAGE_URL } from './constants';
 import { apiRequest } from './api-client';
+import { canonicalizeImageUrl } from './helpers';
 
 // ---- Public API ----
 
@@ -17,6 +19,28 @@ export async function fetchRandomImage(tag?: string): Promise<ImageRecord> {
     undefined,
     'Failed to fetch random image',
   );
+}
+
+/**
+ * Fetch a random image but never throw: on API failure (HTML fallback,
+ * network error, empty gallery) return a synthetic fallback record so
+ * first-paint callers (Hero) always have something to render.
+ */
+export async function fetchRandomImageWithFallback(
+  tag?: string,
+  fallbackUrl: string = HERO_FALLBACK_IMAGE_URL,
+): Promise<ImageRecord> {
+  try {
+    return await fetchRandomImage(tag);
+  } catch {
+    return {
+      id: 'fallback',
+      url: fallbackUrl,
+      title: '派次元 API',
+      tags: [],
+      createdAt: new Date(0).toISOString(),
+    };
+  }
 }
 
 export async function fetchStats(): Promise<Stats> {
@@ -39,7 +63,34 @@ export async function fetchImagesPage(params: {
   if (search) query.set('search', search);
   if (params.tag) query.set('tag', params.tag);
 
-  return apiRequest<PaginatedImages>(`/api/list?${query.toString()}`, undefined, 'Failed to fetch images');
+  // List queries are idempotent and paginated: skip the `_t` cache-buster so
+  // edge/CDN caching can work. Freshness is handled by react-query instead.
+  return apiRequest<PaginatedImages>(
+    `/api/list?${query.toString()}`,
+    undefined,
+    'Failed to fetch images',
+    { bustCache: false },
+  );
+}
+
+/**
+ * Fetch the full gallery URL set for batch-import dedup pre-checks.
+ * Handles both the legacy bare-array shape and the paginated `{items}` shape.
+ * Gallery is small (<500), so one request is cheap.
+ */
+export async function fetchExistingImageUrlSet(): Promise<Set<string>> {
+  const body = await apiRequest<ImageRecord[] | PaginatedImages>(
+    '/api/list',
+    undefined,
+    'Failed to fetch existing images',
+  );
+  const records = Array.isArray(body) ? body : (body.items ?? []);
+  const set = new Set<string>();
+  for (const record of records) {
+    const canonical = canonicalizeImageUrl(record.url ?? '');
+    if (canonical) set.add(canonical);
+  }
+  return set;
 }
 
 // ---- Admin API ----

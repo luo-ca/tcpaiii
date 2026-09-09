@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { ExternalLink, Image, Shuffle } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import type { AppTab } from '@/lib/types';
 import { APP_NAME, APP_LOGO_URL, HEADER_TABS } from '@/lib/constants';
 
@@ -80,19 +79,6 @@ export function Header({
               <span>PAIII</span>
               <ExternalLink className="w-3 h-3" aria-hidden />
             </a>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-9 h-9 rounded-lg hover:bg-secondary/70 transition-colors md:hidden"
-              onClick={() => onTabChange(activeTab === 'random' ? 'gallery' : 'random')}
-              aria-label="切换页面"
-            >
-              {activeTab === 'random' ? (
-                <Image className="w-4 h-4" />
-              ) : (
-                <Shuffle className="w-4 h-4" />
-              )}
-            </Button>
           </div>
         </div>
 

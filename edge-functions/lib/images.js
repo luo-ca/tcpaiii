@@ -33,6 +33,9 @@ export async function handleRandomImage(request, runtimeEnv, executionContext) {
     }
     const randomIndex = Math.floor(Math.random() * candidates.length);
     const selected = candidates[randomIndex];
+    // Stats must never block or break the hot path: failures are swallowed,
+    // waitUntil runtimes persist in the background, and runtimes without
+    // waitUntil (tests/dev) get a bounded wait so a slow KV can't stall 302.
     const statsTask = updateRequestStats(request, runtimeEnv).catch(() => {
         // Ignore stats persistence failures on the hot path.
     });
@@ -40,7 +43,10 @@ export async function handleRandomImage(request, runtimeEnv, executionContext) {
         executionContext.waitUntil(statsTask);
     }
     else {
-        await statsTask;
+        await Promise.race([
+            statsTask,
+            new Promise((resolve) => setTimeout(resolve, 500)),
+        ]);
     }
     if (wantsJson) {
         return json({

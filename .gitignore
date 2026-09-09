@@ -25,6 +25,9 @@ fix-*.py
 fix-*.txt
 vite-dev.log
 
+# Local release packages (manual CDN upload)
+/release/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

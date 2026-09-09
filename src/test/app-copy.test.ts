@@ -8,6 +8,8 @@ const previewSource = readFileSync(resolve(process.cwd(), "src/components/sectio
 const mainSource = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
 const indexHtml = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
 const viteConfig = readFileSync(resolve(process.cwd(), "vite.config.ts"), "utf8");
+const apiSource = readFileSync(resolve(process.cwd(), "src/lib/api.ts"), "utf8");
+const constantsSource = readFileSync(resolve(process.cwd(), "src/lib/constants.ts"), "utf8");
 
 describe("home page copy", () => {
   it("does not contain visible mojibake markers", () => {
@@ -46,5 +48,23 @@ describe("home page copy", () => {
   it("uses safe production tree shaking settings", () => {
     expect(viteConfig).toContain("treeshake: true");
     expect(viteConfig).not.toContain("moduleSideEffects: false");
+  });
+
+  it("serves the logo from the imgs CDN domain", () => {
+    expect(constantsSource).toContain("https://imgs.paiii.cn/logo.svg");
+    expect(constantsSource).not.toContain("https://static.paiii.cn/logo.svg");
+    expect(indexHtml).toContain("https://imgs.paiii.cn/logo.svg");
+    expect(indexHtml).not.toContain("https://static.paiii.cn/logo.svg");
+  });
+
+  it("keeps first paint independent of the random-image API", () => {
+    // Hero must start from a static fallback, never from /api/random directly.
+    expect(heroSource).toContain("HERO_FALLBACK_IMAGE_URL");
+    expect(heroSource).toContain("useState(HERO_FALLBACK_IMAGE_URL)");
+    // Non-throwing helper guarantees a renderable record on API failure.
+    expect(apiSource).toContain("fetchRandomImageWithFallback");
+    expect(heroSource).toContain("fetchRandomImageWithFallback");
+    // Broken fallback images must not leave a broken <img> on first paint.
+    expect(heroSource).toContain("onError={handleHeroImageError}");
   });
 });

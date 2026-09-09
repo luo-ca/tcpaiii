@@ -30,7 +30,6 @@ import {
   Link,
   ChevronLeft,
   ChevronRight,
-  Clock,
   RefreshCw,
   Search,
   KeyRound,
@@ -42,6 +41,7 @@ import { MAX_BATCH_IMAGE_COUNT, GALLERY_PAGE_SIZE, GALLERY_PAGE_SIZE_OPTIONS } f
 import {
   fetchImagesPage,
   fetchStats,
+  fetchExistingImageUrlSet,
   verifyAdminToken,
   createImage,
   updateImage,
@@ -51,8 +51,8 @@ import {
 import {
   getErrorMessage,
   copyText,
-  formatDateTime,
   parseTagsInput,
+  parseBatchUrls,
   clampNumber,
   getVisiblePages,
 } from '@/lib/helpers';
@@ -134,6 +134,20 @@ function AddImageDialog({
   const [batchTags, setBatchTags] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [batchFailures, setBatchFailures] = useState<Array<{ url: string; error?: string }>>([]);
+
+  // Existing gallery URLs for pre-submit dedup. Cheap: gallery is small (<500).
+  const existingUrlsQuery = useQuery<Set<string>>({
+    queryKey: ['all-image-urls'],
+    queryFn: fetchExistingImageUrlSet,
+    enabled: open && mode === 'batch',
+    staleTime: 30_000,
+  });
+
+  const batchPreview = useMemo(
+    () => parseBatchUrls(batchUrls, existingUrlsQuery.data),
+    [batchUrls, existingUrlsQuery.data],
+  );
 
   useEffect(() => {
     if (open) {
@@ -144,6 +158,7 @@ function AddImageDialog({
       setBatchUrls('');
       setBatchTags('');
       setProgress({ current: 0, total: 0 });
+      setBatchFailures([]);
     }
   }, [open]);
 
@@ -164,32 +179,47 @@ function AddImageDialog({
     e.preventDefault();
     if (!(await onRequireToken())) return;
 
-    const lines = [...new Set(batchUrls.split('\n').map((line) => line.trim()).filter(Boolean))];
-    if (lines.length === 0) {
-      toast.error('Please enter at least one image URL');
+    const cleanUrls = batchPreview.validNew;
+    if (batchPreview.invalid.length > 0) {
+      toast.error(`有 ${batchPreview.invalid.length} 行不是有效的 http(s) 地址，请先删掉标红的行`);
       return;
     }
-    if (lines.length > MAX_BATCH_IMAGE_COUNT) {
-      toast.error(`单次最多添加 ${MAX_BATCH_IMAGE_COUNT} 张图片`);
+    if (cleanUrls.length === 0) {
+      if (batchPreview.duplicatesInBatch.length > 0 || batchPreview.alreadyExists.length > 0) {
+        toast.error('没有可导入的新地址：本次粘贴全是重复或库里已有的 URL');
+      } else {
+        toast.error('Please enter at least one image URL');
+      }
+      return;
+    }
+    if (cleanUrls.length > MAX_BATCH_IMAGE_COUNT) {
+      toast.error(`单次最多添加 ${MAX_BATCH_IMAGE_COUNT} 张图片，当前可导入 ${cleanUrls.length} 张`);
       return;
     }
 
     const tags = parseTagsInput(batchTags);
-    setProgress({ current: 0, total: lines.length });
+    setProgress({ current: 0, total: cleanUrls.length });
+    setBatchFailures([]);
     setLoading(true);
 
     try {
       const result = await batchCreateImages(
-        lines.map((imageUrl, index) => ({ url: imageUrl, title: `图片 ${index + 1}`, tags })),
+        cleanUrls.map((imageUrl, index) => ({ url: imageUrl, title: `图片 ${index + 1}`, tags })),
         adminToken,
       );
-      setProgress({ current: result.success, total: lines.length });
+      setProgress({ current: result.success, total: cleanUrls.length });
+      const failures = result.results
+        .filter((item) => !item.success)
+        .map((item) => ({ url: item.url, error: item.error }));
+      setBatchFailures(failures);
 
       if (result.success > 0) {
         toast.success(
           `批量添加完成：成功 ${result.success} 张${result.failed > 0 ? `，失败 ${result.failed} 张` : ''}`,
         );
-        setOpen(false);
+        if (result.failed === 0) {
+          setOpen(false);
+        }
         onSuccess();
       } else {
         const firstError = result.results.find((item) => !item.success)?.error;
@@ -224,7 +254,7 @@ function AddImageDialog({
           添加图片
         </Button>
       </DialogTrigger>
-      <DialogContent className="glass-strong rounded-2xl sm:max-w-lg sm:rounded-2xl">
+      <DialogContent className="glass-strong rounded-2xl sm:max-w-xl sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link className="w-5 h-5 text-blue-500" />
@@ -292,22 +322,81 @@ function AddImageDialog({
         ) : (
           <form onSubmit={handleBatchSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="batch-urls">图片地址（每行一个）*</Label>
+              <Label htmlFor="batch-urls">图片地址（每行一个，也支持空格/逗号分隔）*</Label>
               <textarea
                 id="batch-urls"
                 placeholder={
                   'https://example.com/image1.jpg\nhttps://example.com/image2.jpg\nhttps://example.com/image3.jpg'
                 }
                 value={batchUrls}
-                onChange={(e) => setBatchUrls(e.target.value)}
+                onChange={(e) => {
+                  setBatchUrls(e.target.value);
+                  setBatchFailures([]);
+                }}
                 required
                 rows={6}
                 className="w-full min-h-[140px] rounded-lg border border-border/70 bg-secondary/30 px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                每行一个图片 URL，重复地址会自动合并，单次最多 {MAX_BATCH_IMAGE_COUNT} 张
+                粘贴后自动归一化并预检，单次最多 {MAX_BATCH_IMAGE_COUNT} 张
+                {existingUrlsQuery.isLoading ? '（正在读取库内地址…）' : ''}
               </p>
             </div>
+
+            {batchUrls.trim() && (
+              <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+                <div className="flex flex-wrap gap-1.5 text-xs">
+                  <Badge className="rounded-full bg-emerald-50 text-emerald-700 border-emerald-200">
+                    可导入 {batchPreview.validNew.length}
+                  </Badge>
+                  {batchPreview.duplicatesInBatch.length > 0 && (
+                    <Badge className="rounded-full bg-amber-50 text-amber-700 border-amber-200">
+                      本次重复 {batchPreview.duplicatesInBatch.length}
+                    </Badge>
+                  )}
+                  {batchPreview.alreadyExists.length > 0 && (
+                    <Badge variant="outline" className="rounded-full text-muted-foreground">
+                      库里已有 {batchPreview.alreadyExists.length}
+                    </Badge>
+                  )}
+                  {batchPreview.invalid.length > 0 && (
+                    <Badge className="rounded-full bg-red-50 text-red-600 border-red-200">
+                      无效 {batchPreview.invalid.length}
+                    </Badge>
+                  )}
+                </div>
+
+                {batchPreview.invalid.length > 0 && (
+                  <div className="mt-2 max-h-20 overflow-y-auto rounded-lg bg-red-50/60 p-2 font-mono text-[11px] text-red-600">
+                    {batchPreview.invalid.slice(0, 10).map((line) => (
+                      <div key={line} className="truncate">
+                        ✕ {line}
+                      </div>
+                    ))}
+                    {batchPreview.invalid.length > 10 && (
+                      <div>…等 {batchPreview.invalid.length} 行</div>
+                    )}
+                  </div>
+                )}
+
+                {(batchPreview.duplicatesInBatch.length > 0 ||
+                  batchPreview.alreadyExists.length > 0) && (
+                  <div className="mt-2 max-h-20 overflow-y-auto rounded-lg bg-secondary/40 p-2 font-mono text-[11px] text-muted-foreground">
+                    {batchPreview.duplicatesInBatch.slice(0, 5).map((line) => (
+                      <div key={`dup-${line}`} className="truncate">
+                        本次重复：{line}
+                      </div>
+                    ))}
+                    {batchPreview.alreadyExists.slice(0, 5).map((line) => (
+                      <div key={`exists-${line}`} className="truncate">
+                        库里已有：{line}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="batch-tags">统一标签（逗号分隔，可选）</Label>
               <Input
@@ -319,6 +408,17 @@ function AddImageDialog({
               />
               <p className="text-xs text-muted-foreground">所有图片将使用相同的标签</p>
             </div>
+
+            {batchFailures.length > 0 && (
+              <div className="max-h-28 overflow-y-auto rounded-xl border border-red-200 bg-red-50/60 p-2.5 text-xs text-red-600">
+                <p className="mb-1 font-semibold">以下 {batchFailures.length} 条未导入：</p>
+                {batchFailures.slice(0, 10).map((item) => (
+                  <div key={item.url} className="truncate font-mono text-[11px]">
+                    {item.url} — {item.error ?? '失败'}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {loading && progress.total > 0 && (
               <div className="space-y-1">
@@ -337,9 +437,15 @@ function AddImageDialog({
               </div>
             )}
 
-            <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full gradient-button rounded-full border-0 text-white"
+              disabled={loading || batchPreview.validNew.length === 0}
+            >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              批量添加
+              {batchPreview.validNew.length > 0
+                ? `只导入全新 ${batchPreview.validNew.length} 张`
+                : '批量添加'}
             </Button>
           </form>
         )}
@@ -642,10 +748,6 @@ export default function GalleryPage() {
   const tags = stats?.tags ?? [];
   const totalTags = tags.length;
   const visiblePages = useMemo(() => getVisiblePages(page, totalPages), [page, totalPages]);
-  const latestImage = images.reduce<ImageRecord | null>((latest, img) => {
-    if (!latest) return img;
-    return new Date(img.createdAt).getTime() > new Date(latest.createdAt).getTime() ? img : latest;
-  }, null);
   const isInitialLoading = imagesQuery.isLoading && !imagesQuery.data;
 
   const refreshGallery = useCallback(() => {
@@ -937,9 +1039,9 @@ export default function GalleryPage() {
             bg: 'bg-indigo-50',
           },
           {
-            label: '当前页最新',
-            value: latestImage ? formatDateTime(latestImage.createdAt) : '暂无数据',
-            icon: Clock,
+            label: '本页 / 筛选',
+            value: `${images.length} / ${filteredTotal}`,
+            icon: Search,
             color: 'text-cyan-500',
             bg: 'bg-cyan-50',
           },

@@ -108,7 +108,8 @@ export async function getApiErrorMessage(response: Response, fallback: string): 
 
 /**
  * Generic, robust API request wrapper.
- * - Adds cache-busting to GET requests
+ * - Adds cache-busting to GET requests (opt-out via `opts.bustCache: false`
+ *   for idempotent list queries that benefit from CDN/edge caching)
  * - Validates JSON content-type
  * - Extracts meaningful error messages
  */
@@ -116,8 +117,10 @@ export async function apiRequest<T>(
   input: RequestInfo | URL,
   init: RequestInit | undefined,
   fallback: string,
+  opts?: { bustCache?: boolean },
 ): Promise<T> {
-  const response = await fetch(withNoCacheQuery(input, init), {
+  const bustCache = opts?.bustCache ?? true;
+  const response = await fetch(bustCache ? withNoCacheQuery(input, init) : input, {
     ...init,
     cache: 'no-store',
   });

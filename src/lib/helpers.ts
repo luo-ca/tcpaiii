@@ -69,6 +69,70 @@ export function parseTagsInput(value: string): string[] {
 }
 
 /**
+ * Canonicalize an image URL the same way the backend does (`new URL().toString()`).
+ * Returns null for non-http(s) URLs, URLs with embedded credentials, or unparsable input.
+ */
+export function canonicalizeImageUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    if (parsed.username || parsed.password) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+export interface ParsedBatchUrls {
+  /** Canonical URLs that are valid and not seen before (ready to import). */
+  validNew: string[];
+  /** Canonical URLs duplicated within this paste (2nd+ occurrences). */
+  duplicatesInBatch: string[];
+  /** Canonical URLs already present in the gallery. */
+  alreadyExists: string[];
+  /** Raw lines that are not valid http(s) URLs. */
+  invalid: string[];
+}
+
+const BATCH_SPLIT_PATTERN = /[\s,，;；\n\r]+/;
+
+/**
+ * Split pasted text (newlines, spaces, commas all accepted), canonicalize each
+ * URL, and classify into valid-new / in-batch duplicates / already-in-gallery / invalid.
+ * Comparison semantics match the backend `normalizeImageUrl` + `urlSet` check.
+ */
+export function parseBatchUrls(input: string, existingCanonicalUrls?: Set<string>): ParsedBatchUrls {
+  const raws = input.split(BATCH_SPLIT_PATTERN).map(part => part.trim()).filter(Boolean);
+  const seen = new Set<string>();
+  const validNew: string[] = [];
+  const duplicatesInBatch: string[] = [];
+  const alreadyExists: string[] = [];
+  const invalid: string[] = [];
+
+  for (const raw of raws) {
+    const canonical = canonicalizeImageUrl(raw);
+    if (!canonical) {
+      if (!invalid.includes(raw)) invalid.push(raw);
+      continue;
+    }
+    if (seen.has(canonical)) {
+      if (!duplicatesInBatch.includes(canonical)) duplicatesInBatch.push(canonical);
+      continue;
+    }
+    seen.add(canonical);
+    if (existingCanonicalUrls?.has(canonical)) {
+      alreadyExists.push(canonical);
+    } else {
+      validNew.push(canonical);
+    }
+  }
+
+  return { validNew, duplicatesInBatch, alreadyExists, invalid };
+}
+
+/**
  * Clamp a number between min and max.
  */
 export function clampNumber(value: number, min: number, max: number): number {
