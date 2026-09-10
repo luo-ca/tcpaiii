@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { forwardRef, useState, useEffect, useCallback, useRef } from 'react';
+import type { ForwardedRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,22 +12,33 @@ import {
   Copy as CopyIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Stats } from '@/lib/types';
+import type { RandomRequest, Stats } from '@/lib/types';
 import { fetchRandomImage, fetchStats } from '@/lib/api';
-import { getErrorMessage, copyText } from '@/lib/helpers';
+import { getErrorMessage } from '@/lib/helpers';
+import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 import { buildAppUrl } from '@/lib/url';
 
-export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
+/**
+ * 随机图预览。
+ *
+ * 首页顶部的搜索框 / 随机按钮通过 `request` 下发意图（纯 props，不再用
+ * `document.getElementById` + `CustomEvent` 那种跨组件广播）。
+ * `forwardRef` 是为了让上层能拿到这个区块的 DOM，用于「搜完滚动到预览」。
+ */
+function OnlinePreviewImpl(
+  { request }: { request: RandomRequest },
+  ref: ForwardedRef<HTMLElement>,
+) {
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageTitle, setImageTitle] = useState<string>('');
   const [imageTags, setImageTags] = useState<string[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [copiedApi, setCopiedApi] = useState(false);
+  const { copied, copy: copyImageUrl } = useCopyFeedback();
+  const { copied: copiedApi, copy: copyApiUrlText } = useCopyFeedback();
   const queryClient = useQueryClient();
-  const prevTriggerRef = useRef(0);
+  const prevTokenRef = useRef(request.token);
   const initialLoadRef = useRef(false);
   const requestIdRef = useRef(0);
   const [imageKey, setImageKey] = useState(0);
@@ -82,12 +94,13 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
     shuffleImage();
   }, [shuffleImage]);
 
+  // 上层发来新请求（token 递增）时，按请求带的标签重新取图
   useEffect(() => {
-    if (shuffleTrigger > prevTriggerRef.current) {
-      prevTriggerRef.current = shuffleTrigger;
-      shuffleImage(selectedTag);
-    }
-  }, [shuffleTrigger, shuffleImage, selectedTag]);
+    if (request.token === prevTokenRef.current) return;
+    prevTokenRef.current = request.token;
+    setSelectedTag(request.tag);
+    shuffleImage(request.tag);
+  }, [request, shuffleImage]);
 
   const handleImageLoad = () => {
     setImageLoading(false);
@@ -105,43 +118,22 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
 
   const copyUrl = async () => {
     if (!imageUrl) return;
-    const success = await copyText(imageUrl, '图片地址已复制');
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    await copyImageUrl(imageUrl, '图片地址已复制');
   };
 
   const copyApiUrl = async () => {
-    const success = await copyText(randomApiUrl, 'API 地址已复制');
-    if (success) {
-      setCopiedApi(true);
-      setTimeout(() => setCopiedApi(false), 2000);
-    }
+    await copyApiUrlText(randomApiUrl, 'API 地址已复制');
   };
-
-  useEffect(() => {
-    const handleExternalTag = (event: Event) => {
-      const tag =
-        event instanceof CustomEvent && typeof event.detail === 'string'
-          ? event.detail.trim()
-          : '';
-      if (tag) handleSelectTag(tag);
-    };
-
-    window.addEventListener('paiii:select-tag', handleExternalTag);
-    return () => window.removeEventListener('paiii:select-tag', handleExternalTag);
-  }, [handleSelectTag]);
 
   const hasImage = imageUrl && imageLoaded && !previewError;
 
   return (
-    <section id="preview" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 scroll-mt-20">
+    <section ref={ref} id="preview" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
       <div className="mx-auto max-w-6xl">
         {/* Section Header */}
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-blue-500">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-brand-500">
               Daily Picks
             </p>
             <h2 className="text-3xl font-black tracking-tight sm:text-4xl">热门二次元图片</h2>
@@ -156,29 +148,29 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
         </div>
 
         {/* Browser Preview Card */}
-        <div className="overflow-hidden rounded-[1.5rem] border border-white/60 bg-white/75 shadow-[0_20px_60px_rgba(15,23,42,0.08),0_4px_16px_rgba(15,23,42,0.04)] backdrop-blur-xl">
+        <div className="overflow-hidden rounded-3xl border border-white/60 bg-white/75 shadow-lg backdrop-blur-xl">
           {/* Browser Chrome Bar */}
-          <div className="flex items-center gap-3 border-b border-slate-200/60 bg-slate-50/80 px-4 py-3">
+          <div className="flex items-center gap-3 border-b border-border bg-secondary/80 px-4 py-3">
             <div className="hidden items-center gap-1.5 sm:flex shrink-0">
               <div className="browser-dot browser-dot-red" />
               <div className="browser-dot browser-dot-yellow" />
               <div className="browser-dot browser-dot-green" />
             </div>
             <div className="min-w-0 flex-1 sm:ml-2">
-              <div className="truncate rounded-md bg-white/80 border border-slate-200/70 px-3 py-1.5 text-xs text-muted-foreground font-mono shadow-sm">
+              <div className="truncate rounded-md bg-white/80 border border-border px-3 py-1.5 text-xs text-muted-foreground font-mono shadow-sm">
                 {randomApiUrl}
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 shrink-0 rounded-lg hover:bg-slate-200/70 transition-all"
+              className="h-8 w-8 p-0 shrink-0 rounded-lg hover:bg-secondary transition-all"
               onClick={() => shuffleImage(selectedTag)}
               disabled={imageLoading}
               aria-label="刷新随机图片"
             >
               <RefreshCw
-                className={`w-3.5 h-3.5 text-slate-500 ${imageLoading ? 'animate-spin' : ''}`}
+                className={`w-3.5 h-3.5 text-muted-foreground ${imageLoading ? 'animate-spin' : ''}`}
               />
             </Button>
           </div>
@@ -186,7 +178,7 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
           {/* Content Grid */}
           <div className="grid gap-0 lg:grid-cols-[1.3fr_0.7fr]">
             {/* Image Preview Panel */}
-            <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden bg-slate-100 sm:min-h-[460px]">
+            <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden bg-secondary sm:min-h-[460px]">
               {imageLoading && <div className="absolute inset-0 z-20 skeleton-shimmer" />}
 
               {!imageUrl && !imageLoading && !previewError && (
@@ -283,7 +275,7 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
             <div className="flex flex-col gap-5 bg-white/65 p-5 sm:p-6">
               <div>
                 <div className="mb-4 flex items-center justify-between gap-2">
-                  <Badge className="rounded-full bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-50 text-xs">
+                  <Badge className="rounded-full bg-brand-50 text-brand-600 border-brand-100 hover:bg-brand-50 text-xs">
                     Random API
                   </Badge>
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -312,9 +304,9 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
               </div>
 
               {/* Code Block */}
-              <div className="rounded-xl bg-slate-950 overflow-hidden shadow-xl">
+              <div className="rounded-xl bg-code overflow-hidden shadow-xl">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
-                  <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-medium text-emerald-400 uppercase tracking-wider">
                     GET
                   </span>
                   <div className="flex gap-1">
@@ -324,7 +316,7 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 p-2 pl-3">
-                  <code className="min-w-0 flex-1 truncate font-mono text-xs text-slate-300">
+                  <code className="min-w-0 flex-1 truncate font-mono text-xs text-white/80">
                     {randomApiUrl}
                   </code>
                   <button
@@ -332,7 +324,7 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
                     onClick={() => void copyApiUrl()}
                     aria-label="复制 API 地址"
                     title="复制 API 地址"
-                    className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                    className="shrink-0 rounded-lg p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
                   >
                     {copiedApi ? (
                       <Check className="h-3.5 w-3.5 text-emerald-400" />
@@ -346,7 +338,7 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-2.5 text-sm">
                 <Button
-                  className="rounded-xl h-10 bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-600/20 hover:shadow-blue-600/35 hover:-translate-y-0.5 transition-all duration-200"
+                  className="rounded-xl h-10 bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-md shadow-brand-600/20 hover:shadow-brand-600/35 hover:-translate-y-0.5 transition-all duration-200"
                   onClick={() => shuffleImage(selectedTag)}
                   disabled={imageLoading}
                 >
@@ -373,14 +365,14 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
           </div>
 
           {/* Category Tags Bar */}
-          <div className="border-t border-slate-200/60 bg-slate-50/70 p-4">
+          <div className="border-t border-border bg-secondary/70 p-4">
             <div className="category-strip flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory sm:flex-wrap sm:overflow-visible">
               <button
                 type="button"
                 className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
                   selectedTag === undefined
                     ? 'active bg-primary text-primary-foreground shadow-md'
-                    : 'bg-white/70 text-muted-foreground border border-slate-200/70 hover:bg-white hover:text-foreground'
+                    : 'bg-white/70 text-muted-foreground border border-border hover:bg-white hover:text-foreground'
                 }`}
                 onClick={() => handleSelectTag(undefined)}
               >
@@ -393,7 +385,7 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
                   className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
                     selectedTag === tag
                       ? 'active bg-primary text-primary-foreground shadow-md'
-                      : 'bg-white/70 text-muted-foreground border border-slate-200/70 hover:bg-white hover:text-foreground'
+                      : 'bg-white/70 text-muted-foreground border border-border hover:bg-white hover:text-foreground'
                   }`}
                   onClick={() => handleSelectTag(tag)}
                 >
@@ -407,3 +399,5 @@ export function OnlinePreview({ shuffleTrigger }: { shuffleTrigger: number }) {
     </section>
   );
 }
+
+export const OnlinePreview = forwardRef(OnlinePreviewImpl);

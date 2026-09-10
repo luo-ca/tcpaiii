@@ -24,6 +24,10 @@ tmp_*
 fix-*.py
 fix-*.txt
 vite-dev.log
+vite.config.ts.timestamp-*.mjs
+
+# 本地工作产物（截图、草稿等）
+.workbuddy/shots/
 
 # Local release packages (manual CDN upload)
 /release/

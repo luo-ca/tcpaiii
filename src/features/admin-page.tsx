@@ -56,21 +56,13 @@ import {
   clampNumber,
   getVisiblePages,
 } from '@/lib/helpers';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 
 // ============================================================
 // Hooks
 // ============================================================
 
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedValue(value), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debouncedValue;
-}
+// useDebouncedValue 已提取到 @/hooks/use-debounced-value —— 图库浏览页也要用同一份实现
 
 /**
  * useLazyImage — IntersectionObserver-based lazy loading hook.
@@ -257,7 +249,7 @@ function AddImageDialog({
       <DialogContent className="glass-strong rounded-2xl sm:max-w-xl sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Link className="w-5 h-5 text-blue-500" />
+            <Link className="w-5 h-5 text-brand-500" />
             添加外链图片
           </DialogTitle>
         </DialogHeader>
@@ -430,7 +422,7 @@ function AddImageDialog({
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-fuchsia-500 rounded-full transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-brand-500 to-iris-500 rounded-full transition-all duration-300"
                     style={{ width: `${(progress.current / progress.total) * 100}%` }}
                   />
                 </div>
@@ -525,7 +517,7 @@ function EditImageDialog({
       <DialogContent className="glass-strong rounded-2xl sm:max-w-md sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Edit3 className="w-5 h-5 text-blue-500" />
+            <Edit3 className="w-5 h-5 text-brand-500" />
             编辑图片
           </DialogTitle>
         </DialogHeader>
@@ -637,7 +629,7 @@ function ImageCard({
                   {img.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="text-[10px] bg-white/15 backdrop-blur-sm text-white/85 px-1.5 py-0.5 rounded-full border border-white/10"
+                      className="text-[11px] bg-white/15 backdrop-blur-sm text-white/85 px-1.5 py-0.5 rounded-full border border-white/10"
                     >
                       {tag}
                     </span>
@@ -898,7 +890,7 @@ export default function GalleryPage() {
 
   if (isInitialLoading) {
     return (
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-28">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-[calc(var(--header-h)+32px)] pb-24 sm:pb-28">
         <div className="mb-8 flex items-center justify-between">
           <div className="space-y-2">
             <div className="h-8 w-32 rounded-lg skeleton-shimmer" />
@@ -917,7 +909,7 @@ export default function GalleryPage() {
 
   if (imagesQuery.isError) {
     return (
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-28 text-center">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-[calc(var(--header-h)+32px)] pb-28 text-center">
         <div className="max-w-md mx-auto rounded-2xl border border-red-100 glass-strong p-8">
           <Camera className="w-14 h-14 mx-auto mb-4 text-red-300" />
           <p className="text-lg font-medium text-foreground">图库加载失败</p>
@@ -934,7 +926,7 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-28">
+    <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-[calc(var(--header-h)+32px)] pb-24 sm:pb-28">
       {/* Page Header */}
       <div className="flex flex-col gap-4 mb-7 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -959,8 +951,8 @@ export default function GalleryPage() {
                 htmlFor="admin-token"
                 className="flex items-center gap-2 text-sm font-semibold"
               >
-                <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <KeyRound className="h-3.5 w-3.5 text-blue-500" />
+                <div className="w-6 h-6 rounded-lg bg-brand-50 flex items-center justify-center">
+                  <KeyRound className="h-3.5 w-3.5 text-brand-500" />
                 </div>
                 管理密钥
               </Label>
@@ -1028,22 +1020,22 @@ export default function GalleryPage() {
             label: '图片总数',
             value: totalImages,
             icon: Image,
-            color: 'text-blue-500',
-            bg: 'bg-blue-50',
+            color: 'text-brand-500',
+            bg: 'bg-brand-50',
           },
           {
             label: '标签数量',
             value: totalTags,
             icon: Tag,
-            color: 'text-indigo-500',
-            bg: 'bg-indigo-50',
+            color: 'text-iris-500',
+            bg: 'bg-iris-50',
           },
           {
             label: '本页 / 筛选',
             value: `${images.length} / ${filteredTotal}`,
             icon: Search,
-            color: 'text-cyan-500',
-            bg: 'bg-cyan-50',
+            color: 'text-brand-500',
+            bg: 'bg-brand-50',
           },
         ].map((item) => (
           <Card key={item.label} className="glass-strong rounded-2xl border-white/60">

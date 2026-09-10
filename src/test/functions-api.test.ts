@@ -790,13 +790,14 @@ describe("functions api", () => {
     vi.stubGlobal("EdgeKV", undefined);
 
     const imagesKv = edgeOneKv("bounded-images");
-    const slowStatsKv = {
+    const slowStatsKv: TestKv = {
       get() {
         return Promise.resolve(undefined);
       },
       put() {
-        return new Promise<string>((resolve) => {
-          setTimeout(() => resolve(undefined as unknown as string), 5000);
+        // 故意慢 5 秒：随机接口的热路径不应该等统计写入完成
+        return new Promise<void>((resolve) => {
+          setTimeout(resolve, 5000);
         });
       },
     };

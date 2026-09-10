@@ -36,14 +36,14 @@ const updates = [
 ];
 
 const tagColors: Record<string, string> = {
-  Major: 'bg-blue-50 text-blue-600 border-blue-100',
+  Major: 'bg-brand-50 text-brand-600 border-brand-100',
   Update: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   API: 'bg-amber-50 text-amber-600 border-amber-100',
 };
 
 export function Changelog() {
   return (
-    <section id="changelog" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 scroll-mt-20">
+    <section id="changelog" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
       <div className="section-header">
         <p className="section-eyebrow">
           <Clock className="w-3.5 h-3.5" />
@@ -58,7 +58,7 @@ export function Changelog() {
           <div key={i} className="flex gap-5">
             {/* Timeline indicator */}
             <div className="flex flex-col items-center shrink-0">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 mt-2 ring-4 ring-background shadow-[0_0_0_1px_rgba(29,111,235,0.3)]" />
+              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-brand-500 to-iris-500 mt-2 ring-4 ring-background outline outline-1 outline-brand-500/30" />
               {i < updates.length - 1 && (
                 <div className="w-px flex-1 mt-2 bg-gradient-to-b from-border to-transparent" />
               )}
@@ -69,7 +69,7 @@ export function Changelog() {
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className="text-xs text-muted-foreground font-mono">{update.date}</span>
                   <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${tagColors[update.tag] ?? ''}`}
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${tagColors[update.tag] ?? ''}`}
                   >
                     {update.tag}
                   </span>
@@ -81,7 +81,7 @@ export function Changelog() {
                       key={j}
                       className="text-sm text-muted-foreground flex items-start gap-2 leading-relaxed"
                     >
-                      <span className="text-blue-400 mt-1.5 shrink-0 select-none text-[8px]">
+                      <span className="text-brand-400 mt-1.5 shrink-0 select-none text-[8px]">
                         ●
                       </span>
                       {item}

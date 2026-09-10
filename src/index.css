@@ -3,56 +3,104 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================================
+ * 设计地基 · Design Tokens
+ * ----------------------------------------------------------------------------
+ * 唯一色源：品牌 Logo https://imgs.paiii.cn/logo.svg（#007AFF → #5856D6）
+ *   brand-* : 品牌蓝，主色来源（iOS systemBlue 系）
+ *   iris-*  : 品牌靛，渐变终点（iOS systemIndigo 系）
+ * 除 brand / iris / 中性灰 / 语义色外，不得引入任何新色相。
+ * 图片是页面上唯一的多彩来源。
+ * ========================================================================== */
 @theme inline {
-  --color-background: hsl(220 20% 97%);
-  --color-foreground: hsl(224 71% 4%);
+  /* ── 品牌蓝 ─────────────────────────────────────────────────────────── */
+  --color-brand-50: #ebf4ff;
+  --color-brand-100: #d6e9ff;
+  --color-brand-200: #add3ff;
+  --color-brand-300: #7db8ff;
+  --color-brand-400: #4da2ff;
+  --color-brand-500: #007aff;
+  --color-brand-600: #0062cc;
+  --color-brand-700: #004c9e;
+  --color-brand-800: #003a78;
+  --color-brand-900: #002a56;
 
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(224 71% 4%);
+  /* ── 品牌靛（Logo 渐变终点） ────────────────────────────────────────── */
+  --color-iris-50: #eeedfc;
+  --color-iris-100: #dcdaf9;
+  --color-iris-200: #b9b5f3;
+  --color-iris-300: #9490ec;
+  --color-iris-400: #7674e1;
+  --color-iris-500: #5856d6;
+  --color-iris-600: #4543b8;
+  --color-iris-700: #35339a;
+  --color-iris-800: #26257a;
+  --color-iris-900: #19185c;
 
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(224 71% 4%);
+  /* ── 中性色：全站约 95% 的面积由这几个值构成 ───────────────────────── */
+  --color-background: #f7f8fa;
+  --color-foreground: #0b1220;
+  --color-card: #ffffff;
+  --color-card-foreground: #0b1220;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0b1220;
+  --color-secondary: #f1f3f7;
+  --color-secondary-foreground: #0b1220;
+  --color-muted: #f1f3f7;
+  --color-muted-foreground: #5a6474;
+  --color-accent: #f1f3f7;
+  --color-accent-foreground: #0b1220;
+  --color-subtle: #f1f3f7;
+  --color-border: #e4e8ef;
+  --color-border-strong: #d3d9e3;
+  --color-input: #e4e8ef;
 
-  --color-primary: hsl(222 89% 55%);
-  --color-primary-foreground: hsl(0 0% 100%);
+  /* 深色代码块专用（浅色页面上唯一允许的深色表面） */
+  --color-code: #0b1220;
 
-  --color-secondary: hsl(220 14% 94%);
-  --color-secondary-foreground: hsl(224 71% 4%);
+  /* ── 主色与焦点环：统一指向品牌蓝 ──────────────────────────────────── */
+  --color-primary: #007aff;
+  --color-primary-foreground: #ffffff;
+  --color-ring: #007aff;
 
-  --color-muted: hsl(220 14% 94%);
-  --color-muted-foreground: hsl(220 9% 46%);
+  /* ── 语义色：沿用 Apple 系统色，与品牌同源 ─────────────────────────── */
+  --color-destructive: #ff3b30;
+  --color-destructive-foreground: #ffffff;
+  --color-success: #34c759;
+  --color-warning: #ff9f0a;
 
-  --color-accent: hsl(220 14% 94%);
-  --color-accent-foreground: hsl(224 71% 4%);
+  /* ── sidebar（保留兼容，本轮不启用侧栏） ───────────────────────────── */
+  --color-sidebar: #f7f8fa;
+  --color-sidebar-foreground: #0b1220;
+  --color-sidebar-primary: #007aff;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #f1f3f7;
+  --color-sidebar-accent-foreground: #0b1220;
+  --color-sidebar-border: #e4e8ef;
+  --color-sidebar-ring: #007aff;
 
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
+  /* ── 图表：只用品牌两极 + 中性，不引入新色相 ───────────────────────── */
+  --color-chart-1: #007aff;
+  --color-chart-2: #4da2ff;
+  --color-chart-3: #5856d6;
+  --color-chart-4: #9490ec;
+  --color-chart-5: #8c96a6;
 
-  --color-border: hsl(220 13% 91%);
-  --color-input: hsl(220 13% 91%);
-  --color-ring: hsl(222 89% 55%);
+  /* ── 圆角：单调递增六档（修复原先 lg > 2xl 的层级倒挂） ────────────── */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius: 16px;
 
-  --color-sidebar: hsl(220 20% 97%);
-  --color-sidebar-foreground: hsl(224 71% 4%);
-  --color-sidebar-primary: hsl(222 89% 55%);
-  --color-sidebar-primary-foreground: hsl(0 0% 100%);
-  --color-sidebar-accent: hsl(220 14% 94%);
-  --color-sidebar-accent-foreground: hsl(224 71% 4%);
-  --color-sidebar-border: hsl(220 13% 91%);
-  --color-sidebar-ring: hsl(222 89% 55%);
+  /* ── 阴影：只三档，全部基于 rgba(11,18,32,...) ─────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(11, 18, 32, 0.04);
+  --shadow-md: 0 4px 16px rgba(11, 18, 32, 0.06);
+  --shadow-lg: 0 16px 48px rgba(11, 18, 32, 0.08);
 
-  --color-chart-1: hsl(222 89% 55%);
-  --color-chart-2: hsl(243 75% 59%);
-  --color-chart-3: hsl(291 64% 58%);
-  --color-chart-4: hsl(174 72% 39%);
-  --color-chart-5: hsl(340 75% 55%);
-
-  --radius: 1.25rem;
-  --radius-lg: 1.5rem;
-  --radius-xl: 2rem;
-  --radius-md: calc(var(--radius) - 4px);
-  --radius-sm: calc(var(--radius) - 8px);
-
+  /* ── 动效 ──────────────────────────────────────────────────────────── */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-fade-in: fade-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -81,11 +129,6 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  @keyframes gradient-shift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-  }
-
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
@@ -97,13 +140,8 @@
   }
 
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(34, 110, 230, 0.25); }
-    50% { box-shadow: 0 0 40px rgba(34, 110, 230, 0.45); }
-  }
-
-  @keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 122, 255, 0.22); }
+    50% { box-shadow: 0 0 36px rgba(0, 122, 255, 0.38); }
   }
 
   @keyframes count-up {
@@ -112,29 +150,49 @@
   }
 }
 
+/* ============================================================================
+ * 暗色占位
+ * ----------------------------------------------------------------------------
+ * 本轮已决定「全站浅色」，不启用暗色模式。
+ * 注意：@theme inline 会把字面值内联进工具类，因此下面这组变量目前
+ * 只对直接引用 var(--color-*) 的样式生效。将来真正实现暗色模式时，
+ * 需要把 @theme inline 改为 @theme，使工具类改为引用 var()。
+ * ========================================================================== */
 .dark {
-  --color-background: hsl(224 71% 4%);
-  --color-foreground: hsl(213 31% 91%);
-  --color-card: hsl(224 71% 7%);
-  --color-card-foreground: hsl(213 31% 91%);
-  --color-popover: hsl(224 71% 7%);
-  --color-popover-foreground: hsl(213 31% 91%);
-  --color-primary: hsl(222 89% 65%);
-  --color-primary-foreground: hsl(224 71% 4%);
-  --color-secondary: hsl(222 47% 11%);
-  --color-secondary-foreground: hsl(213 31% 91%);
-  --color-muted: hsl(223 47% 11%);
-  --color-muted-foreground: hsl(215 16% 56%);
-  --color-accent: hsl(223 47% 11%);
-  --color-accent-foreground: hsl(213 31% 91%);
-  --color-destructive: hsl(0 62.8% 45%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(216 34% 17%);
-  --color-input: hsl(216 34% 17%);
-  --color-ring: hsl(222 89% 65%);
+  --color-background: #0b1220;
+  --color-foreground: #e6ebf2;
+  --color-card: #131a2b;
+  --color-card-foreground: #e6ebf2;
+  --color-popover: #131a2b;
+  --color-popover-foreground: #e6ebf2;
+  --color-secondary: #1b2436;
+  --color-secondary-foreground: #e6ebf2;
+  --color-muted: #1b2436;
+  --color-muted-foreground: #8c96a6;
+  --color-accent: #1b2436;
+  --color-accent-foreground: #e6ebf2;
+  --color-border: #232d42;
+  --color-input: #232d42;
+  --color-primary: #4da2ff;
+  --color-primary-foreground: #0b1220;
+  --color-ring: #4da2ff;
 }
 
+/* ============================================================================
+ * 基础层
+ * ========================================================================== */
 @layer base {
+  :root {
+    /* 顶栏实际占位高度：所有首屏与锚点定位统一引用它 */
+    --header-h: 64px;
+  }
+
+  @media (max-width: 767px) {
+    :root {
+      --header-h: 96px;
+    }
+  }
+
   * {
     @apply border-border;
   }
@@ -163,17 +221,18 @@
   }
 
   ::selection {
-    background-color: rgba(34, 110, 230, 0.18);
+    background-color: rgba(0, 122, 255, 0.16);
     color: inherit;
   }
 
+  /* 全站唯一焦点指示器：品牌色 2px 描边。
+     不再覆盖 border-radius（原实现会给所有聚焦元素强制 4px 圆角，
+     会把卡片和按钮的圆角瞬间压平）。 */
   *:focus-visible {
-    outline: 2px solid hsl(222 89% 55% / 0.6);
+    outline: 2px solid var(--color-ring);
     outline-offset: 2px;
-    border-radius: 4px;
   }
 
-  /* 优化中文字符间距 */
   h1, h2, h3, h4, h5, h6 {
     letter-spacing: -0.02em;
     font-weight: 700;
@@ -182,6 +241,18 @@
   p, li {
     line-height: 1.75;
   }
+
+  /* 所有带 id 的锚点统一预留顶栏高度，替代零散的 scroll-mt-* */
+  [id] {
+    scroll-margin-top: calc(var(--header-h) + 16px);
+  }
+
+  /* 数字等宽：统计刷新时不产生宽度抖动 */
+  .stat-value,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "liga" 1;
+  }
 }
 
 @layer utilities {
@@ -189,164 +260,114 @@
    * 页面背景
    * ================================================================ */
   .page-bg {
-    background: hsl(220 20% 97%);
+    background: var(--color-background);
     min-height: 100vh;
   }
 
+  /* 首屏顶栏补偿：引用 --header-h，桌面 64px / 移动 96px */
+  .header-offset {
+    padding-top: var(--header-h);
+  }
+
   /* ================================================================
-   * 环境光渐变背景
+   * 环境光背景：只用品牌两极，移除原先的青色第三色相
    * ================================================================ */
   .ambient-gradient {
     background:
-      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(34, 110, 230, 0.12) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 10%, rgba(88, 86, 214, 0.10) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 60% at 50% 100%, rgba(0, 199, 190, 0.07) 0%, transparent 60%);
-    opacity: 1;
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(0, 122, 255, 0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 10%, rgba(88, 86, 214, 0.08) 0%, transparent 55%);
     pointer-events: none;
   }
 
   /* ================================================================
-   * 文本工具类
-   * ================================================================ */
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .text-gradient {
-    background: linear-gradient(135deg, #1d6feb 0%, #5856D6 50%, #AF52DE 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .text-gradient-warm {
-    background: linear-gradient(135deg, #f97316 0%, #ef4444 50%, #ec4899 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* ================================================================
-   * 玻璃拟态效果
+   * 玻璃拟态：层级由少到多，全部基于品牌中性阴影
    * ================================================================ */
   .glass {
     background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: saturate(200%) blur(18px);
-    -webkit-backdrop-filter: saturate(200%) blur(18px);
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
     border: 1px solid rgba(255, 255, 255, 0.55);
     box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.02),
-      0 2px 4px rgba(0, 0, 0, 0.02),
-      0 8px 16px rgba(0, 0, 0, 0.03),
+      0 1px 2px rgba(11, 18, 32, 0.04),
       inset 0 1px 0 rgba(255, 255, 255, 0.65);
   }
 
   .glass-strong {
-    background: rgba(255, 255, 255, 0.90);
-    backdrop-filter: saturate(200%) blur(30px);
-    -webkit-backdrop-filter: saturate(200%) blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.70);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: saturate(180%) blur(30px);
+    -webkit-backdrop-filter: saturate(180%) blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
     box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.03),
-      0 2px 4px rgba(0, 0, 0, 0.02),
-      0 8px 16px rgba(0, 0, 0, 0.04),
-      0 24px 48px rgba(0, 0, 0, 0.06),
+      0 4px 16px rgba(11, 18, 32, 0.06),
       inset 0 1px 0 rgba(255, 255, 255, 0.75);
   }
 
   .glass-card {
     background: rgba(255, 255, 255, 0.78);
-    backdrop-filter: saturate(200%) blur(22px);
-    -webkit-backdrop-filter: saturate(200%) blur(22px);
+    backdrop-filter: saturate(180%) blur(22px);
+    -webkit-backdrop-filter: saturate(180%) blur(22px);
     border: 1px solid rgba(255, 255, 255, 0.58);
     box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.03),
-      0 2px 4px rgba(0, 0, 0, 0.02),
-      0 8px 16px rgba(0, 0, 0, 0.04),
-      0 24px 48px rgba(0, 0, 0, 0.06),
+      0 4px 16px rgba(11, 18, 32, 0.06),
       inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition:
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 0.3s ease;
   }
 
   .glass-card:hover {
-    background: rgba(255, 255, 255, 0.92);
-    transform: translateY(-3px) scale(1.005);
+    background: rgba(255, 255, 255, 0.94);
+    transform: translateY(-2px);
     box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.02),
-      0 4px 8px rgba(0, 0, 0, 0.03),
-      0 16px 32px rgba(0, 0, 0, 0.06),
-      0 32px 64px rgba(0, 0, 0, 0.08),
-      0 4px 16px rgba(34, 110, 230, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    border-color: rgba(255, 255, 255, 0.75);
+      0 16px 48px rgba(11, 18, 32, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
   }
 
   /* ================================================================
-   * 悬浮提升动效
+   * 悬浮提升
    * ================================================================ */
   .hover-lift {
     transition:
-      transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-      box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-      border-color 0.35s ease;
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.3s ease;
   }
 
   .hover-lift:hover {
-    transform: translateY(-6px);
-    box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.02),
-      0 4px 8px rgba(0, 0, 0, 0.03),
-      0 20px 48px rgba(15, 23, 42, 0.11),
-      0 8px 16px rgba(15, 23, 42, 0.06);
-  }
-
-  .hover-scale {
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  .hover-scale:hover {
-    transform: scale(1.05);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(11, 18, 32, 0.08);
   }
 
   /* ================================================================
-   * 渐变按钮
+   * 主行动按钮：品牌渐变（#007AFF → #5856D6）
    * ================================================================ */
   .gradient-button {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(135deg, #1d6feb, #5856D6, #8b5cf6);
-    background-size: 200% 200%;
-    animation: gradient-shift 4s ease infinite;
-    box-shadow:
-      0 4px 16px rgba(29, 111, 235, 0.30),
-      0 1px 4px rgba(29, 111, 235, 0.20),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.22);
     transition:
-      transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-      box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .gradient-button::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, transparent 100%);
     pointer-events: none;
   }
 
   .gradient-button:hover {
-    box-shadow:
-      0 8px 28px rgba(29, 111, 235, 0.40),
-      0 4px 12px rgba(88, 86, 214, 0.25),
-      inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    transform: translateY(-2px) scale(1.02);
+    transform: translateY(-1px);
+    box-shadow: 0 16px 48px rgba(11, 18, 32, 0.08), 0 6px 20px rgba(0, 122, 255, 0.26);
   }
 
   .gradient-button:active {
     transform: translateY(0) scale(0.98);
-    box-shadow:
-      0 2px 8px rgba(29, 111, 235, 0.25),
-      inset 0 1px 0 rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 2px rgba(11, 18, 32, 0.04);
   }
 
   /* ================================================================
@@ -354,64 +375,47 @@
    * ================================================================ */
   .category-button {
     transition:
-      transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-      background-color 0.22s ease,
-      box-shadow 0.22s ease,
-      color 0.22s ease;
+      transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      color 0.2s ease;
     position: relative;
     overflow: hidden;
   }
 
-  .category-button::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    pointer-events: none;
-  }
-
-  .category-button:hover::after {
-    opacity: 1;
-  }
-
   .category-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(11, 18, 32, 0.06);
   }
 
   .category-button:active {
-    transform: translateY(0) scale(0.95);
+    transform: translateY(0) scale(0.96);
     box-shadow: none;
   }
 
   .category-button.active {
-    box-shadow:
-      0 4px 14px rgba(29, 111, 235, 0.32),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.24);
   }
 
   /* ================================================================
-   * 卡片内按钮
+   * 卡片内小按钮
    * ================================================================ */
   .card-button {
     transition:
       transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
       background-color 0.2s ease,
       color 0.2s ease;
-    border-radius: 6px;
+    border-radius: 8px;
   }
 
   .card-button:hover {
-    background: rgba(29, 111, 235, 0.07);
-    color: hsl(222 89% 55%);
+    background: rgba(0, 122, 255, 0.07);
+    color: var(--color-brand-600);
   }
 
   .card-button:active {
-    transform: scale(0.92);
-    background: rgba(29, 111, 235, 0.12);
+    transform: scale(0.94);
+    background: rgba(0, 122, 255, 0.12);
   }
 
   /* ================================================================
@@ -422,16 +426,13 @@
   }
 
   .section-header .section-eyebrow {
-    @apply inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-blue-500 mb-3;
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold uppercase text-brand-500 mb-3;
     letter-spacing: 0.18em;
   }
 
   .section-header h2 {
     @apply text-3xl sm:text-4xl font-bold tracking-tight mb-3 text-balance;
-    background: linear-gradient(135deg, hsl(224 71% 4%) 0%, hsl(220 15% 25%) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-foreground);
   }
 
   .section-header p {
@@ -440,53 +441,20 @@
   }
 
   /* ================================================================
-   * 骨架屏加载动效
+   * 骨架屏
    * ================================================================ */
   .skeleton-shimmer {
     background: linear-gradient(
       100deg,
-      rgba(226, 232, 240, 0.60) 0%,
-      rgba(226, 232, 240, 0.60) 30%,
-      rgba(248, 250, 252, 0.96) 50%,
-      rgba(226, 232, 240, 0.60) 70%,
-      rgba(226, 232, 240, 0.60) 100%
+      rgba(228, 232, 239, 0.6) 0%,
+      rgba(228, 232, 239, 0.6) 30%,
+      rgba(247, 248, 250, 0.96) 50%,
+      rgba(228, 232, 239, 0.6) 70%,
+      rgba(228, 232, 239, 0.6) 100%
     );
     background-size: 200% 100%;
     animation: shimmer 1.6s linear infinite;
   }
-
-  /* ================================================================
-   * 浏览器模拟窗口
-   * ================================================================ */
-  .browser-window {
-    background: rgba(255, 255, 255, 0.90);
-    border-radius: 1rem;
-    overflow: hidden;
-    box-shadow:
-      0 20px 60px rgba(15, 23, 42, 0.10),
-      0 4px 16px rgba(15, 23, 42, 0.05),
-      0 0 0 1px rgba(15, 23, 42, 0.04);
-  }
-
-  .browser-header {
-    background: rgba(248, 250, 252, 0.85);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.75);
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .browser-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
-  }
-
-  .browser-dot-red { background: #ff5f57; }
-  .browser-dot-yellow { background: #febc2e; }
-  .browser-dot-green { background: #28c840; }
 
   /* ================================================================
    * 分类标签滚动条
@@ -510,46 +478,18 @@
   }
 
   /* ================================================================
-   * 特性卡片图标容器
-   * ================================================================ */
-  .feature-icon-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .feature-icon-wrap::after {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    background: inherit;
-    filter: blur(10px);
-    opacity: 0.35;
-    z-index: -1;
-    transition: opacity 0.3s ease;
-  }
-
-  .hover-lift:hover .feature-icon-wrap::after {
-    opacity: 0.55;
-  }
-
-  /* ================================================================
-   * 代码块美化
+   * 代码块
    * ================================================================ */
   .code-block {
-    background: hsl(224 71% 4%);
-    border-radius: 0.75rem;
+    background: #0b1220;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow:
-      0 4px 24px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255,255,255,0.05);
+    box-shadow: 0 4px 16px rgba(11, 18, 32, 0.06);
   }
 
   .code-block-header {
-    background: rgba(255,255,255,0.04);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     padding: 8px 14px;
     display: flex;
     align-items: center;
@@ -557,22 +497,14 @@
   }
 
   /* ================================================================
-   * 统计数值动画
+   * 统计数值
    * ================================================================ */
   .stat-value {
     animation: count-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
   /* ================================================================
-   * 分割线与分隔符
-   * ================================================================ */
-  .divider-gradient {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(15, 23, 42, 0.08), transparent);
-  }
-
-  /* ================================================================
-   * 亮点徽章
+   * 首屏亮点徽章
    * ================================================================ */
   .highlight-badge {
     display: inline-flex;
@@ -582,27 +514,17 @@
     border-radius: 9999px;
     font-size: 0.78rem;
     font-weight: 500;
-    border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.14);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     color: white;
-    box-shadow:
-      0 2px 8px rgba(0,0,0,0.12),
-      inset 0 1px 0 rgba(255,255,255,0.15);
-  }
-
-  /* ================================================================
-   * 响应式工具
-   * ================================================================ */
-  @media (max-width: 640px) {
-    .browser-header {
-      padding: 10px 12px;
-    }
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 
   /* ================================================================
    * 无障碍：减弱动效偏好
+   * 所有循环与位移动效在此统一关闭
    * ================================================================ */
   @media (prefers-reduced-motion: reduce) {
     html {
@@ -610,25 +532,30 @@
     }
 
     .animate-slide-up,
-    .animate-fade-in {
+    .animate-fade-in,
+    .animate-shimmer,
+    .animate-float,
+    .animate-pulse-glow,
+    .stat-value {
       animation: none !important;
       opacity: 1 !important;
       transform: none !important;
     }
 
-    .gradient-button {
+    .skeleton-shimmer {
       animation: none !important;
+      background: rgba(228, 232, 239, 0.6) !important;
     }
 
-    .hover-lift:hover,
-    .hover-scale:hover,
-    .category-button:hover {
+    .gradient-button,
+    .gradient-button:hover {
       transform: none;
     }
 
-    .skeleton-shimmer {
-      animation: none !important;
-      background: rgba(226, 232, 240, 0.60) !important;
+    .hover-lift:hover,
+    .glass-card:hover,
+    .category-button:hover {
+      transform: none;
     }
   }
 }

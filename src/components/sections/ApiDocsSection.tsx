@@ -49,7 +49,7 @@ export function ApiDocsSection() {
   };
 
   return (
-    <section id="api" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 scroll-mt-20">
+    <section id="api" className="relative z-10 pb-16 sm:pb-20 px-4 sm:px-6">
       <div className="section-header">
         <p className="section-eyebrow">
           <Code className="w-3.5 h-3.5" />
@@ -92,8 +92,8 @@ export function ApiDocsSection() {
             <Card className="glass-strong rounded-2xl border-white/60">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <Code className="w-4 h-4 text-blue-500" />
+                  <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+                    <Code className="w-4 h-4 text-brand-500" />
                   </div>
                   <div>
                     <span className="text-sm font-semibold">基础调用</span>
@@ -127,8 +127,8 @@ export function ApiDocsSection() {
             <Card className="glass-strong rounded-2xl border-white/60">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                    <Tag className="w-4 h-4 text-indigo-500" />
+                  <div className="w-8 h-8 rounded-lg bg-iris-50 flex items-center justify-center">
+                    <Tag className="w-4 h-4 text-iris-500" />
                   </div>
                   <div>
                     <span className="text-sm font-semibold">分类参数</span>
@@ -149,8 +149,8 @@ export function ApiDocsSection() {
             <Card className="glass-strong rounded-2xl border-white/60">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center">
-                    <Code className="w-4 h-4 text-cyan-500" />
+                  <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+                    <Code className="w-4 h-4 text-brand-500" />
                   </div>
                   <div>
                     <span className="text-sm font-semibold">JSON 返回模式</span>
@@ -166,13 +166,13 @@ export function ApiDocsSection() {
                   />
                   <div className="rounded-xl overflow-hidden code-block">
                     <div className="code-block-header">
-                      <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                      <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">
                         Response
                       </span>
-                      <span className="text-[10px] text-emerald-400">application/json</span>
+                      <span className="text-[11px] text-emerald-400">application/json</span>
                     </div>
                     <div className="p-4">
-                      <pre className="text-xs text-slate-300 overflow-x-auto leading-relaxed">
+                      <pre className="text-xs text-white/80 overflow-x-auto leading-relaxed">
 {`{
   "id": "img-001",
   "url": "https://example.com/image.jpg",
@@ -205,12 +205,12 @@ export function ApiDocsSection() {
                 <div className="space-y-3">
                   <div className="rounded-xl overflow-hidden code-block">
                     <div className="code-block-header">
-                      <span className="text-[10px] font-medium text-amber-400 uppercase tracking-wider">
+                      <span className="text-[11px] font-medium text-amber-400 uppercase tracking-wider">
                         JavaScript
                       </span>
                     </div>
                     <div className="p-4">
-                      <pre className="text-xs text-slate-300 overflow-x-auto leading-relaxed">
+                      <pre className="text-xs text-white/80 overflow-x-auto leading-relaxed">
 {`fetch('/api/random?format=json')
   .then(r => r.json())
   .then(data => console.log(data.url))`}
@@ -219,12 +219,12 @@ export function ApiDocsSection() {
                   </div>
                   <div className="rounded-xl overflow-hidden code-block">
                     <div className="code-block-header">
-                      <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                      <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">
                         cURL
                       </span>
                     </div>
                     <div className="p-4">
-                      <pre className="text-xs text-slate-300 overflow-x-auto leading-relaxed">
+                      <pre className="text-xs text-white/80 overflow-x-auto leading-relaxed">
 {`curl ${randomApiUrl}`}
                       </pre>
                     </div>

@@ -3,7 +3,6 @@
 // ============================================================
 
 import type { ImageRecord, Stats, PaginatedImages } from './types';
-import { HERO_FALLBACK_IMAGE_URL } from './constants';
 import { apiRequest } from './api-client';
 import { canonicalizeImageUrl } from './helpers';
 
@@ -23,12 +22,17 @@ export async function fetchRandomImage(tag?: string): Promise<ImageRecord> {
 
 /**
  * Fetch a random image but never throw: on API failure (HTML fallback,
- * network error, empty gallery) return a synthetic fallback record so
- * first-paint callers (Hero) always have something to render.
+ * network error, empty gallery) return a synthetic record so callers
+ * always have something shaped like an ImageRecord.
+ *
+ * `fallbackUrl` defaults to an empty string, which means 「没有可用图片」.
+ * Callers must treat an empty url as "no image" and render their own
+ * empty/gradient state — never a broken <img>. 早期版本这里默认填了一个
+ * 第三方文生图地址，实测只会返回「图片生成中」的占位图，因此已移除。
  */
 export async function fetchRandomImageWithFallback(
   tag?: string,
-  fallbackUrl: string = HERO_FALLBACK_IMAGE_URL,
+  fallbackUrl = '',
 ): Promise<ImageRecord> {
   try {
     return await fetchRandomImage(tag);

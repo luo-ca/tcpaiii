@@ -5,8 +5,18 @@
 export const APP_NAME = '派次元 API';
 export const APP_FALLBACK_DOMAIN = 'https://t.paiii.cn';
 export const APP_LOGO_URL = 'https://imgs.paiii.cn/logo.svg';
-export const HERO_FALLBACK_IMAGE_URL =
-  'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cinematic%20anime%20illustration%20of%20two%20original%20girls%20in%20a%20soft%20blue%20evening%20city%20scene%2C%20detailed%20kimono%20and%20modern%20street%20lights%2C%20warm%20smile%2C%20floating%20petals%2C%20high%20quality%20website%20hero%20background%2C%20wide%20composition%2C%20no%20text%2C%20no%20logo&image_size=landscape_16_9';
+
+/**
+ * 首屏主视觉不再使用任何第三方「文生图」接口。
+ *
+ * 原先那个 trae text_to_image 地址实测会 302 到
+ * `lf-cdn.trae.com.cn/obj/trae-ai-image/page_image/default.jpeg` ——
+ * 一个写着「image is generating，请刷新页面预览」的通用占位图，
+ * 既不是二次元插画，也永远不会变成成品图。
+ *
+ * 现在的做法：HeroSection 走 `/api/list` 拿图库里的真实图片（该接口不写调用统计），
+ * 取不到就交给品牌渐变兜底。见 `HeroSection.tsx`。
+ */
 export const EDGEONE_LOGO_URL = 'https://edgeone.ai/_next/static/media/headLogo.daeb48ad.png';
 export const EDGEONE_PREVIEW_QUERY_KEYS = ['eo_token', 'eo_time'] as const;
 
@@ -17,11 +27,12 @@ export const MAX_BATCH_IMAGE_COUNT = 500;
 export const GALLERY_PAGE_SIZE = 24;
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 
-import type { AppTab } from './types';
+import type { RoutePath } from './router';
 import { Code, Image, Shuffle } from 'lucide-react';
 
-export const HEADER_TABS: Array<{ key: AppTab; label: string; icon: typeof Shuffle }> = [
-  { key: 'random', label: '随机', icon: Shuffle },
-  { key: 'gallery', label: '图库', icon: Image },
-  { key: 'docs', label: 'API 文档', icon: Code },
+/** 顶栏导航。`path` 直接就是地址栏里的路径，可分享、可被爬虫抓取。 */
+export const HEADER_TABS: Array<{ path: RoutePath; label: string; icon: typeof Shuffle }> = [
+  { path: '/', label: '随机', icon: Shuffle },
+  { path: '/gallery', label: '图库', icon: Image },
+  { path: '/docs', label: 'API 文档', icon: Code },
 ];

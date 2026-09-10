@@ -30,7 +30,15 @@ export interface PaginatedImages {
   hasNextPage: boolean;
 }
 
-export type AppTab = 'random' | 'gallery' | 'docs';
+/**
+ * 首页「换一张 / 按标签搜索」的信号。
+ * `token` 每次递增即代表发起一次新请求 —— 用递增数字而不是布尔量，
+ * 保证「连续点两次同样的标签」也能各触发一次。
+ */
+export interface RandomRequest {
+  tag?: string;
+  token: number;
+}
 
 export type ApiErrorPayload = {
   error?: string;

@@ -19,9 +19,10 @@ describe("home page copy", () => {
     expect(heroSource).not.toMatch(mojibakePattern);
   });
 
-  it("uses the anime API landing headline", () => {
-    expect(heroSource).toContain("anime images");
-    expect(heroSource).toContain("for anyone");
+  it("uses the Chinese anime API landing headline", () => {
+    // H1 is now Chinese: \u4E8C\u6B21\u5143\u56FE\u7247 = "anime images", \u4EBA\u4EBA\u53EF\u7528 = "for anyone"
+    expect(heroSource).toContain("\u4E8C\u6B21\u5143\u56FE\u7247");
+    expect(heroSource).toContain("\u4EBA\u4EBA\u53EF\u7528");
     expect(previewSource).toContain("\u70ED\u95E8\u4E8C\u6B21\u5143\u56FE\u7247");
   });
 
@@ -58,13 +59,14 @@ describe("home page copy", () => {
   });
 
   it("keeps first paint independent of the random-image API", () => {
-    // Hero must start from a static fallback, never from /api/random directly.
-    expect(heroSource).toContain("HERO_FALLBACK_IMAGE_URL");
-    expect(heroSource).toContain("useState(HERO_FALLBACK_IMAGE_URL)");
-    // Non-throwing helper guarantees a renderable record on API failure.
+    // Hero must never hit /api/random: that consumes quota and pollutes
+    // /api/stats (totalRequests, dailyRequests, and even the sites map).
+    expect(heroSource).not.toContain("fetchRandomImage");
+    // Its visual comes from the stat-free list endpoint instead.
+    expect(heroSource).toContain("fetchImagesPage");
+    // Broken images must not leave a broken <img> on first paint.
+    expect(heroSource).toContain("handleHeroImageError");
+    // The non-throwing helper stays available for callers that do want a random image.
     expect(apiSource).toContain("fetchRandomImageWithFallback");
-    expect(heroSource).toContain("fetchRandomImageWithFallback");
-    // Broken fallback images must not leave a broken <img> on first paint.
-    expect(heroSource).toContain("onError={handleHeroImageError}");
   });
 });

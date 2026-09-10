@@ -30,25 +30,34 @@ export function RealtimeStats() {
   const hasTrendData = chartData.some((item) => item.requests > 0);
   const maxDayRequests = chartData.reduce((max, item) => Math.max(max, item.requests), 0);
 
+  // 一条数据都没有时整段不渲染。摆一排「0 次」比不显示更像故障。
+  const hasAnyData =
+    Boolean(stats) &&
+    ((stats?.totalRequests ?? 0) > 0 ||
+      (stats?.todayRequests ?? 0) > 0 ||
+      (stats?.totalImages ?? 0) > 0);
+
+  if (!hasAnyData) return null;
+
   const statCards = [
     {
       label: '总调用量',
       value: formatNumber(stats?.totalRequests ?? 0),
       icon: TrendingUp,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-50',
-      gradientFrom: 'from-blue-500',
-      gradientTo: 'to-cyan-400',
+      color: 'text-brand-500',
+      bgColor: 'bg-brand-50',
+      gradientFrom: 'from-brand-500',
+      gradientTo: 'to-brand-400',
       sub: '累计请求总次数',
     },
     {
       label: '今日调用',
       value: formatNumber(stats?.todayRequests ?? 0),
       icon: Clock,
-      color: 'text-indigo-500',
-      bgColor: 'bg-indigo-50',
-      gradientFrom: 'from-indigo-500',
-      gradientTo: 'to-blue-400',
+      color: 'text-iris-500',
+      bgColor: 'bg-iris-50',
+      gradientFrom: 'from-iris-500',
+      gradientTo: 'to-brand-400',
       sub: stats?.lastRequestAt
         ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN')
         : '暂无数据',
@@ -57,26 +66,26 @@ export function RealtimeStats() {
       label: '接入站点',
       value: formatNumber(stats?.totalSites ?? 0),
       icon: Globe,
-      color: 'text-cyan-500',
-      bgColor: 'bg-cyan-50',
-      gradientFrom: 'from-cyan-500',
-      gradientTo: 'to-teal-400',
+      color: 'text-brand-500',
+      bgColor: 'bg-brand-50',
+      gradientFrom: 'from-brand-500',
+      gradientTo: 'to-brand-400',
       sub: '使用本 API 的网站',
     },
     {
       label: '图片总数',
       value: formatNumber(stats?.totalImages ?? 0),
       icon: Layers,
-      color: 'text-fuchsia-500',
-      bgColor: 'bg-fuchsia-50',
-      gradientFrom: 'from-fuchsia-500',
-      gradientTo: 'to-pink-400',
+      color: 'text-iris-500',
+      bgColor: 'bg-iris-50',
+      gradientFrom: 'from-iris-500',
+      gradientTo: 'to-iris-400',
       sub: `${stats?.tags?.length ?? 0} 个分类`,
     },
   ];
 
   return (
-    <section id="stats" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 scroll-mt-20">
+    <section id="stats" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         <div className="section-header">
           <p className="section-eyebrow">
@@ -117,11 +126,11 @@ export function RealtimeStats() {
           <CardContent className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-gradient-to-b from-blue-500 to-cyan-400" />
+                <div className="w-1.5 h-5 rounded-full bg-gradient-to-b from-brand-500 to-brand-400" />
                 <span className="text-sm font-semibold">7-day trend</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1 text-xs font-medium">
+                <span className="rounded-full bg-brand-50 text-brand-600 border border-brand-100 px-3 py-1 text-xs font-medium">
                   近 7 天 {formatNumber(totalRecentRequests)} 次
                 </span>
               </div>
@@ -135,7 +144,7 @@ export function RealtimeStats() {
                     className="pointer-events-none absolute inset-x-0 top-0 bottom-9 flex flex-col justify-between"
                   >
                     {[0, 1, 2, 3].map((line) => (
-                      <div key={line} className="border-t border-dashed border-slate-200/80" />
+                      <div key={line} className="border-t border-dashed border-border" />
                     ))}
                   </div>
                   <div
@@ -154,7 +163,7 @@ export function RealtimeStats() {
                         </span>
                         <div className="flex h-32 w-full items-end justify-center sm:h-36">
                           <div
-                            className="w-8 rounded-t-md bg-gradient-to-t from-blue-600 to-cyan-400 transition-all hover:brightness-110 sm:w-12"
+                            className="w-8 rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400 transition-all hover:brightness-110 sm:w-12"
                             style={{
                               height:
                                 item.requests > 0 && maxDayRequests > 0
