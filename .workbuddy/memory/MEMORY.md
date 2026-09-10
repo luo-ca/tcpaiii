@@ -24,7 +24,11 @@
   `API_PROXY_TARGET=https://t.paiii.cn vite --port 5178`。否则全站显示 0 / 空态，**不要误判为 bug**。
 - **`node_modules` 曾出现不完整安装**：`lucide-react@0.564.0` 的 5 个 `.d.ts` 全部缺失（导致 17 个文件 TS7016）。
   已按 lock 的 sha512 校验后从官方 tarball 补回。若 TS7016 复现，先怀疑镜像源给了残缺包。详见 `UI-REFACTOR-PLAN.md` 11.2。
-- 仓库行尾统一 **LF**（2026-09-10 普查：85 个 LF / 1 个 CRLF，且无 `.gitattributes`）。唯一例外 `src/test/functions-api.test.ts` 曾是 CRLF，已归一为 LF —— **写文件一律用 LF，别引入 CRLF**。（旧笔记误记成"仓库约定 CRLF"，已更正。）
+- 仓库行尾统一 **LF**（2026-09-10 字节级普查复验：HEAD blob 中文本文件 **87 个 LF / 0 个 CRLF** + 1 个二进制 `public/og.png`；
+  `core.autocrlf=false`、无 `.gitattributes`）。**写文件一律用 LF，别引入 CRLF。**
+  - ⚠️ **别用 `grep -c $'\r' 文件` 查行尾**：在 `$(...)` + 嵌套引号里会误报"每行都含 CR"（实测把一个纯 LF 文件的 100 行全判成 CRLF）。
+    可靠做法是用 Python 数字节：`pathlib.Path(f).read_bytes()` 后比较 `\r` 与 `\n` 的数量。
+    交叉验证最省事的是 `git diff --numstat`——**若行尾被整体翻转，改动量会等于整个文件行数**。
 - `wmic` 被沙箱禁用、Git Bash 下 `taskkill //PID` 会报参数错 → 用 PowerShell `Stop-Process -Id <pid> -Force`。
 - `rm -rf dist` 会被沙箱安全删除守卫拦（vite 清空 dist 时同样触发）→ 构建前需先手动删 `dist`。
 - **Tailwind v4 的 `hover:` 变体 = `@media (hover: hover) { &:hover }`** → 触摸设备（primary pointer 为 coarse）上 **`hover:` / `group-hover:` 一律不生效**。
@@ -39,10 +43,32 @@
 - **图库首访 CLS ≈ 0.048，已在 Google good(<0.1) 区间**。要彻底归零需让 `/api/list` 返回每张图宽高
   （改 KV 记录结构 + 导入流程 + 存量回填），收益与成本不成比例 —— **已判定不做，不必重复评估**。
 - 同域图片是 `img.static.paiii.cn`；用 `new Image()` 批量测尺寸时**并发别超过 4**（CDN 会限流，6 并发即大量失败）。
+- **图片托管方没有开通图片处理**（2026-09-10 实测 6 种语法全部返回原图字节、md5 一致）：
+  `?imageMogr2/thumbnail/600x`、`!600x`、`/format/webp`、`/crop/600x400`、`?imageView2/2/w/600`、`?x-oss-process=image/resize,w_600`。
+  响应头 `EO-Cache-Status`/`EO-LOG-UUID` → 托管在**腾讯云 EdgeOne**，源站路径 `imgtcpaiii/...` 形似同名 COS 桶。
+  → **前端无法做任何缩略图**；想减体积必须先让托管方开启图片处理（或改导入流程生成派生图）。
+- **图库首屏 24 张原图 = 9.27 MB**（平均 395 KB、最大 1362 KB），原图高达 `5760×3240`，而显示槽位只有 264px（桌面）/ 173px（手机）宽。
+  实测把 24 张按 **600px 宽 WebP q80** 重编码 → **0.88 MB（−90.5%）**。这是本项目最大的一笔性能债。
+- 4G 限速实测 LCP：图库桌面 **8226 ms** / 手机 **10029 ms**（Poor）；首页手机 589 ms。
+
+## 性能测量的三个坑（2026-09-10 返工三次换来的）
+1. **跨域资源取不到字节数**：`img.static.paiii.cn` 无 `Timing-Allow-Origin` → Resource Timing 的 `transferSize`/`encodedBodySize` **恒为 0**。
+   必须用 Playwright `page.on('response')` 读 `content-length`，或落盘 `curl` + `wc -c`。
+2. **禁止用 dev server 测性能**：dev 下 Vite 不打包（87 个模块）→ 限速时 DCL 7 秒，LCP 会落到 `index.html` 的占位文字上。
+   必须 `npm run build` + `API_PROXY_TARGET=... vite preview --port 4178`（`preview.proxy` 默认继承 `server.proxy`）。
+3. **LCP 采集窗口必须长于"下完整页"**：4G 下 9.3 MB ≈ 19 s。窗口 6 s 读出 6.3 s、26 s 读出 8.2 s —— 前者是截断假值。
+   限速用 CDP：`ctx.newCDPSession(page)` → `Network.emulateNetworkConditions`。
+
+- **CSS multi-column 逐列向下填充，DOM 顺序 ≠ 视觉首屏顺序**（实测）：桌面 4 列时 DOM `0,1,2,3,4` 全在第 1 列，
+  首屏 15 张的起点索引是 `0,5,11,18`；手机 2 列首屏只有 `0,1,11,12`。
+  → **"给前 N 张加 fetchpriority"是错的**；且实测给单张加优先级**无法改善 LCP**（LCP 元素是随机后到的大图）。
+- 已加 `preconnect`/`dns-prefetch` 到 `img.static.paiii.cn`（`index.html`）。
 
 ## 本地可视化验证（Playwright，已重复使用）
 本环境**无法直接查看图片**，因此验证一律靠 `page.evaluate` 读 DOM 文本/属性做断言，截图仅作留档（存 `.workbuddy/shots/`）。
-现成脚本见 `.workbuddy/shots/`：`routes.mjs`、`p2-routes.mjs`、`p2-filter-check.mjs`、`p2-loadmore-check.mjs`、`p3-hero-check.mjs`、`p3-copy-check.mjs`。骨架：
+现成脚本见 `.workbuddy/shots/`：`routes.mjs`、`p2-routes.mjs`、`p2-filter-check.mjs`、`p2-loadmore-check.mjs`、`p3-hero-check.mjs`、`p3-copy-check.mjs`、
+`p5-payload.mjs`（真实传输体积）、`p5-payload-throttled.mjs`（4G/3G 限速首屏）、`p5-lcp-attribution.mjs`（LCP 元素归因，`TAIL` 控制采集窗口）、`p5-fold-order.mjs`（瀑布流首屏实际可见索引）。
+体积量化：`.workbuddy/tmp-probe/probe-resize.py`（用系统 Python `C:/python/py311/python.exe`，**它才有 Pillow 12**，托管版没有）。骨架：
 
 ```js
 import { createRequire } from 'node:module';
@@ -85,6 +111,6 @@ const browser = await chromium.launch({ executablePath: EXE });
 - **文案约定**：站点面向中文用户，H1 为「二次元图片 / 人人可用」；`src/test/app-copy.test.ts` 的中文一律写成 `\uXXXX` 字面量转义（文件内不出现原始 CJK），组件 JSX 则直接写中文。
 
 ## 相关文档
-- `UI-REFACTOR-PLAN.md` — UI/UX 重构行动规划（P0/P1/P2 已完成记录见第 10、11、12 节；P2 = 图库拆分）
+- `UI-REFACTOR-PLAN.md` — UI/UX 重构行动规划（P0/P1/P2/P3/P4/P5 记录见第 10–15 节；第 15 节 = 图片载荷调查 + 待决策项）
 - `PROJECT_IMPROVEMENTS.md` — 2026-05-01 的构建与编码优化记录
 - `README.md` — API 行为、KV 绑定、鉴权、部署流程

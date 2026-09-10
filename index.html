@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="https://imgs.paiii.cn/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!--
+      图片托管域预连接。
+      图库首屏要拉几十张跨域图片，而图片是等 React 挂载 + /api/list 返回后才开始请求的，
+      握手时间被完全算进首图延迟里。这里在解析 HTML 时就提前完成 DNS + TLS。
+      img.static 用裸 preconnect（img 标签是 no-cors 请求，不带 crossorigin）；
+      imgs 只用到 logo.svg，dns-prefetch 足够。
+    -->
+    <link rel="preconnect" href="https://img.static.paiii.cn" />
+    <link rel="dns-prefetch" href="https://img.static.paiii.cn" />
+    <link rel="dns-prefetch" href="https://imgs.paiii.cn" />
+
     <!-- Primary Meta Tags -->
     <title>派次元 API - 免费随机图片接口 | 稳定高速图片 API 服务</title>
     <meta name="title" content="派次元 API - 免费随机图片接口 | 稳定高速图片 API 服务" />

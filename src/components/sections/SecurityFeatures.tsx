@@ -49,12 +49,13 @@ export function SecurityFeatures() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-4 pb-4">
       <div className="p-6 rounded-2xl glass-strong border border-white/60">
-        <h3 className="font-bold text-base mb-5 flex items-center gap-2">
+        {/* 该组件只在 `/docs` 渲染，是「API 文档」h1 之下的二级区块 */}
+        <h2 className="font-bold text-base mb-5 flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center">
             <Shield className="w-4 h-4 text-brand-500" />
           </div>
           安全防护与性能优化
-        </h3>
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {items.map((item, i) => (
             <div

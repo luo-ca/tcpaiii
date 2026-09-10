@@ -930,7 +930,7 @@ export default function GalleryPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 mb-7 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-3xl font-black tracking-tight">图片管理</h2>
+          <h1 className="text-3xl font-black tracking-tight">图片管理</h1>
           <p className="text-muted-foreground text-sm mt-1.5">
             管理你的外链图片库 · 支持批量导入与搜索
           </p>

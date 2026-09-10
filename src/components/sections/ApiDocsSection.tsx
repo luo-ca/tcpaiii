@@ -55,7 +55,8 @@ export function ApiDocsSection() {
           <Code className="w-3.5 h-3.5" />
           开发文档
         </p>
-        <h2>API 文档</h2>
+        {/* `/docs` 是独立路由，这一处是全页唯一的一级标题 */}
+        <h1>API 文档</h1>
         <p>复制即可接入，支持直链、分类和 JSON 元数据返回</p>
       </div>
 

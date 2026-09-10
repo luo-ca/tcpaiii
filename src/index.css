@@ -430,6 +430,9 @@
     letter-spacing: 0.18em;
   }
 
+  /* h1 也纳入：`/docs` 的「API 文档」是整页唯一的顶级标题，
+     但其余区块（更新日志 / 图片投稿 / 实时统计 / 为什么选择）在首页只是 h2，共用同一套样式 */
+  .section-header h1,
   .section-header h2 {
     @apply text-3xl sm:text-4xl font-bold tracking-tight mb-3 text-balance;
     color: var(--color-foreground);

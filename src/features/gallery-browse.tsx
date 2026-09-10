@@ -45,7 +45,26 @@ const SKELETON_RATIOS = [16 / 9, 3 / 2, 16 / 10];
 // 单张瀑布流卡片
 // ============================================================
 
-function MasonryTile({ image, onOpen }: { image: ImageRecord; onOpen: () => void }) {
+/**
+ * 单张瀑布流卡片。
+ *
+ * `priority` 只给第一张：它恒在首屏（已在 390 与 1440 两档实测），
+ * 且实测它还是本批数据里最高的一张（264×373，面积约为普通瓦片的 2.5 倍），
+ * 也就是最可能的 LCP 候选 —— 让它先于另外 23 张抢到带宽。
+ *
+ * 注意**不要**顺手写成「前 N 张优先」：CSS multi-column 是逐列向下填充的，
+ * DOM 里 index 0/1/2/3 会同处第一列（实测桌面 4 列时 0~4 全在第 1 列），
+ * 那样会把 3 张首屏外的图提到前面，反而拖慢首屏。
+ */
+function MasonryTile({
+  image,
+  priority = false,
+  onOpen,
+}: {
+  image: ImageRecord;
+  priority?: boolean;
+  onOpen: () => void;
+}) {
   // 优先用缓存过的真实比例占位（重复访问 → 布局稳定）
   const [ratio, setRatio] = useState<number>(() => getImageRatio(image.url) ?? DEFAULT_RATIO);
   const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
@@ -80,7 +99,8 @@ function MasonryTile({ image, onOpen }: { image: ImageRecord; onOpen: () => void
         <img
           src={image.url}
           alt={image.title || '二次元图片'}
-          loading="lazy"
+          loading={priority ? 'eager' : 'lazy'}
+          {...(priority ? { fetchpriority: 'high' as const } : {})}
           decoding="async"
           onLoad={handleLoad}
           onError={() => setState('error')}
@@ -431,7 +451,12 @@ export default function GalleryBrowse() {
             }`}
           >
             {images.map((image, index) => (
-              <MasonryTile key={image.id} image={image} onOpen={() => setLightboxIndex(index)} />
+              <MasonryTile
+                key={image.id}
+                image={image}
+                priority={index === 0}
+                onOpen={() => setLightboxIndex(index)}
+              />
             ))}
           </div>
 
