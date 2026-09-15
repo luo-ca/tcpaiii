@@ -686,3 +686,119 @@ Good 阈值是 2.5 s，Poor 阈值是 4 s —— 图库页的 LCP 已进入 **Po
 
 *本规划基于对 `G:\web\tcapi` 源码的逐文件核查，以及两轮设计决策问答。所有"现状"描述均可在对应文件中验证。*
 
+
+## 16. P6 全站 UI 打磨：一致性收口
+
+P0–P5 之后做的一轮全面审计，目标是把残余的不协调处清零。全部为 class / CSS / 文案层改动，未触碰数据流与路由。
+
+### 16.1 修复的真 bug
+
+| # | 问题 | 证据 | 修复 |
+|---|---|---|---|
+| 1 | `browser-dot` 三个类被 OnlinePreview 使用但**从未定义**，浏览器窗口红绿灯是 0×0 不可见 | `grep browser-dot src/` 只有调用无定义 | 在 index.css 定义，颜色复用全站语义色（destructive/warning/success），不引入新色相 |
+| 2 | `.section-eyebrow` 样式被限定在 `.section-header` 后代内，而 GalleryPreview / DocsTeaser / gallery-browse 在 **section-header 之外**使用它 → eyebrow 渲染为完全无样式的普通段落 | 三处 JSX 均不在 `.section-header` 内 | 选择器去作用域，成为独立工具类 |
+
+### 16.2 一致性收口
+
+| # | 维度 | 改动 |
+|---|---|---|
+| 1 | 焦点指示 | 移除 button / input / tabs / badge / dialog / select / admin textarea 里的 `focus-visible:ring-*` + `ring-offset-*`。全局 `*:focus-visible` outline（P0 建立）与组件 ring 同时生效会画**双环**；现在全站唯一指示器 |
+| 2 | 字重 | 8 处 `font-black`(900) 统一为 `font-bold`(700)（设计规范 4.3 的 Display/H1/H2=700；CJK 字体本就没有 900 字重，视觉无回退） |
+| 3 | CTA | Hero「随机获取」、预览「换一张」、DocsTeaser「查看完整 API 文档」三处手写 `bg-gradient-to-r from-brand-600 to-brand-500` 统一收敛到 `.gradient-button`（135° 品牌渐变 + 阴影 + 悬停抬升 + 按压），与 ImageSubmission / admin 一致 |
+| 4 | eyebrow 文案 | `Daily Picks`→每日精选、`Gallery`→最新收录 / 公共图库、`Documentation`→接入文档，与首页其余中文 eyebrow（实时数据/核心优势/版本历史等）对齐；OnlinePreview 的手写 eyebrow（tracking 0.22em）改用统一类；`Random API` 徽章→随机接口 |
+| 5 | 图表标签 | RealtimeStats `7-day trend` →「近 7 天趋势」 |
+| 6 | 圆角 | Button / Input / SelectTrigger / TabsTrigger 基础 `rounded-md`(6px) → `rounded-lg`（12px），不再低于最小 token；Dialog 关闭键 `rounded-sm`→`rounded-lg` |
+| 7 | 交互 | Button 基础增加 `active:scale-[0.98]` 按压反馈（与 category-button 手感一致）；gallery-browse 的筛选 chips 补上 `category-button` 悬停/按压动效（此前只有 OnlinePreview 有） |
+| 8 | 间距 | `/docs` 页底部 `pb-2`+SecurityFeatures `pb-4`（合计 ≈40px）明显小于首页/图库的 80–96px，wrapper 改为 `pb-12 sm:pb-16` |
+| 9 | 细节 | Changelog 8px 文字圆点 `●` → 真正的 `1.5×1.5` 圆点元素；SecurityFeatures hover `bg-muted/30`→`/60`（原先肉眼不可见）；Hero 微粒移除无意义的 `blur-[0px]` |
+
+### 16.3 新增的全局体验
+
+| 项 | 说明 |
+|---|---|
+| 细滚动条 | `scrollbar-width: thin` + webkit 自定义（圆角、中性色、hover 加深），替换 Windows 默认灰色粗滚动条；category-strip 的专用样式不受影响 |
+| `color-scheme: light` | 深色系统的原生控件（滚动条/表单）也按浅色渲染，避免全站唯一一处"系统色"突兀 |
+| `accent-color: brand` | 原生复选框 / 单选 / 进度条跟随品牌色 |
+
+### 16.4 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `eslint .` / `tsc -p tsconfig.app.json --noEmit` | 0 / 0 |
+| `vitest run` | **51/51**（app-copy 断言未受影响） |
+| `npm run build` | 成功，最大 chunk 仍为 `react-vendor` 142KB |
+| 产物 CSS 断言 | `.section-eyebrow` 独立类 ✓；`.browser-dot*` 3 条 ✓；`scrollbar-width:thin` / `color-scheme:light` ✓；`:active{scale:.98}` ✓；P3 的 `pointer:coarse` 仍在 ✓；`.section-header .section-eyebrow` 旧选择器 0 条 ✓ |
+| 路由 | `vite preview` 下 `/`、`/docs`、`/gallery` 均 200 |
+| grep 残留 | `font-black` 0 条；`from-brand-600 to-brand-500` 0 条；ui 组件内 `ring-ring`/`ring-offset-background` 0 条；英文 eyebrow 0 条 |
+
+### 16.5 复查补充（同日第二轮）
+
+| # | 改动 | 说明 |
+|---|---|---|
+| 1 | Footer「更新日志」去掉 `sm:hidden` | 页脚全站共用，桌面端的 `/docs`、`/gallery` 用户反而没有该入口 —— 首页单页时代的遗留 |
+| 2 | `GalleryFallback` 骨架 12 块 → 24 块 | 与 `BROWSE_PAGE_SIZE = 24` 对齐，懒加载落地时不再"骨架比真实内容少一半" |
+| 3 | `SelectItem` `rounded-sm` → `rounded-md` | 选项圆角与触发器/列表观感对齐 |
+| 4 | Badge 补回 `break-words` | 16.2 清理焦点环时 `break-all` 被连带移除；`break-words` 仅在放不下时断词，优于原先的逐字符折断 |
+| 5 | 3 处 `text-[10px]` → `text-[11px]` | Hero GET 徽标、图库标签胶囊，回归 P0 确立的 11px 最小字号底线 |
+| 6 | admin 浮层去掉冗余 `sm:opacity-0` | 与 `opacity-0` 重复，行为不变 |
+
+## 17. P7 滚动动效 / 页面过渡 / 无障碍 / 三态组件 / admin 对齐
+
+> 目标：在不引入新 JS 依赖的前提下补齐"动感与一致"的最后一块——滚动进入动效、路由切换过渡、装饰图标无障碍清扫、loading/empty/error 三态组件抽取、admin 后台与前台图库的观感对齐。全部动效尊重 `prefers-reduced-motion`，全部增强对不支持的浏览器零副作用。
+
+### 17.1 滚动进入动效（CSS scroll-driven animation，零 JS）
+
+| 项 | 说明 |
+|---|---|
+| 实现 | `@keyframes reveal-up`（`opacity 0 → 1` + `translateY(24px) → 0`），`.reveal` 类绑定 `animation-timeline: view()`，`animation-range: entry 0% entry 40%`（压缩产物为等价写法 `entry entry 40%`） |
+| 渐进增强 | 整段包在 `@supports (animation-timeline: view())` + `@media (prefers-reduced-motion: no-preference)` 内；不支持的浏览器规则不存在，内容直接可见，无闪隐风险 |
+| 关键约束 | `.reveal` 只加在**不带 hover transform 的容器**上：动画 `fill both` 会持有最终 `transform`，与 `glass-card`/`hover-lift` 这类 transform 位移冲突；Tailwind v4 悬停位移用 `translate`/`scale` 独立属性，与持有的 `transform` 可组合，因此瀑布流瓦片可安全携带 |
+| 覆盖范围 | 首页 7 个区块（OnlinePreview / GalleryPreview / RealtimeStats / WhyChoose / DocsTeaser / ImageSubmission / Changelog 逐条）、`/docs` 两个区块（ApiDocsSection / SecurityFeatures）、`/gallery` 页头 + 筛选条 + 骨架屏 + 逐块瓦片（24 块自然错峰）；**首屏 Hero / Header 不加**（保护 LCP），admin 后台不加 |
+| 例外 | `/gallery` 内容瀑布流容器不挂 `.reveal`——它带 placeholder 透明度切换（`opacity-60`），与动画持有的 `opacity` 冲突，改为逐块瓦片各自 reveal |
+
+### 17.2 页面切换过渡（View Transitions API，零依赖）
+
+| 项 | 说明 |
+|---|---|
+| 实现 | `lib/router.ts` `navigate()`：跨页跳转时经 `document.startViewTransition` 包裹 `flushSync(pushAndEmit)` + `settleScroll`；`flushSync` 确保回调返回前 React 已渲染新页面，否则过渡会把更新前画面当成新状态截图 |
+| 触发条件 | 仅 `nextPathname !== 当前 pathname`（同页锚点/查询变化、`/#changelog` 原地跳转不触发）；`prefers-reduced-motion: reduce` 不触发；不支持的浏览器走原即时切换路径，行为零变化 |
+| 兼容 | 功能检测通过 `docWithViewTransition?.startViewTransition` + 返回值 bind(document)，无类型断言；浏览器前进/后退不包裹（避免与滚动恢复叠加） |
+| CSS | `::view-transition-old(root)/::view-transition-new(root)` 时长收紧为 `200ms` + `cubic-bezier(0.4, 0, 0.2, 1)`，同样包在 no-preference 内 |
+| 已知取舍 | `flushSync` 仅发生在用户点击导航的事件回调中，无 React 生命周期告警 |
+
+### 17.3 无障碍清扫（装饰性图标）
+
+| 项 | 说明 |
+|---|---|
+| 方法 | python 扫描器：按文件解析 lucide-react 导入清单（含 `X as CopyIcon` 别名），对 `<Name …/>` 与 `<xxx.icon …/>` 自闭合标签做括号/引号感知的标签边界扫描，缺少 `aria-hidden` 则插入 |
+| 结果 | **+87 处**（82 处单引号文件 + 5 处双引号文件 dialog/select），覆盖 15 个文件；Footer / back-to-top 已有裸 `aria-hidden`（语义等价）保留不动 |
+| 覆盖缺口修复 | 第一轮正则只匹配单引号导入，第二轮回扫发现 dialog.tsx / select.tsx 用双引号，补扫 +5；最终 grep 校验无残留 |
+
+### 17.4 三态组件抽取（`src/components/states/`）
+
+| 项 | 说明 |
+|---|---|
+| 组件 | `ErrorState`（`role="alert"`：图标 + 标题 + 说明 + 重试按钮，红色调容器）、`EmptyState`（`role="status"`：图标容器 + 标题 + 说明 + 可选动作 children，中性色调容器） |
+| 接入点 | `/gallery`：加载失败 + 空态/无匹配（空态按有无筛选区分 `Images` / `SearchX` 图标）；`/admin`：加载失败 + 空图库 + 无匹配——原两页各 3 处手写状态块全部收敛为组件调用 |
+| 观感统一 | admin 原空态为虚线边框 + `glass`，现并入全站实线 + `glass-strong` + 图标容器（`h-14 w-14 rounded-2xl bg-secondary/70`）；`AddImageDialog` / 「清空筛选」按钮作为 children 动作传入 |
+
+### 17.5 admin 后台同级打磨
+
+| # | 改动 | 说明 |
+|---|---|---|
+| 1 | 筛选 chips 对齐图库页 | `bg-secondary/70 + shadow-sm` → 与 gallery-browse 同款：未激活 `bg-white/70 border-border hover:bg-white`，激活 `shadow-md`，并补 `category-button` 悬停/按压动效 |
+| 2 | 瓦片缩放加 `motion-safe:` | 图片 `group-hover:scale-108` 与全站一致地降级 |
+| 3 | 分页跳转按钮「GO」→「前往」 | 全站中文文案 |
+| 4 | 错误/空态接入 17.4 组件 | 移除 3 处手写状态块与随之不再使用的 `RefreshCw` 导入；移动端操作条原本就常显（`opacity-100 sm:opacity-0 sm:group-hover:opacity-100`），无需 pointer-coarse 修补 |
+
+### 17.6 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `eslint .` / `tsc -p tsconfig.app.json --noEmit` | 0 / 0 |
+| `vitest run` | **51/51** |
+| `npm run build` | 成功（2.06s），最大 chunk 仍为 `react-vendor` 142KB |
+| 产物 CSS 断言 | `animation-timeline` / `reveal-up` / `view-transition-old` / `category-button` 各 1 条 ✓；`.reveal` 正确嵌套于 `@supports (animation-timeline:view())` + no-preference 内 ✓；`animation-range` 为压缩等价写法 ✓ |
+| bundle 断言 | `startViewTransition` 已进 `dist/assets/index-*.js` ✓ |
+| 路由 | `vite preview` 下 `/`、`/docs`、`/gallery`、`/admin` 均 200 |
+| a11y 断言 | 全站 lucide 自闭合图标无 `aria-hidden` 残留（scanner 复扫 0 条） |

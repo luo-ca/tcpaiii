@@ -48,7 +48,7 @@ function GalleryFallback() {
         <div className="h-4 w-64 rounded-xl skeleton-shimmer" />
       </div>
       <div className="columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4">
-        {Array.from({ length: 12 }).map((_, i) => (
+        {Array.from({ length: 24 }).map((_, i) => (
           <div
             key={i}
             className="mb-3 break-inside-avoid rounded-2xl skeleton-shimmer sm:mb-4"
@@ -94,7 +94,7 @@ function HomePage() {
 
 function DocsPage() {
   return (
-    <section className="pb-2 pt-[calc(var(--header-h)+16px)]">
+    <section className="pb-12 pt-[calc(var(--header-h)+16px)] sm:pb-16">
       <Suspense fallback={<SectionFallback />}>
         <ApiDocsSection />
       </Suspense>

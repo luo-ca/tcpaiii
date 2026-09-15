@@ -60,7 +60,7 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
             {/* 用 NavLink 而不是裸 <a href="#changelog">：页脚是全站共用的，
                 在 /docs 或 /gallery 上点它需要先回到首页再滚到对应区块。 */}
-            <NavLink to="/#changelog" className="hover:text-foreground transition-colors sm:hidden">
+            <NavLink to="/#changelog" className="hover:text-foreground transition-colors">
               更新日志
             </NavLink>
             <NavLink to="/gallery" className="hover:text-foreground transition-colors">

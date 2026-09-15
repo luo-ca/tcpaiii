@@ -44,9 +44,9 @@ const tagColors: Record<string, string> = {
 export function Changelog() {
   return (
     <section id="changelog" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
-      <div className="section-header">
+      <div className="section-header reveal">
         <p className="section-eyebrow">
-          <Clock className="w-3.5 h-3.5" />
+          <Clock className="w-3.5 h-3.5" aria-hidden="true" />
           版本历史
         </p>
         <h2>更新日志</h2>
@@ -55,7 +55,7 @@ export function Changelog() {
 
       <div className="max-w-3xl mx-auto space-y-5">
         {updates.map((update, i) => (
-          <div key={i} className="flex gap-5">
+          <div key={i} className="reveal flex gap-5">
             {/* Timeline indicator */}
             <div className="flex flex-col items-center shrink-0">
               <div className="w-3 h-3 rounded-full bg-gradient-to-br from-brand-500 to-iris-500 mt-2 ring-4 ring-background outline outline-1 outline-brand-500/30" />
@@ -81,9 +81,10 @@ export function Changelog() {
                       key={j}
                       className="text-sm text-muted-foreground flex items-start gap-2 leading-relaxed"
                     >
-                      <span className="text-brand-400 mt-1.5 shrink-0 select-none text-[8px]">
-                        ●
-                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="mt-[9px] h-1.5 w-1.5 shrink-0 select-none rounded-full bg-brand-400"
+                      />
                       {item}
                     </li>
                   ))}

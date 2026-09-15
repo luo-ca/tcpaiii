@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { flushSync } from 'react-dom';
 
 /**
  * 站内路由。零依赖实现，只用 History API。
@@ -56,6 +57,23 @@ function getSnapshot(): RoutePath {
   return snapshot;
 }
 
+type StartViewTransition = (updateCallback: () => void) => unknown;
+const docWithViewTransition = isBrowser
+  ? (document as Document & { startViewTransition?: StartViewTransition })
+  : null;
+
+/**
+ * 跨页跳转可用的 startViewTransition；同页锚点、减弱动效、不支持的浏览器返回 null。
+ * 返回前 bind(document)，抽出函数调用不会丢 this。
+ */
+function getViewTransition(nextPathname: string): StartViewTransition | null {
+  const start = docWithViewTransition?.startViewTransition;
+  if (!start) return null;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+  if (nextPathname === window.location.pathname) return null;
+  return start.bind(docWithViewTransition);
+}
+
 if (isBrowser) {
   snapshot = readLocation();
   window.addEventListener('popstate', emit);
@@ -111,12 +129,25 @@ export function navigate(to: string, options: { replace?: boolean } = {}) {
     return;
   }
 
-  if (options.replace) {
-    window.history.replaceState(null, '', next);
-  } else {
-    window.history.pushState(null, '', next);
-  }
+  const pushAndEmit = () => {
+    if (options.replace) {
+      window.history.replaceState(null, '', next);
+    } else {
+      window.history.pushState(null, '', next);
+    }
+    emit();
+  };
 
-  emit();
-  settleScroll(url.hash);
+  const startViewTransition = getViewTransition(url.pathname);
+  if (startViewTransition) {
+    // flushSync 确保回调返回前 React 已把新页面渲染进 DOM，
+    // 否则 View Transition 会把「更新前的画面」当成新状态截下来。
+    startViewTransition(() => {
+      flushSync(pushAndEmit);
+      settleScroll(url.hash);
+    });
+  } else {
+    pushAndEmit();
+    settleScroll(url.hash);
+  }
 }

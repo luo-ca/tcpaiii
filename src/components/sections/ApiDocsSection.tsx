@@ -31,7 +31,7 @@ function CodeRow({
         className="h-7 shrink-0 justify-center card-button rounded-lg gap-1"
         onClick={onCopy}
       >
-        <CopyIcon className="w-3 h-3" />
+        <CopyIcon className="w-3 h-3" aria-hidden="true" />
         <span className="text-xs">复制</span>
       </Button>
     </div>
@@ -50,9 +50,9 @@ export function ApiDocsSection() {
 
   return (
     <section id="api" className="relative z-10 pb-16 sm:pb-20 px-4 sm:px-6">
-      <div className="section-header">
+      <div className="section-header reveal">
         <p className="section-eyebrow">
-          <Code className="w-3.5 h-3.5" />
+          <Code className="w-3.5 h-3.5" aria-hidden="true" />
           开发文档
         </p>
         {/* `/docs` 是独立路由，这一处是全页唯一的一级标题 */}
@@ -60,7 +60,7 @@ export function ApiDocsSection() {
         <p>复制即可接入，支持直链、分类和 JSON 元数据返回</p>
       </div>
 
-      <div className="max-w-4xl mx-auto">
+      <div className="reveal max-w-4xl mx-auto">
         <Tabs value={activeDocTab} onValueChange={setActiveDocTab}>
           <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-4 gap-1 glass rounded-xl p-1.5 min-h-[3rem] mb-6 border border-white/60">
             <TabsTrigger
@@ -94,7 +94,7 @@ export function ApiDocsSection() {
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
-                    <Code className="w-4 h-4 text-brand-500" />
+                    <Code className="w-4 h-4 text-brand-500" aria-hidden="true" />
                   </div>
                   <div>
                     <span className="text-sm font-semibold">基础调用</span>
@@ -107,18 +107,15 @@ export function ApiDocsSection() {
                   <CodeRow
                     label="API 地址（默认 302）"
                     code={randomApiUrl}
-                    onCopy={() => copyCode(randomApiUrl)}
-                  />
+                    onCopy={() => copyCode(randomApiUrl)} aria-hidden="true" />
                   <CodeRow
                     label="HTML 使用示例"
                     code={`<img src="${randomApiUrl}" alt="随机图片" />`}
-                    onCopy={() => copyCode(`<img src="${randomApiUrl}" alt="随机图片" />`)}
-                  />
+                    onCopy={() => copyCode(`<img src="${randomApiUrl}" alt="随机图片" />`)} aria-hidden="true" />
                   <CodeRow
                     label="Markdown 使用示例"
                     code={`![随机图片](${randomApiUrl})`}
-                    onCopy={() => copyCode(`![随机图片](${randomApiUrl})`)}
-                  />
+                    onCopy={() => copyCode(`![随机图片](${randomApiUrl})`)} aria-hidden="true" />
                 </div>
               </CardContent>
             </Card>
@@ -129,7 +126,7 @@ export function ApiDocsSection() {
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-8 h-8 rounded-lg bg-iris-50 flex items-center justify-center">
-                    <Tag className="w-4 h-4 text-iris-500" />
+                    <Tag className="w-4 h-4 text-iris-500" aria-hidden="true" />
                   </div>
                   <div>
                     <span className="text-sm font-semibold">分类参数</span>
@@ -140,8 +137,7 @@ export function ApiDocsSection() {
                 </div>
                 <CodeRow
                   code={randomTagApiUrl}
-                  onCopy={() => copyCode(randomTagApiUrl)}
-                />
+                  onCopy={() => copyCode(randomTagApiUrl)} aria-hidden="true" />
               </CardContent>
             </Card>
           </TabsContent>
@@ -151,7 +147,7 @@ export function ApiDocsSection() {
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
-                    <Code className="w-4 h-4 text-brand-500" />
+                    <Code className="w-4 h-4 text-brand-500" aria-hidden="true" />
                   </div>
                   <div>
                     <span className="text-sm font-semibold">JSON 返回模式</span>
@@ -163,8 +159,7 @@ export function ApiDocsSection() {
                 <div className="space-y-2.5">
                   <CodeRow
                     code={randomJsonApiUrl}
-                    onCopy={() => copyCode(randomJsonApiUrl)}
-                  />
+                    onCopy={() => copyCode(randomJsonApiUrl)} aria-hidden="true" />
                   <div className="rounded-xl overflow-hidden code-block">
                     <div className="code-block-header">
                       <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">
@@ -194,7 +189,7 @@ export function ApiDocsSection() {
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-emerald-500" />
+                    <Zap className="w-4 h-4 text-emerald-500" aria-hidden="true" />
                   </div>
                   <div>
                     <span className="text-sm font-semibold">高级用法</span>

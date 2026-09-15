@@ -10,7 +10,6 @@ import {
   ImageOff,
   Images,
   Loader2,
-  RefreshCw,
   Search,
   SearchX,
   Tag,
@@ -23,6 +22,8 @@ import { fetchImagesPage, fetchStats } from '@/lib/api';
 import { getErrorMessage } from '@/lib/helpers';
 import { getImageRatio, rememberImageRatio } from '@/lib/image-ratio';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { ErrorState } from '@/components/states/ErrorState';
+import { EmptyState } from '@/components/states/EmptyState';
 import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 
 /** 后端 MAX_LIST_PAGE_SIZE = 60，这里取默认值 24，保证翻页粒度舒服 */
@@ -85,14 +86,14 @@ function MasonryTile({
       type="button"
       onClick={onOpen}
       aria-label={`查看大图：${image.title || '未命名图片'}`}
-      className="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/60 bg-secondary shadow-sm transition-all duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-lg sm:mb-4"
+      className="reveal group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/60 bg-secondary shadow-sm transition-all duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-lg sm:mb-4"
       style={{ aspectRatio: String(ratio) }}
     >
       {state === 'loading' && <div className="absolute inset-0 skeleton-shimmer" aria-hidden="true" />}
 
       {state === 'error' ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-muted-foreground/50">
-          <ImageOff className="h-6 w-6 opacity-40" />
+          <ImageOff className="h-6 w-6 opacity-40" aria-hidden="true" />
           <span className="text-xs">加载失败</span>
         </div>
       ) : (
@@ -118,7 +119,7 @@ function MasonryTile({
           {image.title || '未命名'}
         </span>
         {image.tags[0] && (
-          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
+          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm">
             {image.tags[0]}
           </span>
         )}
@@ -195,7 +196,7 @@ function Lightbox({
                     className="inline-flex h-8 items-center gap-1 rounded-full bg-white/15 px-3.5 text-xs text-white transition-colors hover:bg-white/25"
                   >
                     在新标签页打开
-                    <ExternalLink className="h-3 w-3" />
+                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
                   </a>
                 </div>
               ) : (
@@ -231,7 +232,7 @@ function Lightbox({
                   className="h-7 rounded-full border-0 bg-white/15 text-xs text-white backdrop-blur-sm hover:bg-white/25"
                   onClick={() => void copy(image.url, '图片地址已复制')}
                 >
-                  {copied ? <Check className="mr-1 h-3 w-3" /> : <CopyIcon className="mr-1 h-3 w-3" />}
+                  {copied ? <Check className="mr-1 h-3 w-3" aria-hidden="true" /> : <CopyIcon className="mr-1 h-3 w-3" aria-hidden="true" />}
                   {copied ? '已复制' : '复制地址'}
                 </Button>
                 <a
@@ -241,7 +242,7 @@ function Lightbox({
                   className="inline-flex h-7 items-center gap-1 rounded-full bg-white/15 px-3 text-xs text-white backdrop-blur-sm transition-colors hover:bg-white/25"
                 >
                   原图
-                  <ExternalLink className="h-3 w-3" />
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
                 </a>
               </span>
             </figcaption>
@@ -256,7 +257,7 @@ function Lightbox({
             aria-label="上一张"
             className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/12 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-white/25 sm:left-4"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
         {hasNext && (
@@ -266,7 +267,7 @@ function Lightbox({
             aria-label="下一张"
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/12 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-white/25 sm:right-4"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
       </DialogContent>
@@ -341,7 +342,7 @@ export default function GalleryBrowse() {
   };
 
   const chipClass = (active: boolean) =>
-    `shrink-0 snap-start rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
+    `category-button shrink-0 snap-start rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
       active
         ? 'bg-primary text-primary-foreground shadow-md'
         : 'border border-border bg-white/70 text-muted-foreground hover:bg-white hover:text-foreground'
@@ -350,13 +351,13 @@ export default function GalleryBrowse() {
   return (
     <div className="relative z-10 mx-auto max-w-6xl px-4 pb-24 pt-[calc(var(--header-h)+32px)] sm:px-6">
       {/* 页头 */}
-      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="reveal mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="section-eyebrow">
-            <Images className="h-3.5 w-3.5" />
-            Gallery
+            <Images className="h-3.5 w-3.5" aria-hidden="true" />
+            公共图库
           </p>
-          <h1 className="text-3xl font-black tracking-tight">二次元图库</h1>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">二次元图库</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             点任意一张看大图，左右方向键切换，Esc 关闭。
             {total > 0 && (
@@ -369,7 +370,7 @@ export default function GalleryBrowse() {
         </div>
 
         <div className="relative w-full shrink-0 sm:w-72">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" aria-hidden="true" />
           <Input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -382,7 +383,7 @@ export default function GalleryBrowse() {
 
       {/* 标签筛选 */}
       {tags.length > 0 && (
-        <div className="category-strip mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory sm:flex-wrap sm:overflow-visible">
+        <div className="reveal category-strip mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory sm:flex-wrap sm:overflow-visible">
           <button
             type="button"
             onClick={() => setSelectedTag(null)}
@@ -398,7 +399,7 @@ export default function GalleryBrowse() {
               aria-pressed={selectedTag === tag}
               className={chipClass(selectedTag === tag)}
             >
-              <Tag className="mr-1 inline h-3 w-3 align-[-2px]" />
+              <Tag className="mr-1 inline h-3 w-3 align-[-2px]" aria-hidden="true" />
               {tag}
             </button>
           ))}
@@ -407,7 +408,7 @@ export default function GalleryBrowse() {
 
       {/* 三种状态：加载 / 出错 / 空 */}
       {isInitialLoading ? (
-        <div className="columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4">
+        <div className="reveal columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4">
           {Array.from({ length: BROWSE_PAGE_SIZE }).map((_, i) => (
             <div
               key={i}
@@ -417,32 +418,27 @@ export default function GalleryBrowse() {
           ))}
         </div>
       ) : imagesQuery.isError ? (
-        <div className="mx-auto max-w-md rounded-2xl border border-red-100 glass-strong p-8 text-center">
-          <ImageOff className="mx-auto mb-4 h-14 w-14 text-red-300" />
-          <p className="text-lg font-medium text-foreground">图库加载失败</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {getErrorMessage(imagesQuery.error, '请稍后重试')}
-          </p>
-          <Button className="mt-5" variant="outline" onClick={() => imagesQuery.refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            重新加载
-          </Button>
-        </div>
+        <ErrorState
+          title="图库加载失败"
+          message={getErrorMessage(imagesQuery.error, '请稍后重试')}
+          onRetry={() => imagesQuery.refetch()}
+        />
       ) : isEmpty ? (
-        <div className="mx-auto max-w-md rounded-2xl border border-border/60 glass-strong p-8 text-center">
-          <SearchX className="mx-auto mb-4 h-14 w-14 text-muted-foreground/30" />
-          <p className="text-lg font-medium text-foreground">
-            {hasFilter ? '没有匹配的图片' : '图库还是空的'}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {hasFilter ? '换个关键词，或清空筛选条件看看全部图片。' : '等管理员导入第一批图片后这里就会热闹起来。'}
-          </p>
+        <EmptyState
+          icon={hasFilter ? SearchX : Images}
+          title={hasFilter ? '没有匹配的图片' : '图库还是空的'}
+          message={
+            hasFilter
+              ? '换个关键词，或清空筛选条件看看全部图片。'
+              : '等管理员导入第一批图片后这里就会热闹起来。'
+          }
+        >
           {hasFilter && (
-            <Button className="mt-5" variant="outline" onClick={clearFilters}>
+            <Button variant="outline" onClick={clearFilters}>
               清空筛选
             </Button>
           )}
-        </div>
+        </EmptyState>
       ) : (
         <>
           <div
@@ -470,7 +466,7 @@ export default function GalleryBrowse() {
               >
                 {imagesQuery.isFetchingNextPage ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                     加载中…
                   </>
                 ) : (

@@ -185,6 +185,10 @@
   :root {
     /* 顶栏实际占位高度：所有首屏与锚点定位统一引用它 */
     --header-h: 64px;
+    /* 全站锁定浅色：深色系统的原生控件（滚动条/表单）也按浅色渲染 */
+    color-scheme: light;
+    /* 原生复选框 / 单选 / 进度等控件的主色跟随品牌 */
+    accent-color: var(--color-primary);
   }
 
   @media (max-width: 767px) {
@@ -225,6 +229,32 @@
     color: inherit;
   }
 
+  /* 细滚动条：Windows 默认的灰色粗滚动条与浅色界面不协调 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-color: var(--color-border-strong);
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-muted-foreground);
+  }
+
   /* 全站唯一焦点指示器：品牌色 2px 描边。
      不再覆盖 border-radius（原实现会给所有聚焦元素强制 4px 圆角，
      会把卡片和按钮的圆角瞬间压平）。 */
@@ -245,6 +275,17 @@
   /* 所有带 id 的锚点统一预留顶栏高度，替代零散的 scroll-mt-* */
   [id] {
     scroll-margin-top: calc(var(--header-h) + 16px);
+  }
+
+  /* 路由切换过渡：View Transitions API（仅跨页跳转触发，见 lib/router.ts）。
+     默认就是交叉淡入淡出，这里只收紧时长与缓动；
+     JS 侧已对 prefers-reduced-motion 与不支持的浏览器做了降级。 */
+  @media (prefers-reduced-motion: no-preference) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 200ms;
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
   }
 
   /* 数字等宽：统计刷新时不产生宽度抖动 */
@@ -340,6 +381,36 @@
   }
 
   /* ================================================================
+   * 滚动进入动效（CSS scroll-driven animation，零 JS）
+   * ------------------------------------------------------------
+   * 1. 仅在支持 animation-timeline: view() 的浏览器生效；不支持的浏览器
+   *    整段规则不存在，内容直接可见 —— 渐进增强，没有「闪隐」风险。
+   * 2. 只把 .reveal 加在「不带 hover transform 的容器」上：
+   *    动画 fill both 会持有最终 transform，若元素自身还有 transform 类
+   *    的 hover 位移（如 glass-card / hover-lift）会被覆盖。
+   *    Tailwind v4 的悬停位移用的是 translate / scale 独立属性，
+   *    与这里持有的 transform 互不干扰，因此瓦片/按钮不受影响。
+   * 3. 首屏（Hero / Header）与 admin 后台不使用，避免影响 LCP 与表单操作。
+   * ================================================================ */
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        animation: reveal-up both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 40%;
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+    }
+  }
+
+  /* ================================================================
    * 主行动按钮：品牌渐变（#007AFF → #5856D6）
    * ================================================================ */
   .gradient-button {
@@ -425,7 +496,9 @@
     @apply text-center mb-10 sm:mb-14;
   }
 
-  .section-header .section-eyebrow {
+  /* 独立工具类：section-header 内外的区块标题都能用
+     （GalleryPreview / DocsTeaser / gallery-browse 的页头是左对齐 flex 结构，不在 .section-header 里） */
+  .section-eyebrow {
     @apply inline-flex items-center gap-1.5 text-xs font-semibold uppercase text-brand-500 mb-3;
     letter-spacing: 0.18em;
   }
@@ -478,6 +551,28 @@
   .category-strip::-webkit-scrollbar-thumb {
     border-radius: 9999px;
     background: color-mix(in srgb, var(--color-muted-foreground) 30%, transparent);
+  }
+
+  /* ================================================================
+   * 浏览器窗口圆点（macOS 红绿灯，复用全站语义色）
+   * ================================================================ */
+  .browser-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.08);
+  }
+
+  .browser-dot-red {
+    background: var(--color-destructive);
+  }
+
+  .browser-dot-yellow {
+    background: var(--color-warning);
+  }
+
+  .browser-dot-green {
+    background: var(--color-success);
   }
 
   /* ================================================================

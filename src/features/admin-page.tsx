@@ -30,7 +30,6 @@ import {
   Link,
   ChevronLeft,
   ChevronRight,
-  RefreshCw,
   Search,
   KeyRound,
 } from 'lucide-react';
@@ -57,6 +56,8 @@ import {
   getVisiblePages,
 } from '@/lib/helpers';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { ErrorState } from '@/components/states/ErrorState';
+import { EmptyState } from '@/components/states/EmptyState';
 
 // ============================================================
 // Hooks
@@ -242,14 +243,14 @@ function AddImageDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="gap-2 gradient-button rounded-full border-0 text-white">
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4" aria-hidden="true" />
           添加图片
         </Button>
       </DialogTrigger>
       <DialogContent className="glass-strong rounded-2xl sm:max-w-xl sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Link className="w-5 h-5 text-brand-500" />
+            <Link className="w-5 h-5 text-brand-500" aria-hidden="true" />
             添加外链图片
           </DialogTitle>
         </DialogHeader>
@@ -307,7 +308,7 @@ function AddImageDialog({
               />
             </div>
             <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
               添加
             </Button>
           </form>
@@ -327,7 +328,7 @@ function AddImageDialog({
                 }}
                 required
                 rows={6}
-                className="w-full min-h-[140px] rounded-lg border border-border/70 bg-secondary/30 px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y font-mono"
+                className="w-full min-h-[140px] rounded-lg border border-border/70 bg-secondary/30 px-3 py-2 text-sm placeholder:text-muted-foreground resize-y font-mono"
               />
               <p className="text-xs text-muted-foreground">
                 粘贴后自动归一化并预检，单次最多 {MAX_BATCH_IMAGE_COUNT} 张
@@ -434,7 +435,7 @@ function AddImageDialog({
               className="w-full gradient-button rounded-full border-0 text-white"
               disabled={loading || batchPreview.validNew.length === 0}
             >
-              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
               {batchPreview.validNew.length > 0
                 ? `只导入全新 ${batchPreview.validNew.length} 张`
                 : '批量添加'}
@@ -511,13 +512,13 @@ function EditImageDialog({
           className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/20"
           aria-label="编辑图片"
         >
-          <Edit3 className="w-3.5 h-3.5" />
+          <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
         </Button>
       </DialogTrigger>
       <DialogContent className="glass-strong rounded-2xl sm:max-w-md sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Edit3 className="w-5 h-5 text-brand-500" />
+            <Edit3 className="w-5 h-5 text-brand-500" aria-hidden="true" />
             编辑图片
           </DialogTitle>
         </DialogHeader>
@@ -551,7 +552,7 @@ function EditImageDialog({
             />
           </div>
           <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
-            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : null}
             保存
           </Button>
         </form>
@@ -599,7 +600,7 @@ function ImageCard({
 
           {state === 'error' && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/40 text-muted-foreground/50">
-              <Image className="w-8 h-8 opacity-40" />
+              <Image className="w-8 h-8 opacity-40" aria-hidden="true" />
               <span className="text-xs">加载失败</span>
             </div>
           )}
@@ -608,7 +609,7 @@ function ImageCard({
             <img
               src={activeSrc}
               alt={img.title}
-              className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-108 ${
+              className={`w-full h-full object-cover transition-all duration-500 motion-safe:group-hover:scale-108 ${
                 state === 'loaded' ? 'opacity-100' : 'opacity-0'
               }`}
               style={{ willChange: 'transform' }}
@@ -618,7 +619,7 @@ function ImageCard({
             />
           )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent sm:hidden" />
 
           <div className="absolute inset-x-0 bottom-0 p-3.5 translate-y-1 sm:translate-y-2 sm:group-hover:translate-y-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300">
@@ -647,7 +648,7 @@ function ImageCard({
                   }}
                   aria-label="复制图片地址"
                 >
-                  <Copy className="w-3.5 h-3.5" />
+                  <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                 </Button>
                 <EditImageDialog
                   image={img}
@@ -664,7 +665,7 @@ function ImageCard({
                       aria-label="删除图片"
                       disabled={isDeleting}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="glass-strong rounded-2xl border-white/60">
@@ -909,18 +910,12 @@ export default function GalleryPage() {
 
   if (imagesQuery.isError) {
     return (
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-[calc(var(--header-h)+32px)] pb-28 text-center">
-        <div className="max-w-md mx-auto rounded-2xl border border-red-100 glass-strong p-8">
-          <Camera className="w-14 h-14 mx-auto mb-4 text-red-300" />
-          <p className="text-lg font-medium text-foreground">图库加载失败</p>
-          <p className="text-sm mt-2 text-muted-foreground">
-            {getErrorMessage(imagesQuery.error, '请稍后重试')}
-          </p>
-          <Button className="mt-5" variant="outline" onClick={() => imagesQuery.refetch()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            重新加载
-          </Button>
-        </div>
+      <div className="relative z-10 max-w-6xl mx-auto px-4 pt-[calc(var(--header-h)+32px)] pb-28 sm:px-6">
+        <ErrorState
+          title="图库加载失败"
+          message={getErrorMessage(imagesQuery.error, '请稍后重试')}
+          onRetry={() => imagesQuery.refetch()}
+        />
       </div>
     );
   }
@@ -930,7 +925,7 @@ export default function GalleryPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 mb-7 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-black tracking-tight">图片管理</h1>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">图片管理</h1>
           <p className="text-muted-foreground text-sm mt-1.5">
             管理你的外链图片库 · 支持批量导入与搜索
           </p>
@@ -952,7 +947,7 @@ export default function GalleryPage() {
                 className="flex items-center gap-2 text-sm font-semibold"
               >
                 <div className="w-6 h-6 rounded-lg bg-brand-50 flex items-center justify-center">
-                  <KeyRound className="h-3.5 w-3.5 text-brand-500" />
+                  <KeyRound className="h-3.5 w-3.5 text-brand-500" aria-hidden="true" />
                 </div>
                 管理密钥
               </Label>
@@ -978,7 +973,7 @@ export default function GalleryPage() {
                 }`}
               >
                 {adminAuthStatus === 'checking' && (
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
                 )}
                 {adminStatusText}
               </Badge>
@@ -991,9 +986,9 @@ export default function GalleryPage() {
                   disabled={adminAuthStatus === 'checking'}
                 >
                   {adminAuthStatus === 'checking' ? (
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                   ) : (
-                    <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                    <KeyRound className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                   )}
                   校验
                 </Button>
@@ -1043,7 +1038,7 @@ export default function GalleryPage() {
               <div
                 className={`w-9 h-9 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}
               >
-                <item.icon className={`w-4.5 h-4.5 ${item.color}`} />
+                <item.icon className={`w-4.5 h-4.5 ${item.color}`} aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">{item.label}</p>
@@ -1061,7 +1056,7 @@ export default function GalleryPage() {
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" aria-hidden="true" />
               <Input
                 value={searchTerm}
                 onChange={(e) => {
@@ -1075,10 +1070,10 @@ export default function GalleryPage() {
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
+                className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                   selectedTag === null
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/60'
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'border border-border bg-white/70 text-muted-foreground hover:bg-white hover:text-foreground'
                 }`}
                 onClick={() => {
                   setSelectedTag(null);
@@ -1091,10 +1086,10 @@ export default function GalleryPage() {
                 <button
                   key={tag}
                   type="button"
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
+                  className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                     selectedTag === tag
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/60'
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : 'border border-border bg-white/70 text-muted-foreground hover:bg-white hover:text-foreground'
                   }`}
                   onClick={() => {
                     setSelectedTag(tag);
@@ -1110,40 +1105,34 @@ export default function GalleryPage() {
       </Card>
 
       {totalImages === 0 && (
-        <div className="rounded-2xl border border-dashed border-border/50 glass px-6 py-20 text-center">
-          <div className="w-20 h-20 rounded-3xl bg-secondary/60 flex items-center justify-center mx-auto mb-5">
-            <Camera className="w-10 h-10 opacity-30" />
-          </div>
-          <p className="text-lg font-bold text-foreground">图片库还是空的</p>
-          <p className="text-sm mt-2 text-muted-foreground max-w-xs mx-auto">
-            添加第一张图片，开始建设你的共享图库。
-          </p>
-          <div className="mt-6 flex justify-center">
-            <AddImageDialog
-              adminToken={adminToken.trim()}
-              onSuccess={refreshGallery}
-              onRequireToken={requireAdminToken}
-            />
-          </div>
-        </div>
+        <EmptyState
+          icon={Camera}
+          title="图片库还是空的"
+          message="添加第一张图片，开始建设你的共享图库。"
+        >
+          <AddImageDialog
+            adminToken={adminToken.trim()}
+            onSuccess={refreshGallery}
+            onRequireToken={requireAdminToken}
+          />
+        </EmptyState>
       )}
 
       {totalImages > 0 && filteredTotal === 0 && (
-        <div className="rounded-2xl border border-dashed border-border/50 glass px-6 py-16 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-secondary/60 flex items-center justify-center mx-auto mb-4">
-            <Search className="w-8 h-8 text-muted-foreground/30" />
-          </div>
-          <p className="text-base font-bold text-foreground">没有找到匹配的图片</p>
-          <p className="text-sm mt-2 text-muted-foreground">换个关键词试试，或者清空当前筛选条件。</p>
-          <Button variant="outline" className="mt-5 rounded-xl" onClick={clearFilters}>
+        <EmptyState
+          icon={Search}
+          title="没有找到匹配的图片"
+          message="换个关键词试试，或者清空当前筛选条件。"
+        >
+          <Button variant="outline" onClick={clearFilters}>
             清空筛选
           </Button>
-        </div>
+        </EmptyState>
       )}
 
       {imagesQuery.isFetching && images.length > 0 && (
         <div className="mb-4 flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/55 px-4 py-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           正在刷新图库数据...
         </div>
       )}
@@ -1159,8 +1148,7 @@ export default function GalleryPage() {
             onDelete={(id) => deleteMutation.mutate(id)}
             onRefresh={refreshGallery}
             onRequireToken={requireAdminToken}
-            isDeleting={deleteMutation.isPending}
-          />
+            isDeleting={deleteMutation.isPending} aria-hidden="true" />
         ))}
       </div>
 
@@ -1196,7 +1184,7 @@ export default function GalleryPage() {
                   onClick={() => goToPage(page - 1)}
                   aria-label="上一页"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
                 {visiblePages.map((pageNumber, index) => {
                   const previousPage = visiblePages[index - 1];
@@ -1231,7 +1219,7 @@ export default function GalleryPage() {
                   onClick={() => goToPage(page + 1)}
                   aria-label="下一页"
                 >
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
                 <Button
                   variant="outline"
@@ -1270,7 +1258,7 @@ export default function GalleryPage() {
                   className="h-8 rounded-xl text-xs"
                   disabled={imagesQuery.isFetching}
                 >
-                  GO
+                  前往
                 </Button>
               </form>
               <div className="flex items-center gap-2">

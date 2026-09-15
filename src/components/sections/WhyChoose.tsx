@@ -40,23 +40,23 @@ export function WhyChoose() {
   return (
     <section id="features" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="section-header">
+        <div className="section-header reveal">
           <p className="section-eyebrow">
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
             核心优势
           </p>
           <h2>为什么选择随机图片 API</h2>
           <p>简单、快速、可靠的随机图片接口服务</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {features.map((f, i) => (
             <Card key={i} className="glass-card rounded-2xl hover-lift border-white/60">
               <CardContent className="p-6">
                 <div
                   className={`w-12 h-12 rounded-xl ${f.bgColor} flex items-center justify-center mb-5`}
                 >
-                  <f.icon className={`w-6 h-6 ${f.textColor}`} />
+                  <f.icon className={`w-6 h-6 ${f.textColor}`} aria-hidden="true" />
                 </div>
                 <h3 className="font-bold text-[17px] text-foreground mb-2 tracking-tight">
                   {f.title}

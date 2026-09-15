@@ -87,9 +87,9 @@ export function RealtimeStats() {
   return (
     <section id="stats" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="section-header">
+        <div className="section-header reveal">
           <p className="section-eyebrow">
-            <TrendingUp className="w-3.5 h-3.5" />
+            <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
             实时数据
           </p>
           <h2>实时统计</h2>
@@ -97,20 +97,20 @@ export function RealtimeStats() {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="reveal grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {statCards.map((card, i) => (
             <Card key={i} className="glass-card rounded-2xl hover-lift border-white/60 overflow-hidden">
               <CardContent className="p-4 sm:p-5">
                 <div className="relative h-full">
                   <div className="flex items-center justify-between mb-4">
                     <div className={`w-10 h-10 rounded-xl ${card.bgColor} flex items-center justify-center`}>
-                      <card.icon className={`w-5 h-5 ${card.color}`} />
+                      <card.icon className={`w-5 h-5 ${card.color}`} aria-hidden="true" />
                     </div>
                     <div
                       className={`absolute top-0 right-0 w-12 h-12 rounded-full bg-gradient-to-b ${card.gradientFrom} ${card.gradientTo} opacity-25`}
                     />
                   </div>
-                  <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight stat-value">
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight stat-value">
                     {card.value}
                   </p>
                   <p className="text-xs font-medium text-muted-foreground mt-1">{card.label}</p>
@@ -122,12 +122,12 @@ export function RealtimeStats() {
         </div>
 
         {/* Chart Card */}
-        <Card className="glass-strong rounded-2xl border-white/60">
+        <Card className="reveal glass-strong rounded-2xl border-white/60">
           <CardContent className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-5 rounded-full bg-gradient-to-b from-brand-500 to-brand-400" />
-                <span className="text-sm font-semibold">7-day trend</span>
+                <span className="text-sm font-semibold">近 7 天趋势</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-brand-50 text-brand-600 border border-brand-100 px-3 py-1 text-xs font-medium">
@@ -183,7 +183,7 @@ export function RealtimeStats() {
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground/40">
                   <div className="text-center">
-                    <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-25" />
+                    <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-25" aria-hidden="true" />
                     <p className="text-sm">暂无调用数据</p>
                   </div>
                 </div>

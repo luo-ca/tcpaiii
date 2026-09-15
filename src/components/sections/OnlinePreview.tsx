@@ -131,24 +131,22 @@ function OnlinePreviewImpl(
     <section ref={ref} id="preview" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
       <div className="mx-auto max-w-6xl">
         {/* Section Header */}
-        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="reveal mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-brand-500">
-              Daily Picks
-            </p>
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">热门二次元图片</h2>
+            <p className="section-eyebrow">每日精选</p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">热门二次元图片</h2>
             <p className="mt-2 text-muted-foreground text-sm">
               每次刷新随机一张，复制地址即可接入你的网站。
             </p>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/60 rounded-full px-3 py-1.5">
-            <Clock className="h-3.5 w-3.5" />
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             <span>实时更新</span>
           </div>
         </div>
 
         {/* Browser Preview Card */}
-        <div className="overflow-hidden rounded-3xl border border-white/60 bg-white/75 shadow-lg backdrop-blur-xl">
+        <div className="reveal overflow-hidden rounded-3xl border border-white/60 bg-white/75 shadow-lg backdrop-blur-xl">
           {/* Browser Chrome Bar */}
           <div className="flex items-center gap-3 border-b border-border bg-secondary/80 px-4 py-3">
             <div className="hidden items-center gap-1.5 sm:flex shrink-0">
@@ -170,8 +168,7 @@ function OnlinePreviewImpl(
               aria-label="刷新随机图片"
             >
               <RefreshCw
-                className={`w-3.5 h-3.5 text-muted-foreground ${imageLoading ? 'animate-spin' : ''}`}
-              />
+                className={`w-3.5 h-3.5 text-muted-foreground ${imageLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
             </Button>
           </div>
 
@@ -183,7 +180,7 @@ function OnlinePreviewImpl(
 
               {!imageUrl && !imageLoading && !previewError && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40">
-                  <Camera className="mb-3 h-16 w-16 opacity-25" />
+                  <Camera className="mb-3 h-16 w-16 opacity-25" aria-hidden="true" />
                   <p className="text-sm">等待加载预览图片</p>
                 </div>
               )}
@@ -191,7 +188,7 @@ function OnlinePreviewImpl(
               {previewError && !imageLoading && (
                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/80 p-6 text-center backdrop-blur-md">
                   <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-3">
-                    <Camera className="h-8 w-8 text-red-300" />
+                    <Camera className="h-8 w-8 text-red-300" aria-hidden="true" />
                   </div>
                   <p className="text-sm font-semibold text-foreground">预览加载失败</p>
                   <p className="mt-1 max-w-sm text-xs text-muted-foreground">{previewError}</p>
@@ -201,7 +198,7 @@ function OnlinePreviewImpl(
                     className="mt-4 rounded-full"
                     onClick={() => shuffleImage(selectedTag)}
                   >
-                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                     重试
                   </Button>
                 </div>
@@ -248,9 +245,9 @@ function OnlinePreviewImpl(
                         onClick={copyUrl}
                       >
                         {copied ? (
-                          <Check className="mr-1 h-3 w-3" />
+                          <Check className="mr-1 h-3 w-3" aria-hidden="true" />
                         ) : (
-                          <CopyIcon className="mr-1 h-3 w-3" />
+                          <CopyIcon className="mr-1 h-3 w-3" aria-hidden="true" />
                         )}
                         {copied ? '已复制' : '复制地址'}
                       </Button>
@@ -262,7 +259,7 @@ function OnlinePreviewImpl(
                       >
                         <a href={imageUrl} target="_blank" rel="noopener noreferrer">
                           <span className="sr-only">打开图片</span>
-                          <ExternalLink className="h-3.5 w-3.5" />
+                          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                         </a>
                       </Button>
                     </div>
@@ -276,7 +273,7 @@ function OnlinePreviewImpl(
               <div>
                 <div className="mb-4 flex items-center justify-between gap-2">
                   <Badge className="rounded-full bg-brand-50 text-brand-600 border-brand-100 hover:bg-brand-50 text-xs">
-                    Random API
+                    随机接口
                   </Badge>
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="relative flex h-2 w-2">
@@ -294,7 +291,7 @@ function OnlinePreviewImpl(
                     {imageLoading ? '加载中' : '实时可用'}
                   </span>
                 </div>
-                <h3 className="text-2xl font-black tracking-tight leading-snug">
+                <h3 className="text-2xl font-bold tracking-tight leading-snug">
                   复制即用，一行接入
                 </h3>
                 <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
@@ -327,9 +324,9 @@ function OnlinePreviewImpl(
                     className="shrink-0 rounded-lg p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
                   >
                     {copiedApi ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
                     ) : (
-                      <CopyIcon className="h-3.5 w-3.5" />
+                      <CopyIcon className="h-3.5 w-3.5" aria-hidden="true" />
                     )}
                   </button>
                 </div>
@@ -338,13 +335,12 @@ function OnlinePreviewImpl(
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-2.5 text-sm">
                 <Button
-                  className="rounded-xl h-10 bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-md shadow-brand-600/20 hover:shadow-brand-600/35 hover:-translate-y-0.5 transition-all duration-200"
+                  className="gradient-button rounded-xl h-10 text-white"
                   onClick={() => shuffleImage(selectedTag)}
                   disabled={imageLoading}
                 >
                   <RefreshCw
-                    className={`mr-1.5 h-3.5 w-3.5 ${imageLoading ? 'animate-spin' : ''}`}
-                  />
+                    className={`mr-1.5 h-3.5 w-3.5 ${imageLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
                   换一张
                 </Button>
                 <Button
@@ -354,9 +350,9 @@ function OnlinePreviewImpl(
                   disabled={!imageUrl}
                 >
                   {copied ? (
-                    <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-500" />
+                    <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-500" aria-hidden="true" />
                   ) : (
-                    <CopyIcon className="mr-1.5 h-3.5 w-3.5" />
+                    <CopyIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                   )}
                   {copied ? '已复制' : '复制图片'}
                 </Button>

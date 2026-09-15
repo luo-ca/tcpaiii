@@ -102,19 +102,19 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
       <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
       {/* Floating particles (decorative) */}
-      <div className="absolute top-1/4 left-1/4 -z-10 w-1.5 h-1.5 rounded-full bg-brand-400/40 blur-[0px] animate-[float_5s_ease-in-out_infinite]" />
+      <div className="absolute top-1/4 left-1/4 -z-10 w-1.5 h-1.5 rounded-full bg-brand-400/40 animate-[float_5s_ease-in-out_infinite]" />
       <div className="absolute top-1/3 right-1/3 -z-10 w-1 h-1 rounded-full bg-iris-400/40 animate-[float_7s_ease-in-out_infinite_1s]" />
       <div className="absolute top-2/3 right-1/4 -z-10 w-2 h-2 rounded-full bg-brand-400/30 animate-[float_6s_ease-in-out_infinite_2s]" />
 
       <div className="mx-auto flex min-h-[580px] max-w-6xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
         {/* Eyebrow Badge */}
         <div className="highlight-badge mb-6">
-          <Sparkles className="h-3.5 w-3.5 text-brand-200" />
+          <Sparkles className="h-3.5 w-3.5 text-brand-200" aria-hidden="true" />
           <span>二次元图片 · EdgeOne 加速 · JSON / 302 双模式</span>
         </div>
 
         {/* Main Title */}
-        <h1 className="max-w-4xl text-5xl font-black tracking-tight text-white [text-shadow:0_2px_28px_rgba(11,18,32,0.55)] sm:text-6xl md:text-7xl leading-[1.08]">
+        <h1 className="max-w-4xl text-5xl font-bold tracking-tight text-white [text-shadow:0_2px_28px_rgba(11,18,32,0.55)] sm:text-6xl md:text-7xl leading-[1.08]">
           <span className="block">二次元图片</span>
           <span className="block text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-iris-300 drop-shadow-[0_2px_18px_rgba(11,18,32,0.45)]">
             人人可用
@@ -129,7 +129,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
         <div className="mt-8 w-full max-w-xl">
           <div className="relative flex items-center rounded-2xl bg-white/95 shadow-lg border border-white/20 overflow-hidden backdrop-blur-xl transition-shadow focus-within:ring-2 focus-within:ring-brand-500/40">
             <div className="flex flex-1 items-center gap-2 px-4">
-              <Search className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
               <Input
                 value={tagInput}
                 onChange={(event) => setTagInput(event.target.value)}
@@ -142,11 +142,11 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
             </div>
             <div className="p-1.5 pr-2">
               <Button
-                className="h-9 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 px-5 text-white text-sm font-medium shadow-md shadow-brand-600/25 hover:shadow-brand-600/40 transition-all duration-200 hover:-translate-y-0.5"
+                className="gradient-button h-9 rounded-xl px-5 text-sm font-medium text-white"
                 onClick={handleSubmit}
               >
                 随机获取
-                <Shuffle className="ml-1.5 h-3.5 w-3.5" />
+                <Shuffle className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
               </Button>
             </div>
           </div>
@@ -160,7 +160,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
             title="点击复制 API 地址"
             className="group flex w-full items-center gap-2.5 rounded-xl border border-white/15 bg-black/35 px-3.5 py-2.5 text-left backdrop-blur-lg transition-colors hover:bg-black/45"
           >
-            <span className="shrink-0 rounded-md bg-white/15 px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-wider text-emerald-300">
+            <span className="shrink-0 rounded-md bg-white/15 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-emerald-300">
               GET
             </span>
             <code className="min-w-0 flex-1 truncate font-mono text-xs text-white/90 sm:text-[13px]">
@@ -168,9 +168,9 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
             </code>
             <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-white/70 transition-colors group-hover:text-white">
               {copiedApi ? (
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
               ) : (
-                <CopyIcon className="h-3.5 w-3.5" />
+                <CopyIcon className="h-3.5 w-3.5" aria-hidden="true" />
               )}
               {copiedApi ? '已复制' : '复制'}
             </span>
@@ -185,7 +185,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                 key={item.label}
                 className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/35 px-3.5 py-2 text-xs text-white backdrop-blur-lg sm:text-sm"
               >
-                <item.icon className="h-3.5 w-3.5 shrink-0 text-white/65" />
+                <item.icon className="h-3.5 w-3.5 shrink-0 text-white/65" aria-hidden="true" />
                 <span className="text-white/65">{item.label}</span>
                 <span className="font-bold text-white tabular-nums">{item.value}</span>
               </div>

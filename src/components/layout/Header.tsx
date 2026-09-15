@@ -70,7 +70,7 @@ export function Header() {
                 aria-current={isActive(item.path) ? 'page' : undefined}
                 className={tabClass(isActive(item.path))}
               >
-                <item.icon className="w-3.5 h-3.5" />
+                <item.icon className="w-3.5 h-3.5" aria-hidden="true" />
                 {item.label}
               </NavLink>
             ))}
@@ -99,7 +99,7 @@ export function Header() {
               aria-current={isActive(item.path) ? 'page' : undefined}
               className={tabClassCompact(isActive(item.path))}
             >
-              <item.icon className="w-3.5 h-3.5" />
+              <item.icon className="w-3.5 h-3.5" aria-hidden="true" />
               {item.label}
             </NavLink>
           ))}

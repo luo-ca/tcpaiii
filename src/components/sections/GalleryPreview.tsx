@@ -34,7 +34,7 @@ function PreviewTile({ image }: { image: ImageRecord }) {
           {image.title || '未命名'}
         </span>
         {image.tags[0] && (
-          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
+          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm">
             {image.tags[0]}
           </span>
         )}
@@ -66,13 +66,13 @@ export function GalleryPreview() {
   return (
     <section id="gallery-preview" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="reveal mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-eyebrow">
-              <Images className="h-3.5 w-3.5" />
-              Gallery
+              <Images className="h-3.5 w-3.5" aria-hidden="true" />
+              最新收录
             </p>
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">图库精选</h2>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">图库精选</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               点任意一张查看原图，或进图库按标签筛选浏览。
             </p>
@@ -85,18 +85,18 @@ export function GalleryPreview() {
             {data && data.total > 0 && (
               <span className="tabular-nums text-muted-foreground">{data.total}</span>
             )}
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </NavLink>
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
+          <div className="reveal grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
             {Array.from({ length: PREVIEW_COUNT }).map((_, i) => (
               <div key={i} className="aspect-video rounded-2xl skeleton-shimmer" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
+          <div className="reveal grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
             {items.map((image) => (
               <PreviewTile key={image.id} image={image} />
             ))}
