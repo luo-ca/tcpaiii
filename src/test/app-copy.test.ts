@@ -41,9 +41,12 @@ describe("home page copy", () => {
     expect(previewSource).toContain("import { Badge } from '@/components/ui/badge';");
   });
 
-  it("does not load the console-blocking external script", () => {
+  it("loads the WAF anti-debug script from the imgs CDN", () => {
+    // The WAF / anti-debug script is intentionally served from the imgs CDN
+    // (added in 2bafea3). Guard that it stays on imgs and that the old
+    // console-blocking static.paiii.cn copy never comes back.
+    expect(indexHtml).toContain("https://imgs.paiii.cn/waf/gbts.js");
     expect(indexHtml).not.toContain("https://static.paiii.cn/static/gbts.js");
-    expect(indexHtml).not.toContain("disable-devtool-auto");
   });
 
   it("uses safe production tree shaking settings", () => {
