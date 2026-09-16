@@ -61,6 +61,39 @@ function GalleryFallback() {
 }
 
 /**
+ * `/admin` 的懒加载骨架。
+ *
+ * 不能复用 `GalleryFallback`：那是图库的瀑布流形状（多列、任意比例），
+ * 而后台是「页头 + 密钥卡 + 三张统计卡 + 三列等比例网格」——
+ * 骨架形状对不上，懒加载落地时会看到一次明显的重排。
+ */
+function AdminFallback() {
+  return (
+    <div className="relative z-10 mx-auto max-w-6xl px-4 pb-24 pt-[calc(var(--header-h)+32px)] sm:px-6 sm:pb-28">
+      <div className="mb-7 flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="h-3 w-20 rounded-lg skeleton-shimmer" />
+          <div className="h-8 w-32 rounded-lg skeleton-shimmer" />
+          <div className="h-4 w-48 rounded-lg skeleton-shimmer" />
+        </div>
+        <div className="h-10 w-28 rounded-xl skeleton-shimmer" />
+      </div>
+      <div className="mb-5 h-24 rounded-2xl skeleton-shimmer" />
+      <div className="mb-5 grid grid-cols-3 gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-[68px] rounded-2xl skeleton-shimmer" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="aspect-video rounded-2xl skeleton-shimmer" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
  * 首页。
  *
  * `randomRequest` 是首页内部唯一跨区块的信号：Hero 的搜索/随机按钮写它，
@@ -122,7 +155,7 @@ export default function App() {
           </Suspense>
         )}
         {route === '/admin' && (
-          <Suspense fallback={<GalleryFallback />}>
+          <Suspense fallback={<AdminFallback />}>
             <AdminPage />
           </Suspense>
         )}

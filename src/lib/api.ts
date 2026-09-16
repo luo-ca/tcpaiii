@@ -16,7 +16,7 @@ export async function fetchRandomImage(tag?: string): Promise<ImageRecord> {
   return apiRequest<ImageRecord>(
     `/api/random${query ? `?${query}` : ''}`,
     undefined,
-    'Failed to fetch random image',
+    '获取随机图片失败',
   );
 }
 
@@ -48,7 +48,7 @@ export async function fetchRandomImageWithFallback(
 }
 
 export async function fetchStats(): Promise<Stats> {
-  return apiRequest<Stats>('/api/stats', undefined, 'Failed to fetch stats');
+  return apiRequest<Stats>('/api/stats', undefined, '获取统计数据失败');
 }
 
 // ---- Gallery API ----
@@ -72,7 +72,7 @@ export async function fetchImagesPage(params: {
   return apiRequest<PaginatedImages>(
     `/api/list?${query.toString()}`,
     undefined,
-    'Failed to fetch images',
+    '获取图片列表失败',
     { bustCache: false },
   );
 }
@@ -86,7 +86,7 @@ export async function fetchExistingImageUrlSet(): Promise<Set<string>> {
   const body = await apiRequest<ImageRecord[] | PaginatedImages>(
     '/api/list',
     undefined,
-    'Failed to fetch existing images',
+    '获取已有图片地址失败',
   );
   const records = Array.isArray(body) ? body : (body.items ?? []);
   const set = new Set<string>();
@@ -103,7 +103,7 @@ export async function verifyAdminToken(adminToken: string): Promise<{ ok: true }
   return apiRequest<{ ok: true }>(
     '/api/admin/verify',
     { headers: { Authorization: `Bearer ${adminToken}` } },
-    'Failed to verify admin token',
+    '管理密钥校验失败',
   );
 }
 
@@ -121,7 +121,7 @@ export async function createImage(
   return apiRequest<ImageRecord>(
     '/api/create',
     { method: 'POST', headers: getAdminHeaders(adminToken), body: JSON.stringify(data) },
-    'Failed to create image',
+    '添加图片失败',
   );
 }
 
@@ -133,7 +133,7 @@ export async function updateImage(
   return apiRequest<ImageRecord>(
     `/api/update/${id}`,
     { method: 'PUT', headers: getAdminHeaders(adminToken), body: JSON.stringify(data) },
-    'Failed to update image',
+    '更新图片失败',
   );
 }
 
@@ -141,7 +141,7 @@ export async function deleteImage(id: string, adminToken: string): Promise<void>
   await apiRequest<{ success: boolean }>(
     `/api/delete/${id}`,
     { method: 'DELETE', headers: { Authorization: `Bearer ${adminToken}` } },
-    'Failed to delete image',
+    '删除图片失败',
   );
 }
 
@@ -157,6 +157,6 @@ export async function batchCreateImages(
   return apiRequest(
     '/api/batch',
     { method: 'POST', headers: getAdminHeaders(adminToken), body: JSON.stringify({ images }) },
-    'Failed to batch create images',
+    '批量添加图片失败',
   );
 }

@@ -1,4 +1,14 @@
 @import "tailwindcss";
+
+/*
+ * Tailwind 默认会扫描整个项目，**包括 Markdown 文档**。
+ * 于是 UI-REFACTOR-PLAN.md 里作为「验收标准」写下的
+ * `font-black`、`shadow-[...]` 这些字符串会被当成真实类名编译进产物 CSS ——
+ * 既白占体积，又会让「产物里搜不到这些类」的验收检查出现假阳性。
+ * 这里显式排除文档，只让真正的源码参与扫描。
+ */
+@source not "../UI-REFACTOR-PLAN.md";
+@source not "../README.md";
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
@@ -673,5 +683,40 @@
     .category-button:hover {
       transform: none;
     }
+  }
+}
+
+/* ============================================================
+   圆角覆盖阶梯
+   ------------------------------------------------------------
+   Tailwind v4 把圆角工具类按主题键的**字母序**排进样式表：
+
+       2xl(20) → 3xl(24) → full → lg(12) → md(10) → sm(8) → xl(16)
+
+   同特异性下后写的赢，所以 `rounded-full` / `rounded-2xl` 恒排在
+   `rounded-lg`（Button / Card / Dialog 基础类用的档位）**之前**，
+   调用处写在 className 里的覆盖会被基础类静默吃掉：
+
+     · `<Button className="rounded-full">`  → 实际渲染 12px 圆角矩形，不是胶囊
+     · `<Card className="rounded-2xl">`     → 实际渲染 12px，小于卡内 16px 的图标底座（层级倒挂）
+     · `<DialogContent className="rounded-2xl">` + 基础类 `sm:rounded-lg`
+       → ≥640px 反而变小：手机上 20px、桌面上 12px（反了）
+
+   这里按「圆角越大越靠后」重排一遍，让调用处表达更大的圆角时必然生效。
+   全站不存在「调用处想把圆角改小」的写法，因此该规则只修不伤。
+
+   最终层级：大容器 24 > 卡片 20 > 卡内底座 16 > 按钮/输入框 12 > 小标签 10。
+   ============================================================ */
+@layer utilities {
+  .rounded-2xl {
+    border-radius: var(--radius-2xl);
+  }
+
+  .rounded-3xl {
+    border-radius: var(--radius-3xl);
+  }
+
+  .rounded-full {
+    border-radius: 9999px;
   }
 }

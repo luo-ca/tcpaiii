@@ -47,10 +47,10 @@ function getNonJsonApiMessage(response: Response, body: string, fallback: string
 
   const summary = summarizeBody(body);
   if (summary) {
-    return `${fallback}: received non-JSON response: ${summary}`;
+    return `${fallback}：接口返回了非 JSON 内容（${summary}）`;
   }
 
-  return `${fallback}: received non-JSON response`;
+  return `${fallback}：接口返回了非 JSON 内容`;
 }
 
 // ---- exported helpers ----

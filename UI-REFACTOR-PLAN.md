@@ -901,3 +901,94 @@ h3, h4, h5, h6 { letter-spacing: -0.01em; font-weight: 600; }
 |---|---|
 | 产物 CSS 断言 | `.section-header p` 基础档 `font-size:var(--text-sm)` + `sm:` 档 `var(--text-base)` ✓ |
 | 复跑 `eslint` / `tsc` / `vitest` / `build` | 0 / 0 / **51 passed** / 成功（1.86s） |
+
+---
+
+## 19. P9：圆角覆盖失效修复 + 文案/骨架/筛选同步
+
+### 19.1 根因：Tailwind v4 按主题键**字母序**输出圆角工具类
+
+产物 CSS 里的实际顺序（数字为在样式表中的字节位置，越靠后优先级越高）：
+
+```
+rounded-2xl(20px) → rounded-3xl(24px) → rounded-full → rounded-lg(12px) → rounded-md(10px) → rounded-sm(8px) → rounded-xl(16px)
+```
+
+同特异性下后写的赢。于是**组件基础类里的圆角会盖掉调用处写的圆角**，覆盖静默失效，且方向恰好反直觉：
+
+| 写法 | 预期 | 实际 |
+|---|---|---|
+| `<Button className="rounded-full">`（图上的胶囊按钮，4 处） | 胶囊 | 12px 圆角矩形 |
+| `<Card className="rounded-2xl">`（全站卡片） | 20px | **12px**，比卡内 16px 的图标底座还直 |
+| `<DialogContent className="rounded-2xl">` + 基础类 `sm:rounded-lg` | 20px | 手机 20px / 桌面 **12px**（反了） |
+
+第三行最隐蔽：弹窗在小屏上反而更圆。
+
+**修法**：在 `index.css` 的 utilities 层末尾按「圆角越大越靠后」重排 `rounded-2xl` / `rounded-3xl` / `rounded-full`，让调用处表达更大圆角时必然生效。全站不存在「调用处想把圆角改小」的写法（已逐一确认），因此该规则只修不伤。
+
+> 背景：P6 就把 `rounded-2xl` 写满了卡片，但一直到 P9 才用产物 CSS 反推出它从未生效 —— 以前只 grep 类名存在与否，没验证**级联结果**。
+
+### 19.2 修正 P8 的一处错误结论（诚实记录）
+
+P8 把 `Button` 的 `sm` / `lg` 尺寸里的 `rounded-md` 当死代码删了，理由是「基础类 `rounded-lg` 恒胜出」。
+
+**这个理由是错的。** `rounded-md`(10px) 排在 `rounded-lg`(12px) **之后**，它一直在生效：小号按钮实际是 10px。删除后它们变成了 12px。
+
+2px 的差异不值得为它回滚，但结论得改：`rounded-md` 不是死代码，是有效覆盖；真正恒胜出的是 `rounded-xl`。
+
+### 19.3 用户可见文案里的英文（中文化）
+
+`getErrorMessage(err, fallback)` 的实现是「有 `err.message` 就返回 message」，所以 `api.ts` 里那些 `new Error('Failed to fetch stats')` **会绕过调用方传的中文兜底直抵 toast**。共修 15 处：`api.ts` 9 条、`api-client.ts` 2 条非 JSON 后缀、`constants.ts` 1 条 HTML 兜底、`admin-page.tsx` 6 条 toast。
+
+### 19.4 `/admin` 的懒加载骨架与后台布局不是一个形状
+
+`/admin` 原先复用图库的瀑布流骨架（多列、任意比例），而后台是「页头 + 密钥卡 + 三张统计卡 + 三列等比例网格」，且后台组件自己另有一套加载骨架。实际观感是**三级跳**：瀑布流 → 后台骨架 → 内容。已改为专属 `AdminFallback`，与后台骨架同形状。
+
+### 19.5 后台与前台的设计语言对齐
+
+| 项 | 前 | 后 |
+|---|---|---|
+| 主 CTA 圆角 | `rounded-full`（4 处） | `rounded-xl`，与 Hero / 预览 / 文档 / 投稿一致 |
+| 单张/批量切换 | `rounded-full` 药丸 + 与 `variant` 重复的 `bg-primary` | 与顶栏导航、文档页 TabsList 同一套分段控件（`rounded-xl` 容器 + `rounded-lg` 选中态） |
+| 页头 | 只有 h1 + 副标题 | 补 `section-eyebrow`「管理后台」，副标题并入 14/16px 档 |
+| 冗余类 | `sm:rounded-2xl`（2 处） | 删除 —— 阶梯修复后 `rounded-2xl` 已恒生效 |
+
+### 19.6 图库筛选可分享（功能补齐）
+
+筛选结果原先只活在组件 state 里：链接发给别人看到的是整库、刷新即丢、后退键退不回上一个标签。
+
+- `?q=` 标题关键词、`?tag=` 标签与筛选状态双向同步；
+- 回写用 `replaceState`（不是 `pushState`），否则每敲一个字都会往历史里塞记录，后退变成「逐字回退」；
+- **以现有查询串为起点增删，不重建** —— 否则 `eo_token` / `eo_time` 会被抹掉，EdgeOne 预览链接当场失效；
+- 监听 `popstate`，前进/后退时把筛选同步回 state；
+- 筛选生效时页头出现「清空筛选」（原先只能滚到空结果页里才能清）。
+
+读写逻辑放在 `lib/url.ts` 并写成**纯函数**（入参即查询串），因为「保留未知参数」这段最容易悄悄出错，而它在本地直接开页面时根本看不出来。新增 `src/test/gallery-query.test.ts` 9 个用例覆盖。
+
+### 19.7 顺带修掉：Tailwind 在扫描文档
+
+Tailwind 默认扫描整个项目，**包括 Markdown**。于是本文件里作为「验收标准」写下的 `font-black`、`shadow-[...]` 被当成真实类名编译进了产物 CSS —— 既白占体积，又让「产物里搜不到这些类」的验收检查出现假阳性。已用 `@source not` 排除本文件与 README。
+
+### 19.8 P9 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `tsc --noEmit` / `eslint` | 0 / 0 |
+| `vitest run` | 4 文件 **60 passed**（新增 9 条 URL 同步用例） |
+| `vite build` | 成功（1.89s），CSS 73.9 kB |
+| 产物 CSS 断言 | 覆盖阶梯 3 条齐全；`.font-black` / `drop-shadow-[...]` 文档泄漏类归零；Hero 标题辉光仍在 |
+| 路由 | `/`、`/docs`、`/gallery`、`/admin`、`/gallery?tag=test` 均 200 |
+| 产物 JS | `gallery-browse` chunk 内含 `popstate` / `replaceState`，确认同步逻辑已打包 |
+
+> 未覆盖：筛选同步在**组件内部**的接线（state 初值、两个 effect）没有自动化测试 —— 项目未装 jsdom / testing-library，为这一个用例引入两个开发依赖不划算。纯函数部分已全覆盖。
+
+### 19.9 待决策：圆角三档归一
+
+规范 §4.2 定的是三档（输入框/标签/小按钮 10px、卡片 16px、大容器 24px、CTA 胶囊），但主题实际有六档（8/10/12/16/20/24），且代码里卡片写的是 20px。阶梯修复后实际层级是：
+
+```
+大容器 24 > 卡片 20 > 卡内图标底座 16 > 按钮/输入框 12 > 小标签 10 > CTA 胶囊
+```
+
+这个层级自身是自洽的，但与规范 §4.2 的卡片 16px 不一致。是「把代码改成规范」还是「把规范改成代码」，会整体影响观感，留待明确后再动。
+

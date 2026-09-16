@@ -21,7 +21,7 @@ export const EDGEONE_LOGO_URL = 'https://edgeone.ai/_next/static/media/headLogo.
 export const EDGEONE_PREVIEW_QUERY_KEYS = ['eo_token', 'eo_time'] as const;
 
 export const API_HTML_FALLBACK_MESSAGE =
-  'API returned HTML instead of JSON. Please check whether the Edge function is deployed correctly.';
+  '接口返回的是 HTML 而不是 JSON，请检查 Edge 函数是否已正确部署。';
 
 export const MAX_BATCH_IMAGE_COUNT = 500;
 export const GALLERY_PAGE_SIZE = 24;

@@ -159,7 +159,7 @@ function AddImageDialog({
     mutationFn: () =>
       createImage({ url: url.trim(), title: title.trim() || '未命名图片', tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => {
-      toast.success('Image added successfully');
+      toast.success('图片添加成功');
       setOpen(false);
       onSuccess();
     },
@@ -181,7 +181,7 @@ function AddImageDialog({
       if (batchPreview.duplicatesInBatch.length > 0 || batchPreview.alreadyExists.length > 0) {
         toast.error('没有可导入的新地址：本次粘贴全是重复或库里已有的 URL');
       } else {
-        toast.error('Please enter at least one image URL');
+        toast.error('请至少填写一个图片地址');
       }
       return;
     }
@@ -231,7 +231,7 @@ function AddImageDialog({
       if (!(await onRequireToken())) return;
 
       if (!url.trim()) {
-        toast.error('Please enter an image URL');
+        toast.error('请填写图片地址');
         return;
       }
       setLoading(true);
@@ -242,12 +242,12 @@ function AddImageDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 gradient-button rounded-full border-0 text-white">
+        <Button className="gradient-button gap-2 rounded-xl border-0 text-white">
           <Plus className="w-4 h-4" aria-hidden="true" />
           添加图片
         </Button>
       </DialogTrigger>
-      <DialogContent className="glass-strong rounded-2xl sm:max-w-xl sm:rounded-2xl">
+      <DialogContent className="glass-strong rounded-2xl sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link className="w-5 h-5 text-brand-500" aria-hidden="true" />
@@ -255,23 +255,31 @@ function AddImageDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          <Button
-            variant={mode === 'single' ? 'default' : 'outline'}
-            size="sm"
+        <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl bg-secondary/60 p-1">
+          <button
+            type="button"
+            aria-pressed={mode === 'single'}
             onClick={() => setMode('single')}
-            className={`text-xs h-8 rounded-full ${mode === 'single' ? 'bg-primary text-primary-foreground' : ''}`}
+            className={`h-8 rounded-lg text-xs font-medium transition-all duration-200 ${
+              mode === 'single'
+                ? 'bg-white text-foreground shadow-sm shadow-black/5'
+                : 'text-muted-foreground hover:bg-white/60 hover:text-foreground'
+            }`}
           >
             单张添加
-          </Button>
-          <Button
-            variant={mode === 'batch' ? 'default' : 'outline'}
-            size="sm"
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === 'batch'}
             onClick={() => setMode('batch')}
-            className={`text-xs h-8 rounded-full ${mode === 'batch' ? 'bg-primary text-primary-foreground' : ''}`}
+            className={`h-8 rounded-lg text-xs font-medium transition-all duration-200 ${
+              mode === 'batch'
+                ? 'bg-white text-foreground shadow-sm shadow-black/5'
+                : 'text-muted-foreground hover:bg-white/60 hover:text-foreground'
+            }`}
           >
             批量添加
-          </Button>
+          </button>
         </div>
 
         {mode === 'single' ? (
@@ -307,7 +315,7 @@ function AddImageDialog({
                 onChange={(e) => setTagsInput(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
+            <Button type="submit" className="gradient-button w-full rounded-xl border-0 text-white" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
               添加
             </Button>
@@ -432,7 +440,7 @@ function AddImageDialog({
 
             <Button
               type="submit"
-              className="w-full gradient-button rounded-full border-0 text-white"
+              className="gradient-button w-full rounded-xl border-0 text-white"
               disabled={loading || batchPreview.validNew.length === 0}
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
@@ -480,7 +488,7 @@ function EditImageDialog({
     mutationFn: () =>
       updateImage(image.id, { url: url.trim(), title: title.trim(), tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => {
-      toast.success('Image updated successfully');
+      toast.success('图片已更新');
       setOpen(false);
       onSuccess();
     },
@@ -495,7 +503,7 @@ function EditImageDialog({
       if (!(await onRequireToken())) return;
 
       if (!url.trim()) {
-        toast.error('Please enter an image URL');
+        toast.error('请填写图片地址');
         return;
       }
       setLoading(true);
@@ -515,7 +523,7 @@ function EditImageDialog({
           <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="glass-strong rounded-2xl sm:max-w-md sm:rounded-2xl">
+      <DialogContent className="glass-strong rounded-2xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit3 className="w-5 h-5 text-brand-500" aria-hidden="true" />
@@ -551,7 +559,7 @@ function EditImageDialog({
               onChange={(e) => setTagsInput(e.target.value)}
             />
           </div>
-          <Button type="submit" className="w-full gradient-button rounded-full border-0 text-white" disabled={loading}>
+          <Button type="submit" className="gradient-button w-full rounded-xl border-0 text-white" disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : null}
             保存
           </Button>
@@ -872,7 +880,7 @@ export default function GalleryPage() {
   const requireAdminToken = useCallback(async (): Promise<boolean> => {
     if (hasVerifiedAdminToken) return true;
     if (!hasAdminToken) {
-      toast.error('Please enter the admin token first');
+      toast.error('请先填写管理密钥');
       return false;
     }
 
@@ -894,6 +902,7 @@ export default function GalleryPage() {
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-[calc(var(--header-h)+32px)] pb-24 sm:pb-28">
         <div className="mb-8 flex items-center justify-between">
           <div className="space-y-2">
+            <div className="h-3 w-20 rounded-lg skeleton-shimmer" />
             <div className="h-8 w-32 rounded-lg skeleton-shimmer" />
             <div className="h-4 w-48 rounded-lg skeleton-shimmer" />
           </div>
@@ -923,10 +932,14 @@ export default function GalleryPage() {
   return (
     <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-[calc(var(--header-h)+32px)] pb-24 sm:pb-28">
       {/* Page Header */}
-      <div className="flex flex-col gap-4 mb-7 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
+          <p className="section-eyebrow">
+            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+            管理后台
+          </p>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">图片管理</h1>
-          <p className="text-muted-foreground text-sm mt-1.5">
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             管理你的外链图片库 · 支持批量导入与搜索
           </p>
         </div>

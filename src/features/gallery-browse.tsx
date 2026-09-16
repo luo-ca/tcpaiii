@@ -13,6 +13,7 @@ import {
   Search,
   SearchX,
   Tag,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -21,6 +22,7 @@ import type { ImageRecord, PaginatedImages, Stats } from '@/lib/types';
 import { fetchImagesPage, fetchStats } from '@/lib/api';
 import { getErrorMessage } from '@/lib/helpers';
 import { getImageRatio, rememberImageRatio } from '@/lib/image-ratio';
+import { readGalleryQuery, writeGalleryQuery } from '@/lib/url';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ErrorState } from '@/components/states/ErrorState';
 import { EmptyState } from '@/components/states/EmptyState';
@@ -280,12 +282,42 @@ function Lightbox({
 // ============================================================
 
 export default function GalleryBrowse() {
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  // 首帧直接从地址栏取初值，避免「先渲染整库、再跳成筛选结果」的闪动
+  const [{ search: initialSearch, tag: initialTag }] = useState(() =>
+    readGalleryQuery(window.location.search),
+  );
+  const [selectedTag, setSelectedTag] = useState<string | null>(initialTag);
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
   const searchQuery = debouncedSearchTerm.trim();
+
+  // 筛选状态回写地址栏。用 replaceState 而不是 pushState：
+  // 否则每敲一个字都会往历史里塞一条记录，后退键会变成「逐字回退」。
+  useEffect(() => {
+    const current = window.location.search.replace(/^\?/, '');
+    const next = writeGalleryQuery(current, { search: searchQuery, tag: selectedTag });
+    if (next === current) return;
+
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash}`,
+    );
+  }, [searchQuery, selectedTag]);
+
+  // 前进/后退回到带参数的图库地址时，把筛选状态同步回来
+  useEffect(() => {
+    const onPopState = () => {
+      const { search, tag } = readGalleryQuery(window.location.search);
+      setSearchTerm(search);
+      setSelectedTag(tag);
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const { data: stats } = useQuery<Stats>({
     queryKey: ['stats'],
@@ -369,15 +401,28 @@ export default function GalleryBrowse() {
           </p>
         </div>
 
-        <div className="relative w-full shrink-0 sm:w-72">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" aria-hidden="true" />
-          <Input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="搜索标题…"
-            aria-label="搜索图片标题"
-            className="h-10 rounded-xl border-border bg-white/70 pl-9"
-          />
+        <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
+          <div className="relative flex-1 sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" aria-hidden="true" />
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="搜索标题…"
+              aria-label="搜索图片标题"
+              className="h-10 rounded-xl border-border bg-white/70 pl-9"
+            />
+          </div>
+          {/* 筛选生效时才出现：原先只能滚到空结果页里清筛选，筛选条件在地址栏里也看不见 */}
+          {hasFilter && (
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              className="h-10 shrink-0 rounded-xl px-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+              清空筛选
+            </Button>
+          )}
         </div>
       </div>
 
