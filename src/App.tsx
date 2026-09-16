@@ -159,7 +159,7 @@ export default function App() {
   }, [route]);
 
   return (
-    <div id="top" className="relative min-h-screen overflow-x-hidden page-bg">
+    <div id="top" className="relative overflow-x-hidden page-bg">
       <AmbientBackground />
       <Header />
 

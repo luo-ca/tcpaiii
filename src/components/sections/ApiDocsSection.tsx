@@ -28,7 +28,7 @@ function CodeRow({
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 shrink-0 justify-center card-button rounded-lg gap-1"
+        className="h-7 shrink-0 justify-center card-button gap-1"
         onClick={onCopy}
       >
         <CopyIcon className="w-3 h-3" aria-hidden="true" />
@@ -165,7 +165,7 @@ export function ApiDocsSection() {
                     code={randomJsonApiUrl}
                     onCopy={() => copyCode(randomJsonApiUrl)}
                   />
-                  <div className="rounded-xl overflow-hidden code-block">
+                  <div className="code-block">
                     <div className="code-block-header">
                       <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">
                         Response
@@ -204,7 +204,7 @@ export function ApiDocsSection() {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <div className="rounded-xl overflow-hidden code-block">
+                  <div className="code-block">
                     <div className="code-block-header">
                       <span className="text-[11px] font-medium text-amber-400 uppercase tracking-wider">
                         JavaScript
@@ -218,7 +218,7 @@ export function ApiDocsSection() {
                       </pre>
                     </div>
                   </div>
-                  <div className="rounded-xl overflow-hidden code-block">
+                  <div className="code-block">
                     <div className="code-block-header">
                       <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">
                         cURL

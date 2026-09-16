@@ -440,7 +440,7 @@ function AddImageDialog({
 
             <Button
               type="submit"
-              className="gradient-button w-full rounded-xl border-0 text-white"
+              className="gradient-button w-full rounded-xl text-white"
               disabled={loading || batchPreview.validNew.length === 0}
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
@@ -559,7 +559,7 @@ function EditImageDialog({
               onChange={(e) => setTagsInput(e.target.value)}
             />
           </div>
-          <Button type="submit" className="gradient-button w-full rounded-xl border-0 text-white" disabled={loading}>
+          <Button type="submit" className="gradient-button w-full rounded-xl text-white" disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : null}
             保存
           </Button>
@@ -1097,7 +1097,7 @@ export default function GalleryPage() {
               <button
                 type="button"
                 aria-pressed={selectedTag === null}
-                className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium ${
                   selectedTag === null
                     ? 'border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
                     : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
@@ -1114,7 +1114,7 @@ export default function GalleryPage() {
                   key={tag}
                   type="button"
                   aria-pressed={selectedTag === tag}
-                  className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                  className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium ${
                     selectedTag === tag
                       ? 'border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
                       : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'

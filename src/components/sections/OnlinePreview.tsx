@@ -386,7 +386,7 @@ function OnlinePreviewImpl(
               <button
                 type="button"
                 aria-pressed={selectedTag === undefined}
-                className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
+                className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium ${
                   selectedTag === undefined
                     ? 'active border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
                     : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
@@ -400,7 +400,7 @@ function OnlinePreviewImpl(
                   key={tag}
                   type="button"
                   aria-pressed={selectedTag === tag}
-                  className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium ${
                     selectedTag === tag
                       ? 'active border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
                       : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'

@@ -107,7 +107,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
             <span>二次元图片 · EdgeOne 加速 · JSON / 302 双模式</span>
           </div>
 
-          <p className="hero-enter kana-label mt-6 text-brand-600" style={{ animationDelay: '40ms' }}>
+          <p className="hero-enter kana-label mt-6" style={{ animationDelay: '40ms' }}>
             ランダム画像 API
           </p>
           <h1

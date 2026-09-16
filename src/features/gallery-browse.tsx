@@ -123,7 +123,7 @@ export default function GalleryBrowse() {
   };
 
   const chipClass = (active: boolean) =>
-    `category-button shrink-0 snap-start rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
+    `category-button shrink-0 snap-start rounded-full px-3.5 py-1.5 text-sm font-medium ${
       active
         ? 'border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
         : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
