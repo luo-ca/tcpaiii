@@ -63,7 +63,7 @@ export function SecurityFeatures() {
               className="group flex items-start gap-3 rounded-xl p-3.5 transition-colors hover:bg-brand-50"
             >
               <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-ink ${item.bg} mt-0.5 transition-transform duration-200 group-hover:scale-110`}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-ink ${item.bg} mt-0.5 transition-transform duration-200 motion-safe:group-hover:scale-110`}
               >
                 <item.icon className={`h-4.5 w-4.5 ${item.color}`} aria-hidden="true" />
               </div>

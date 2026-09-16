@@ -672,23 +672,6 @@
     color: var(--color-muted-foreground);
   }
 
-  /* 贴纸标签：平涂品牌蓝 + 墨线 + 硬投影 + 全圆角，一枚小小的贴纸 */
-  .sticker-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.2rem 0.55rem;
-    font-size: 0.6875rem;
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: 0.04em;
-    color: #fff;
-    background: var(--color-brand-500);
-    border: 2px solid var(--color-ink);
-    border-radius: 9999px;
-    box-shadow: 2px 2px 0 0 var(--color-ink);
-  }
-
   /* ================================================================
    * 墨线 / 硬投影工具类
    * ------------------------------------------------------------
@@ -705,30 +688,6 @@
 
   .ink-shadow {
     box-shadow: 4px 4px 0 0 var(--color-ink);
-  }
-
-  .ink-shadow-lg {
-    box-shadow: 6px 6px 0 0 var(--color-ink);
-  }
-
-  /* 互动贴纸：悬停向左上掀起、按下压回纸面。给可点击的卡片用。 */
-  .sticker-card {
-    background: #fff;
-    border: 2px solid var(--color-ink);
-    box-shadow: 4px 4px 0 0 var(--color-ink);
-    transition:
-      transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1),
-      box-shadow 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-
-  .sticker-card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0 0 var(--color-ink);
-  }
-
-  .sticker-card:active {
-    transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0 0 var(--color-ink);
   }
 
   /* 半调网点：叠在品牌色块上，做出漫画制版的颗粒感 */

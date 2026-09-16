@@ -223,7 +223,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                 <img
                   src={heroImageUrl}
                   alt="派次元图库精选图片"
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.04]"
                   loading="eager"
                   {...{ fetchpriority: 'high' }}
                   onError={handleHeroImageError}
@@ -243,7 +243,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                 <span className="sticker-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
                   浏览图库
                   <ArrowRight
-                    className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5"
+                    className="h-3 w-3 transition-transform duration-300 motion-safe:group-hover:translate-x-0.5"
                     aria-hidden="true"
                   />
                 </span>

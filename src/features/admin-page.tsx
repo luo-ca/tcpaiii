@@ -634,7 +634,7 @@ function ImageCard({
               另补 group-focus-within：键盘 Tab 到按钮时也要能看见浮层。 */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100" />
 
-          <div className="absolute inset-x-0 bottom-0 p-3.5 translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 pointer-coarse:translate-y-0 pointer-coarse:opacity-100">
+          <div className="absolute inset-x-0 bottom-0 p-3.5 translate-y-1 opacity-0 transition-all duration-300 motion-safe:group-hover:translate-y-0 group-hover:opacity-100 motion-safe:group-focus-within:translate-y-0 group-focus-within:opacity-100 pointer-coarse:translate-y-0 pointer-coarse:opacity-100">
             <div className="flex items-end justify-between gap-2">
               <div className="min-w-0 flex-1">
                 {/* h3 而不是 h4：这个标题在文档里早于页面的 h1「图片管理」出现
