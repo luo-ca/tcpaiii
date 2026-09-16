@@ -1085,6 +1085,7 @@ export default function GalleryPage() {
                   setPage(1);
                 }}
                 placeholder="搜索标题、URL 或标签"
+                aria-label="搜索图片标题、URL 或标签"
                 className="pl-9 rounded-xl bg-secondary/30"
               />
             </div>

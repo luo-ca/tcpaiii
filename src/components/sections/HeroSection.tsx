@@ -158,6 +158,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                   if (event.key === 'Enter') handleSubmit();
                 }}
                 placeholder="搜索标签：acg、壁纸、头像..."
+                aria-label="搜索标签"
                 className="h-12 border-0 bg-transparent p-0 text-base shadow-none focus-visible:outline-none placeholder:text-muted-foreground/70"
               />
             </div>

@@ -10,6 +10,9 @@ export function Header() {
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
+    // 挂载时先读一次当前滚动位置：刷新 / 从历史回退到已滚动页面时，
+    // 顶栏能立刻呈现「已滚动」样式，而不是先渲染未滚动态再被监听器纠正。
+    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
