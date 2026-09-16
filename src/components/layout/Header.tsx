@@ -61,7 +61,7 @@ export function Header() {
           {/* Brand lockup：Logo 套一层品牌渐变描边 + 双行字标 */}
           <NavLink
             to="/"
-            className="group flex items-center gap-2.5 text-left shrink-0 min-w-0 rounded-xl -ml-2 pl-2 pr-2 py-1.5 hover:bg-black/5 transition-all duration-200"
+            className="group flex items-center gap-2.5 text-left shrink-0 min-w-0 rounded-xl -ml-2 pl-2 pr-2 py-1.5 hover:bg-brand-50 transition-all duration-200"
             aria-label="返回首页"
           >
             <span className="relative shrink-0 rounded-xl border-2 border-ink bg-white p-[1.5px] transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3">

@@ -833,7 +833,8 @@
     }
 
     .gradient-button,
-    .gradient-button:hover {
+    .gradient-button:hover,
+    .gradient-button:active {
       transform: none;
     }
 
@@ -853,7 +854,9 @@
     }
 
     .glass-card:hover,
-    .category-button:hover {
+    .category-button:hover,
+    .category-button:active,
+    .card-button:active {
       transform: none;
     }
 

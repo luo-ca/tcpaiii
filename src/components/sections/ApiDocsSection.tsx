@@ -16,7 +16,7 @@ function CodeRow({
   onCopy: () => void;
 }) {
   return (
-    <div className="group flex flex-col gap-2.5 rounded-xl border-2 border-ink bg-white p-3.5 transition-colors hover:bg-brand-50/60 sm:flex-row sm:items-center sm:justify-between">
+    <div className="group flex flex-col gap-2.5 rounded-xl border-2 border-ink bg-white p-3.5 transition-colors hover:bg-brand-50 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
         {label && (
           <p className="text-xs text-muted-foreground mb-1.5 font-medium">{label}</p>

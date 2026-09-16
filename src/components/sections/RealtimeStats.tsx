@@ -117,7 +117,7 @@ export function RealtimeStats() {
           <CardContent className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <div className="h-5 w-1.5 rounded-full border border-ink bg-brand-500" />
+                <div className="h-5 w-1.5 rounded-full border-2 border-ink bg-brand-500" />
                 <span className="text-sm font-bold">近 7 天趋势</span>
               </div>
               <div className="flex items-center gap-2">

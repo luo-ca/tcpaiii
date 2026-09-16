@@ -181,7 +181,7 @@ function OnlinePreviewImpl(
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 shrink-0 rounded-lg p-0 transition-all hover:bg-secondary"
+              className="h-8 w-8 shrink-0 rounded-lg p-0 transition-all hover:bg-brand-50"
               onClick={() => shuffleImage(selectedTag)}
               disabled={imageLoading}
               aria-label="刷新随机图片"

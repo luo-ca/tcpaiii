@@ -60,7 +60,7 @@ export function SecurityFeatures() {
           {items.map((item, i) => (
             <div
               key={i}
-              className="group flex items-start gap-3 rounded-xl p-3.5 transition-colors hover:bg-muted/60"
+              className="group flex items-start gap-3 rounded-xl p-3.5 transition-colors hover:bg-brand-50"
             >
               <div
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-ink ${item.bg} mt-0.5 transition-transform duration-200 group-hover:scale-110`}
