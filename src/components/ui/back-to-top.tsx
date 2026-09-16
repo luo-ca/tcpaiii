@@ -36,7 +36,7 @@ export function BackToTop() {
       onClick={handleClick}
       aria-label="回到顶部"
       title="回到顶部"
-      className="animate-fade-in fixed bottom-5 right-5 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white/85 text-foreground shadow-md backdrop-blur-xl transition-all duration-200 hover:bg-white hover:shadow-lg motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-95 sm:bottom-7 sm:right-7"
+      className="animate-fade-in ink-shadow fixed bottom-5 right-5 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-ink bg-white text-foreground transition-all duration-200 hover:bg-brand-50 motion-safe:hover:-translate-x-0.5 motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-x-0 motion-safe:active:translate-y-0 sm:bottom-7 sm:right-7"
     >
       <ArrowUp className="h-4 w-4" aria-hidden />
     </button>

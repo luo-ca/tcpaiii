@@ -165,23 +165,23 @@ function OnlinePreviewImpl(
         </div>
 
         {/* Browser Preview Card */}
-        <div className="reveal overflow-hidden rounded-3xl border border-white/60 bg-white/75 shadow-lg backdrop-blur-xl">
+        <div className="reveal overflow-hidden rounded-3xl border-2 border-ink bg-white shadow-[6px_6px_0_0_var(--color-ink)]">
           {/* Browser Chrome Bar */}
-          <div className="flex items-center gap-3 border-b border-border bg-secondary/80 px-4 py-3">
+          <div className="flex items-center gap-3 border-b-2 border-ink bg-secondary px-4 py-3">
             <div className="hidden items-center gap-1.5 sm:flex shrink-0">
               <div className="browser-dot browser-dot-red" />
               <div className="browser-dot browser-dot-yellow" />
               <div className="browser-dot browser-dot-green" />
             </div>
             <div className="min-w-0 flex-1 sm:ml-2">
-              <div className="truncate rounded-md bg-white/80 border border-border px-3 py-1.5 text-xs text-muted-foreground font-mono shadow-sm">
+              <div className="truncate rounded-md border-2 border-ink bg-white px-3 py-1.5 font-mono text-xs text-muted-foreground">
                 {randomApiUrl}
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 shrink-0 rounded-lg hover:bg-secondary transition-all"
+              className="h-8 w-8 shrink-0 rounded-lg p-0 transition-all hover:bg-secondary"
               onClick={() => shuffleImage(selectedTag)}
               disabled={imageLoading}
               aria-label="刷新随机图片"
@@ -210,11 +210,11 @@ function OnlinePreviewImpl(
               )}
 
               {previewError && !imageLoading && (
-                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/80 p-6 text-center backdrop-blur-md">
-                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-3">
-                    <Camera className="h-8 w-8 text-red-300" aria-hidden="true" />
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/85 p-6 text-center backdrop-blur-md">
+                  <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-red-200 bg-red-50">
+                    <Camera className="h-8 w-8 text-red-400" aria-hidden="true" />
                   </div>
-                  <p className="text-sm font-semibold text-foreground">预览加载失败</p>
+                  <p className="text-sm font-bold text-foreground">预览加载失败</p>
                   <p className="mt-1 max-w-sm text-xs text-muted-foreground">{previewError}</p>
                   <Button
                     variant="outline"
@@ -254,7 +254,7 @@ function OnlinePreviewImpl(
                         {imageTags.map((tag) => (
                           <span
                             key={tag}
-                            className="rounded-full bg-white/18 px-2 py-0.5 text-xs text-white/88 backdrop-blur-sm border border-white/10"
+                            className="rounded-full border-2 border-ink bg-white/18 px-2 py-0.5 text-xs text-white/88 backdrop-blur-sm"
                           >
                             {tag}
                           </span>

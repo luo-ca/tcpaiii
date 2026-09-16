@@ -20,12 +20,12 @@ export function EmptyState({
   return (
     <div
       role="status"
-      className={`mx-auto max-w-md rounded-2xl border border-border/60 glass-strong p-8 text-center ${className}`}
+      className={`glass-strong mx-auto max-w-md rounded-2xl p-8 text-center ${className}`}
     >
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/70">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-ink bg-secondary/70">
         <Icon className="h-7 w-7 text-muted-foreground/50" aria-hidden="true" />
       </div>
-      <p className="text-lg font-medium text-foreground">{title}</p>
+      <p className="text-lg font-bold text-foreground">{title}</p>
       {message && <p className="mt-2 text-sm text-muted-foreground">{message}</p>}
       {children && <div className="mt-5 flex justify-center">{children}</div>}
     </div>

@@ -36,9 +36,9 @@ const updates = [
 ];
 
 const tagColors: Record<string, string> = {
-  Major: 'bg-brand-50 text-brand-600 border-brand-100',
-  Update: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-  API: 'bg-amber-50 text-amber-600 border-amber-100',
+  Major: 'bg-brand-500 text-white',
+  Update: 'bg-emerald-500 text-white',
+  API: 'bg-amber-400 text-ink',
 };
 
 export function Changelog() {
@@ -49,6 +49,7 @@ export function Changelog() {
           <Clock className="w-3.5 h-3.5" aria-hidden="true" />
           版本历史
         </p>
+        <p className="kana-label mt-3">アップデート</p>
         <h2>更新日志</h2>
         <p>展示站点与接口说明的调整记录（持续更新）</p>
       </div>
@@ -58,18 +59,18 @@ export function Changelog() {
           <div key={i} className="reveal flex gap-5">
             {/* Timeline indicator */}
             <div className="flex flex-col items-center shrink-0">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-brand-500 to-iris-500 mt-2 ring-4 ring-background outline outline-1 outline-brand-500/30" />
+              <div className="mt-2 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-ink bg-brand-500 ring-4 ring-background" />
               {i < updates.length - 1 && (
-                <div className="w-px flex-1 mt-2 bg-gradient-to-b from-border to-transparent" />
+                <div className="mt-2 flex-1 border-l-2 border-dashed border-ink/20" />
               )}
             </div>
 
-            <Card className="glass-card flex-1 rounded-2xl border-white/60">
+            <Card className="glass-card flex-1 rounded-2xl">
               <CardContent className="p-5">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className="text-xs text-muted-foreground font-mono">{update.date}</span>
                   <span
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${tagColors[update.tag] ?? ''}`}
+                    className={`rounded-full border-2 border-ink px-2 py-0.5 text-[11px] font-extrabold tracking-wide ${tagColors[update.tag] ?? ''}`}
                   >
                     {update.tag}
                   </span>

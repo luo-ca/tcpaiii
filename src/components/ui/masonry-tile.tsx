@@ -64,7 +64,7 @@ export function MasonryTile({
       type="button"
       onClick={onOpen}
       aria-label={`查看大图：${image.title || '未命名图片'}`}
-      className="reveal group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/60 bg-secondary shadow-sm transition-all duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-lg sm:mb-4"
+      className="reveal group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl border-2 border-ink bg-secondary shadow-[3px_3px_0_0_var(--color-ink)] transition-all duration-300 motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-[5px_5px_0_0_var(--color-ink)] sm:mb-4"
       style={{ aspectRatio: String(ratio) }}
     >
       {state === 'loading' && (

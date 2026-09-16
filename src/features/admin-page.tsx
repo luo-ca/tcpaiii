@@ -242,7 +242,7 @@ function AddImageDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gradient-button gap-2 rounded-xl border-0 text-white">
+        <Button className="gradient-button gap-2 rounded-xl text-white">
           <Plus className="w-4 h-4" aria-hidden="true" />
           添加图片
         </Button>
@@ -315,7 +315,7 @@ function AddImageDialog({
                 onChange={(e) => setTagsInput(e.target.value)}
               />
             </div>
-            <Button type="submit" className="gradient-button w-full rounded-xl border-0 text-white" disabled={loading}>
+            <Button type="submit" className="gradient-button w-full rounded-xl text-white" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
               添加
             </Button>
@@ -429,9 +429,9 @@ function AddImageDialog({
                     {progress.current} / {progress.total}
                   </span>
                 </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-2 overflow-hidden rounded-full border border-ink bg-muted">
                   <div
-                    className="h-full bg-gradient-to-r from-brand-500 to-iris-500 rounded-full transition-all duration-300"
+                    className="h-full rounded-full bg-brand-500 transition-all duration-300"
                     style={{ width: `${(progress.current / progress.total) * 100}%` }}
                   />
                 </div>
@@ -597,7 +597,7 @@ function ImageCard({
 
   return (
     <Card
-      className="group overflow-hidden glass-card rounded-2xl border-white/60 animate-fade-in"
+      className="glass-card group animate-fade-in overflow-hidden rounded-2xl"
       style={{ animationDelay: `${Math.min(index, 12) * 0.04}s` }}
     >
       <CardContent className="p-0">
@@ -688,7 +688,7 @@ function ImageCard({
                       )}
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="glass-strong rounded-2xl border-white/60">
+                  <AlertDialogContent className="glass-strong rounded-2xl">
                     <AlertDialogHeader>
                       <AlertDialogTitle>确认删除</AlertDialogTitle>
                       <AlertDialogDescription>
@@ -963,7 +963,7 @@ export default function GalleryPage() {
       </div>
 
       {/* Admin Token Card */}
-      <Card className="glass-strong rounded-2xl mb-5 border-white/60">
+      <Card className="glass-strong mb-5 rounded-2xl">
         <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0 flex-1 space-y-2">
@@ -1058,7 +1058,7 @@ export default function GalleryPage() {
             bg: 'bg-brand-50',
           },
         ].map((item) => (
-          <Card key={item.label} className="glass-strong rounded-2xl border-white/60">
+          <Card key={item.label} className="glass-strong rounded-2xl">
             <CardContent className="p-3.5 sm:p-4 flex items-center gap-3">
               <div
                 className={`w-9 h-9 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}
@@ -1077,7 +1077,7 @@ export default function GalleryPage() {
       </div>
 
       {/* Search & Filter Card */}
-      <Card className="glass-strong rounded-2xl mb-6 border-white/60">
+      <Card className="glass-strong mb-6 rounded-2xl">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative flex-1">

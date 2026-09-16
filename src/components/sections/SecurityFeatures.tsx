@@ -47,12 +47,12 @@ const items = [
 
 export function SecurityFeatures() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-4 pb-4">
-      <div className="reveal p-6 rounded-2xl glass-strong border border-white/60">
+    <div className="mx-auto mt-4 max-w-4xl px-4 pb-4 sm:px-6">
+      <div className="glass-strong reveal rounded-2xl p-6">
         {/* 该组件只在 `/docs` 渲染，是「API 文档」h1 之下的二级区块 */}
-        <h2 className="font-bold text-base mb-5 flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center">
-            <Shield className="w-4 h-4 text-brand-500" aria-hidden="true" />
+        <h2 className="mb-5 flex items-center gap-2 text-base font-bold">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-brand-50">
+            <Shield className="h-4 w-4 text-brand-500" aria-hidden="true" />
           </div>
           安全防护与性能优化
         </h2>
@@ -60,15 +60,15 @@ export function SecurityFeatures() {
           {items.map((item, i) => (
             <div
               key={i}
-              className="flex items-start gap-3 p-3.5 rounded-xl hover:bg-muted/60 transition-colors group"
+              className="group flex items-start gap-3 rounded-xl p-3.5 transition-colors hover:bg-muted/60"
             >
               <div
-                className={`w-9 h-9 rounded-xl ${item.bg} flex items-center justify-center shrink-0 mt-0.5 transition-transform duration-200 group-hover:scale-110`}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-ink ${item.bg} mt-0.5 transition-transform duration-200 group-hover:scale-110`}
               >
-                <item.icon className={`w-4.5 h-4.5 ${item.color}`} aria-hidden="true" />
+                <item.icon className={`h-4.5 w-4.5 ${item.color}`} aria-hidden="true" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground/90">{item.title}</p>
+                <p className="text-sm font-bold text-foreground/90">{item.title}</p>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.desc}</p>
               </div>
             </div>

@@ -18,14 +18,15 @@ export function DocsTeaser() {
   return (
     <section id="docs-teaser" className="relative z-10 px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="reveal glass-strong overflow-hidden rounded-3xl border border-white/60 shadow-lg">
+        <div className="glass-strong reveal overflow-hidden rounded-3xl">
           <div className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <p className="section-eyebrow">
                 <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
                 接入文档
               </p>
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <p className="kana-label mt-3">ドキュメント</p>
+              <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
                 需要更多用法？
               </h2>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
@@ -37,7 +38,7 @@ export function DocsTeaser() {
                 {HIGHLIGHTS.map((item) => (
                   <div
                     key={item.label}
-                    className="flex items-center gap-2 rounded-xl border border-border/60 bg-white/60 px-3 py-2"
+                    className="flex items-center gap-2 rounded-xl border-2 border-ink bg-white px-3 py-2"
                   >
                     <item.icon className="h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true" />
                     <span className="text-xs font-semibold text-foreground">{item.label}</span>

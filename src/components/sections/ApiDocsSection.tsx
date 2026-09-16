@@ -16,7 +16,7 @@ function CodeRow({
   onCopy: () => void;
 }) {
   return (
-    <div className="group flex flex-col gap-2.5 p-3.5 bg-muted/35 rounded-xl border border-border/40 hover:bg-muted/55 transition-colors sm:flex-row sm:items-center sm:justify-between">
+    <div className="group flex flex-col gap-2.5 rounded-xl border-2 border-ink bg-white p-3.5 transition-colors hover:bg-brand-50/60 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
         {label && (
           <p className="text-xs text-muted-foreground mb-1.5 font-medium">{label}</p>
@@ -62,7 +62,7 @@ export function ApiDocsSection() {
 
       <div className="reveal max-w-4xl mx-auto">
         <Tabs value={activeDocTab} onValueChange={setActiveDocTab}>
-          <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-4 gap-1 glass rounded-xl p-1.5 min-h-[3rem] mb-6 border border-white/60">
+          <TabsList className="glass mb-6 grid h-auto min-h-[3rem] w-full grid-cols-2 gap-1 rounded-xl p-1.5 sm:grid-cols-4">
             <TabsTrigger
               value="basic"
               className="rounded-lg text-xs sm:text-sm px-2.5 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:shadow-black/5"
@@ -90,14 +90,14 @@ export function ApiDocsSection() {
           </TabsList>
 
           <TabsContent value="basic" className="mt-2 space-y-3">
-            <Card className="glass-strong rounded-2xl border-white/60">
+            <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-brand-50">
                     <Code className="w-4 h-4 text-brand-500" aria-hidden="true" />
                   </div>
                   <div>
-                    <span className="text-sm font-semibold">基础调用</span>
+                    <span className="text-sm font-bold">基础调用</span>
                     <p className="text-xs text-muted-foreground">
                       默认返回 302 图片直链；追加 format=json 获取 JSON 元数据
                     </p>
@@ -125,14 +125,14 @@ export function ApiDocsSection() {
           </TabsContent>
 
           <TabsContent value="params" className="mt-2">
-            <Card className="glass-strong rounded-2xl border-white/60">
+            <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-iris-50 flex items-center justify-center">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-iris-50">
                     <Tag className="w-4 h-4 text-iris-500" aria-hidden="true" />
                   </div>
                   <div>
-                    <span className="text-sm font-semibold">分类参数</span>
+                    <span className="text-sm font-bold">分类参数</span>
                     <p className="text-xs text-muted-foreground">
                       通过 tag 参数指定图片分类
                     </p>
@@ -147,14 +147,14 @@ export function ApiDocsSection() {
           </TabsContent>
 
           <TabsContent value="json" className="mt-2">
-            <Card className="glass-strong rounded-2xl border-white/60">
+            <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-brand-50">
                     <Code className="w-4 h-4 text-brand-500" aria-hidden="true" />
                   </div>
                   <div>
-                    <span className="text-sm font-semibold">JSON 返回模式</span>
+                    <span className="text-sm font-bold">JSON 返回模式</span>
                     <p className="text-xs text-muted-foreground">
                       追加 format=json 返回 JSON 数据，包含图片 URL、标题、标签等
                     </p>
@@ -190,14 +190,14 @@ export function ApiDocsSection() {
           </TabsContent>
 
           <TabsContent value="advanced" className="mt-2">
-            <Card className="glass-strong rounded-2xl border-white/60">
+            <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-emerald-50">
                     <Zap className="w-4 h-4 text-emerald-500" aria-hidden="true" />
                   </div>
                   <div>
-                    <span className="text-sm font-semibold">高级用法</span>
+                    <span className="text-sm font-bold">高级用法</span>
                     <p className="text-xs text-muted-foreground">
                       JavaScript 与命令行调用示例
                     </p>

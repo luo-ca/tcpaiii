@@ -44,20 +44,14 @@ export function RealtimeStats() {
       label: '总调用量',
       value: formatNumber(stats?.totalRequests ?? 0),
       icon: TrendingUp,
-      color: 'text-brand-500',
-      bgColor: 'bg-brand-50',
-      gradientFrom: 'from-brand-500',
-      gradientTo: 'to-brand-400',
+      tile: 'bg-brand-500',
       sub: '累计请求总次数',
     },
     {
       label: '今日调用',
       value: formatNumber(stats?.todayRequests ?? 0),
       icon: Clock,
-      color: 'text-iris-500',
-      bgColor: 'bg-iris-50',
-      gradientFrom: 'from-iris-500',
-      gradientTo: 'to-brand-400',
+      tile: 'bg-iris-500',
       sub: stats?.lastRequestAt
         ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN')
         : '暂无数据',
@@ -66,20 +60,14 @@ export function RealtimeStats() {
       label: '接入站点',
       value: formatNumber(stats?.totalSites ?? 0),
       icon: Globe,
-      color: 'text-brand-500',
-      bgColor: 'bg-brand-50',
-      gradientFrom: 'from-brand-500',
-      gradientTo: 'to-brand-400',
+      tile: 'bg-brand-500',
       sub: '使用本 API 的网站',
     },
     {
       label: '图片总数',
       value: formatNumber(stats?.totalImages ?? 0),
       icon: Layers,
-      color: 'text-iris-500',
-      bgColor: 'bg-iris-50',
-      gradientFrom: 'from-iris-500',
-      gradientTo: 'to-iris-400',
+      tile: 'bg-iris-500',
       sub: `${stats?.tags?.length ?? 0} 个分类`,
     },
   ];
@@ -92,31 +80,32 @@ export function RealtimeStats() {
             <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
             实时数据
           </p>
+          <p className="kana-label mt-3">ライブ統計</p>
           <h2>实时统计</h2>
           <p>API 调用数据与图库资源概览</p>
         </div>
 
         {/* Stat Cards */}
-        <div className="reveal grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="reveal mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {statCards.map((card, i) => (
-            <Card key={i} className="spotlight-card glass-card overflow-hidden rounded-2xl border-white/60">
+            <Card key={i} className="glass-card overflow-hidden rounded-2xl">
               <CardContent className="p-4 sm:p-5">
                 <div className="relative h-full">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-10 h-10 rounded-xl ${card.bgColor} flex items-center justify-center`}>
-                      <card.icon className={`w-5 h-5 ${card.color}`} aria-hidden="true" />
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className={`halftone-dots flex h-10 w-10 items-center justify-center rounded-xl border-2 border-ink shadow-[2px_2px_0_0_var(--color-ink)] ${card.tile}`}>
+                      <card.icon className="h-5 w-5 text-white" aria-hidden="true" />
                     </div>
-                    {/* 贴角柔光：原先是一个 48px 硬边圆浮在图标行右侧，像误放的色块 */}
+                    {/* 贴角网点：漫画制版圆点阵列，替代模糊柔光 */}
                     <div
                       aria-hidden="true"
-                      className={`pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-to-br ${card.gradientFrom} ${card.gradientTo} opacity-[0.16] blur-2xl`}
+                      className="halftone-brand pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full opacity-20"
                     />
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight stat-value">
+                  <p className="text-2xl font-bold text-foreground tracking-tight stat-value sm:text-3xl">
                     {card.value}
                   </p>
-                  <p className="text-xs font-medium text-muted-foreground mt-1">{card.label}</p>
-                  <p className="text-xs text-muted-foreground/60 mt-0.5 truncate">{card.sub}</p>
+                  <p className="mt-1 text-xs font-bold text-muted-foreground">{card.label}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground/60">{card.sub}</p>
                 </div>
               </CardContent>
             </Card>
@@ -124,15 +113,15 @@ export function RealtimeStats() {
         </div>
 
         {/* Chart Card */}
-        <Card className="spotlight-card reveal glass-strong rounded-2xl border-white/60">
+        <Card className="reveal glass-strong rounded-2xl">
           <CardContent className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-gradient-to-b from-brand-500 to-brand-400" />
-                <span className="text-sm font-semibold">近 7 天趋势</span>
+                <div className="h-5 w-1.5 rounded-full border border-ink bg-brand-500" />
+                <span className="text-sm font-bold">近 7 天趋势</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-brand-50 text-brand-600 border border-brand-100 px-3 py-1 text-xs font-medium">
+                <span className="rounded-full border-2 border-ink bg-brand-50 px-3 py-1 text-xs font-bold text-brand-600">
                   近 7 天 {formatNumber(totalRecentRequests)} 次
                 </span>
               </div>
@@ -165,7 +154,7 @@ export function RealtimeStats() {
                         </span>
                         <div className="flex h-32 w-full items-end justify-center sm:h-36">
                           <div
-                            className="w-8 rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400 transition-all hover:brightness-110 sm:w-12"
+                            className="w-8 rounded-t-md border-2 border-ink border-b-0 bg-brand-500 transition-all hover:brightness-110 sm:w-12"
                             style={{
                               height:
                                 item.requests > 0 && maxDayRequests > 0

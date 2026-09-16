@@ -7,7 +7,7 @@ export function Footer() {
   const appUrl = buildAppUrl('/');
 
   return (
-    <footer className="relative z-10 mt-4 border-t border-border/40 bg-secondary/20 backdrop-blur-sm">
+    <footer className="relative z-10 mt-4 border-t-2 border-ink bg-secondary">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-14">
         <div className="flex flex-col items-center justify-center gap-6 text-center">
           {/* Brand */}

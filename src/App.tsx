@@ -3,7 +3,6 @@ import type { RandomRequest } from '@/lib/types';
 import type { RoutePath } from '@/lib/router';
 import { useRoute } from '@/lib/router';
 import { useRouteMeta } from '@/hooks/use-route-meta';
-import { useCardSpotlight } from '@/hooks/use-card-spotlight';
 import { AmbientBackground } from '@/components/layout/AmbientBackground';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -143,8 +142,6 @@ function DocsPage() {
 export default function App() {
   const route = useRoute();
   useRouteMeta();
-  // 指针下方最近卡片的柔光跟随，全站只挂一个监听（内部做事件委托）
-  useCardSpotlight();
 
   const mainRef = useRef<HTMLElement>(null);
   // 记住上一次路由，只在「真的换页」时移动焦点——首次挂载不抢焦点，
