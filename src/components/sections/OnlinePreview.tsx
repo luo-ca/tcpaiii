@@ -128,14 +128,14 @@ function OnlinePreviewImpl(
   const hasImage = imageUrl && imageLoaded && !previewError;
 
   return (
-    <section ref={ref} id="preview" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
+    <section ref={ref} id="preview" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
       <div className="mx-auto max-w-6xl">
         {/* Section Header */}
         <div className="reveal mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-eyebrow">每日精选</p>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">热门二次元图片</h2>
-            <p className="mt-2 text-muted-foreground text-sm">
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               每次刷新随机一张，复制地址即可接入你的网站。
             </p>
           </div>
@@ -291,7 +291,7 @@ function OnlinePreviewImpl(
                     {imageLoading ? '加载中' : '实时可用'}
                   </span>
                 </div>
-                <h3 className="text-2xl font-bold tracking-tight leading-snug">
+                <h3 className="text-2xl font-semibold leading-snug tracking-tight">
                   复制即用，一行接入
                 </h3>
                 <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">

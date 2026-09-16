@@ -94,7 +94,7 @@ function HomePage() {
 
 function DocsPage() {
   return (
-    <section className="pb-12 pt-[calc(var(--header-h)+16px)] sm:pb-16">
+    <section className="pb-14 pt-[calc(var(--header-h)+16px)] sm:pb-20">
       <Suspense fallback={<SectionFallback />}>
         <ApiDocsSection />
       </Suspense>

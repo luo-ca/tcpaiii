@@ -1148,7 +1148,8 @@ export default function GalleryPage() {
             onDelete={(id) => deleteMutation.mutate(id)}
             onRefresh={refreshGallery}
             onRequireToken={requireAdminToken}
-            isDeleting={deleteMutation.isPending} aria-hidden="true" />
+            isDeleting={deleteMutation.isPending}
+          />
         ))}
       </div>
 

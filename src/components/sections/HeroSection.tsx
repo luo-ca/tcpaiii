@@ -96,37 +96,55 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
           1) 垂直压暗（底部更重，衔接浅色内容区）
           2) 文本区中心径向暗场（只压文字所在区域，边缘的二次元画面仍保留）
           3) 品牌色氛围光 */}
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(11,18,32,0.50)_0%,rgba(11,18,32,0.62)_45%,rgba(11,18,32,0.84)_100%)]" />
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_72%_58%_at_50%_46%,rgba(11,18,32,0.50),rgba(11,18,32,0.10)_72%)]" />
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(11,18,32,0.40)_0%,rgba(11,18,32,0.54)_45%,rgba(11,18,32,0.82)_100%)]" />
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_72%_58%_at_50%_46%,rgba(11,18,32,0.46),rgba(11,18,32,0.06)_72%)]" />
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_30%,rgba(0,122,255,0.20),transparent)]" />
       <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
       {/* Floating particles (decorative) */}
-      <div className="absolute top-1/4 left-1/4 -z-10 w-1.5 h-1.5 rounded-full bg-brand-400/40 animate-[float_5s_ease-in-out_infinite]" />
-      <div className="absolute top-1/3 right-1/3 -z-10 w-1 h-1 rounded-full bg-iris-400/40 animate-[float_7s_ease-in-out_infinite_1s]" />
-      <div className="absolute top-2/3 right-1/4 -z-10 w-2 h-2 rounded-full bg-brand-400/30 animate-[float_6s_ease-in-out_infinite_2s]" />
+      <div
+        aria-hidden="true"
+        className="animate-float absolute left-1/4 top-1/4 -z-10 h-1.5 w-1.5 rounded-full bg-brand-300/60"
+        style={{ animationDuration: '5s' }}
+      />
+      <div
+        aria-hidden="true"
+        className="animate-float absolute right-1/3 top-1/3 -z-10 h-1 w-1 rounded-full bg-iris-300/60"
+        style={{ animationDuration: '7s', animationDelay: '1s' }}
+      />
+      <div
+        aria-hidden="true"
+        className="animate-float absolute right-1/4 top-2/3 -z-10 h-2 w-2 rounded-full bg-brand-300/50"
+        style={{ animationDuration: '6s', animationDelay: '2s' }}
+      />
 
       <div className="mx-auto flex min-h-[580px] max-w-6xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
         {/* Eyebrow Badge */}
-        <div className="highlight-badge mb-6">
+        <div className="hero-enter highlight-badge mb-6">
           <Sparkles className="h-3.5 w-3.5 text-brand-200" aria-hidden="true" />
           <span>二次元图片 · EdgeOne 加速 · JSON / 302 双模式</span>
         </div>
 
         {/* Main Title */}
-        <h1 className="max-w-4xl text-5xl font-bold tracking-tight text-white [text-shadow:0_2px_28px_rgba(11,18,32,0.55)] sm:text-6xl md:text-7xl leading-[1.08]">
+        <h1
+          className="hero-enter max-w-4xl text-5xl font-bold tracking-tight text-white [text-shadow:0_2px_28px_rgba(11,18,32,0.55)] sm:text-6xl md:text-7xl leading-[1.08]"
+          style={{ animationDelay: '60ms' }}
+        >
           <span className="block">二次元图片</span>
           <span className="block text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-iris-300 drop-shadow-[0_2px_18px_rgba(11,18,32,0.45)]">
             人人可用
           </span>
         </h1>
 
-        <p className="mt-5 max-w-xl text-base leading-7 text-white/90 [text-shadow:0_1px_14px_rgba(11,18,32,0.65)] sm:text-[17px]">
+        <p
+          className="hero-enter mt-5 max-w-xl text-base leading-7 text-white/90 [text-shadow:0_1px_14px_rgba(11,18,32,0.65)] sm:text-[17px]"
+          style={{ animationDelay: '120ms' }}
+        >
           免费、稳定、快速的二次元随机图片 API。适合博客头图、论坛签名、Markdown 文档、应用占位图和 ACG 主题站点快速接入。
         </p>
 
         {/* Search Box */}
-        <div className="mt-8 w-full max-w-xl">
+        <div className="hero-enter mt-8 w-full max-w-xl" style={{ animationDelay: '180ms' }}>
           <div className="relative flex items-center rounded-2xl bg-white/95 shadow-lg border border-white/20 overflow-hidden backdrop-blur-xl transition-shadow focus-within:ring-2 focus-within:ring-brand-500/40">
             <div className="flex flex-1 items-center gap-2 px-4">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
@@ -153,7 +171,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
         </div>
 
         {/* API 地址 —— 本站最核心的动作（把地址拿走）就在首屏，不需要滚动 */}
-        <div className="mt-3 w-full max-w-xl">
+        <div className="hero-enter mt-3 w-full max-w-xl" style={{ animationDelay: '240ms' }}>
           <button
             type="button"
             onClick={handleCopyApi}
@@ -179,7 +197,10 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
 
         {/* Stats Row */}
         {showStatBadges && (
-          <div className="mt-7 flex max-w-3xl flex-wrap items-center justify-center gap-2.5">
+          <div
+            className="hero-enter mt-7 flex max-w-3xl flex-wrap items-center justify-center gap-2.5"
+            style={{ animationDelay: '300ms' }}
+          >
             {statBadges.map((item) => (
               <div
                 key={item.label}

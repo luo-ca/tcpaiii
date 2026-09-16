@@ -38,7 +38,7 @@ const features = [
 
 export function WhyChoose() {
   return (
-    <section id="features" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
+    <section id="features" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
       <div className="max-w-6xl mx-auto">
         <div className="section-header reveal">
           <p className="section-eyebrow">
@@ -51,14 +51,14 @@ export function WhyChoose() {
 
         <div className="reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {features.map((f, i) => (
-            <Card key={i} className="glass-card rounded-2xl hover-lift border-white/60">
+            <Card key={i} className="glass-card rounded-2xl border-white/60">
               <CardContent className="p-6">
                 <div
                   className={`w-12 h-12 rounded-xl ${f.bgColor} flex items-center justify-center mb-5`}
                 >
                   <f.icon className={`w-6 h-6 ${f.textColor}`} aria-hidden="true" />
                 </div>
-                <h3 className="font-bold text-[17px] text-foreground mb-2 tracking-tight">
+                <h3 className="mb-2 text-[17px] tracking-tight text-foreground">
                   {f.title}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>

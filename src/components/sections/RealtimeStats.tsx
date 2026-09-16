@@ -85,7 +85,7 @@ export function RealtimeStats() {
   ];
 
   return (
-    <section id="stats" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
+    <section id="stats" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
       <div className="max-w-6xl mx-auto">
         <div className="section-header reveal">
           <p className="section-eyebrow">
@@ -99,15 +99,17 @@ export function RealtimeStats() {
         {/* Stat Cards */}
         <div className="reveal grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {statCards.map((card, i) => (
-            <Card key={i} className="glass-card rounded-2xl hover-lift border-white/60 overflow-hidden">
+            <Card key={i} className="glass-card overflow-hidden rounded-2xl border-white/60">
               <CardContent className="p-4 sm:p-5">
                 <div className="relative h-full">
                   <div className="flex items-center justify-between mb-4">
                     <div className={`w-10 h-10 rounded-xl ${card.bgColor} flex items-center justify-center`}>
                       <card.icon className={`w-5 h-5 ${card.color}`} aria-hidden="true" />
                     </div>
+                    {/* 贴角柔光：原先是一个 48px 硬边圆浮在图标行右侧，像误放的色块 */}
                     <div
-                      className={`absolute top-0 right-0 w-12 h-12 rounded-full bg-gradient-to-b ${card.gradientFrom} ${card.gradientTo} opacity-25`}
+                      aria-hidden="true"
+                      className={`pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-to-br ${card.gradientFrom} ${card.gradientTo} opacity-[0.16] blur-2xl`}
                     />
                   </div>
                   <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight stat-value">

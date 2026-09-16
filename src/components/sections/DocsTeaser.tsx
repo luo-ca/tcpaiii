@@ -16,7 +16,7 @@ const HIGHLIGHTS = [
  */
 export function DocsTeaser() {
   return (
-    <section id="docs-teaser" className="relative z-10 px-4 py-12 sm:px-6 sm:py-16">
+    <section id="docs-teaser" className="relative z-10 px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="reveal glass-strong overflow-hidden rounded-3xl border border-white/60 shadow-lg">
           <div className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">

@@ -64,7 +64,7 @@ export function GalleryPreview() {
   if (!isLoading && items.length === 0) return null;
 
   return (
-    <section id="gallery-preview" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20">
+    <section id="gallery-preview" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
       <div className="mx-auto max-w-6xl">
         <div className="reveal mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -73,7 +73,7 @@ export function GalleryPreview() {
               最新收录
             </p>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">图库精选</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               点任意一张查看原图，或进图库按标签筛选浏览。
             </p>
           </div>

@@ -43,7 +43,7 @@ const tagColors: Record<string, string> = {
 
 export function Changelog() {
   return (
-    <section id="changelog" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
+    <section id="changelog" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
       <div className="section-header reveal">
         <p className="section-eyebrow">
           <Clock className="w-3.5 h-3.5" aria-hidden="true" />
@@ -64,7 +64,7 @@ export function Changelog() {
               )}
             </div>
 
-            <Card className="glass-card rounded-2xl flex-1 hover-lift border-white/60">
+            <Card className="glass-card flex-1 rounded-2xl border-white/60">
               <CardContent className="p-5">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className="text-xs text-muted-foreground font-mono">{update.date}</span>

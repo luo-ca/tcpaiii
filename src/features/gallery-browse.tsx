@@ -358,7 +358,7 @@ export default function GalleryBrowse() {
             公共图库
           </p>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">二次元图库</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             点任意一张看大图，左右方向键切换，Esc 关闭。
             {total > 0 && (
               <>

@@ -802,3 +802,102 @@ P0–P5 之后做的一轮全面审计，目标是把残余的不协调处清零
 | bundle 断言 | `startViewTransition` 已进 `dist/assets/index-*.js` ✓ |
 | 路由 | `vite preview` 下 `/`、`/docs`、`/gallery`、`/admin` 均 200 |
 | a11y 断言 | 全站 lucide 自闭合图标无 `aria-hidden` 残留（scanner 复扫 0 条） |
+
+## 18. P8 观感精修：节奏、层级、首屏与两处读屏缺陷
+
+> 目标：把 P7 落下的「全局观感」再做一层收敛——区块垂直节奏落位规范、标题字重拉开层级、首屏画面更可见且分阶段入场、统计卡装饰去噪；同时修掉 P7 图标清扫脚本误伤的两处读屏缺陷。**不改信息架构、不引入新色相、不引入 JS 依赖。**
+
+### 18.1 修复：P7 图标清扫脚本的两处误伤（读屏缺陷）
+
+P7 的 aria-hidden 清扫脚本用「图标名前缀」匹配标签，`Code` 会命中业务组件 `CodeRow`、`Image` 会命中 `ImageCard`，于是给这两个**业务组件**也加了 `aria-hidden="true"`：
+
+| 位置 | 后果 | 修复 |
+|---|---|---|
+| `ApiDocsSection.tsx` 5 处 `<CodeRow aria-hidden>` | `/docs` 全部代码示例（API 地址、HTML / Markdown 用法）对读屏软件整体消失 | 移除 5 处 |
+| `admin-page.tsx` `<ImageCard aria-hidden>` | 后台每张图片卡片连同标题、复制、编辑、删除按钮一起对读屏隐藏，后台对读屏用户等于空白 | 移除 |
+
+**根因与加固**：脚本的正则只做了「名字前不能是标识符字符」的后视断言，缺了「名字后必须是空白 / `/` / `>`」的前视断言。已重写为 `(?:Name)(?=[\s/>])` 并**双向校验**：
+- 正向：lucide 图标标签缺 `aria-hidden` → **0 条**
+- 反向：`aria-hidden` 落在非图标、非 HTML 原生的业务组件上 → **0 条**
+
+### 18.2 修复：任意值动画绕过 reduced-motion 关闭列表
+
+`HeroSection` 的 3 个装饰粒子用的是 Tailwind 任意值写法 `animate-[float_5s_ease-in-out_infinite]`。它生成的类名与规范类 `.animate-float` 不同，因此 `index.css` 末尾「prefers-reduced-motion: reduce」关闭列表**根本匹配不到它们**——开启减弱动效的用户仍会看到 3 个无限漂浮的圆点。
+
+改法：统一用命名类 `.animate-float`，周期与延迟改由行内 `animationDuration` / `animationDelay` 提供（行内样式优先级更高，能覆盖简写；而 reduce 分支是 `!important`，又能覆盖行内样式，链路闭合）。
+
+### 18.3 区块垂直节奏：落位规范 §4.2 的 64 / 80 / 96
+
+现状是 `py-16 sm:py-20`（64 / 80），**桌面档缺失**，规范要求的 96px 从未生效；DocsTeaser 又自成一档（48 / 64），全站节奏呈现「两档半」。
+
+| 区块类型 | 前 | 后 |
+|---|---|---|
+| 主区块（Preview / 精选 / 统计 / 优势 / 投稿 / 更新日志） | 64 / 80 | **64 / 80 / 96** |
+| 紧凑横幅（DocsTeaser） | 48 / 64 | **48 / 64 / 80** |
+| `/docs` 页底部 | 48 / 64 | 56 / 80 |
+| 页脚 | 40 | 48 / 56 |
+
+保留 DocsTeaser 独立一档是刻意的：它是引导横幅而非内容区块，与主区块拉开一档反而强化层级。
+
+### 18.4 标题字重层级：H3 及以下收到 600
+
+原先全局 `h1–h6` 一律 `font-weight: 700`，区块标题与卡片标题没有层级差。改为按规范 §4.3 分层：
+
+```css
+h1, h2 { letter-spacing: -0.02em; font-weight: 700; }
+h3, h4, h5, h6 { letter-spacing: -0.01em; font-weight: 600; }
+```
+
+随之把两处显式写死 700 的 h3 交回全局：`WhyChoose` 卡片标题（17px）、`OnlinePreview` 侧栏标题（24px，视觉上属 H2）→ 600。`CardTitle` 原本就是 `font-semibold`，自动与新层级一致。
+
+### 18.5 首屏：画面更可见 + 分阶段入场
+
+| 项 | 前 | 后 | 理由 |
+|---|---|---|---|
+| 垂直叠层 | 0.50 / 0.62 / 0.84 | **0.40 / 0.54 / 0.82** | 顶部压暗过重，二次元画面被吃掉；底部仍保持重压以衔接浅色内容区 |
+| 文字区径向暗场 | 0.50 → 0.10 @72% | **0.46 → 0.06 @72%** | 配合上一条；叠加后文字区实测总暗度仍约 0.76，白字对比度 ≈ 10.7:1，远超 AA |
+| 装饰粒子 | `w-1.5/1/2`、`/40`、`/30` 半透明 | **`/60`、`/50`** | 原先在暗底上几乎不可见，是纯噪音；提高不透明度后才读得出是刻意的点缀 |
+| 首屏入场 | 无 | **`.hero-enter` 分阶段 60ms 错峰**（徽章 → 标题 → 正文 → 搜索 → 地址 → 统计） | 补上「进站有呼吸感」，与下沉区块的 `.reveal` 呼应 |
+
+**`.hero-enter` 的关键取舍**：`@keyframes` 里**只声明 `transform`、不声明 `opacity`**。原因是首屏内容是潜在 LCP 元素——若从 `opacity: 0` 起步，元素在动画首帧「未绘制」，会把 LCP 往后推；只动 `transform` 时元素从第一帧就是绘制状态，位移不推迟 LCP。reduce 分支同步 `animation: none !important; transform: none !important`。
+
+### 18.6 统计卡装饰光斑：硬边小圆 → 贴角柔光
+
+原先是 `absolute top-0 right-0 w-12 h-12 rounded-full opacity-25`——一个 48px **硬边**圆浮在图标行右侧，因为定位在内容盒（而非卡片）的右上角，观感像一块误放的色块。改为 `-right-12 -top-12 h-32 w-32 blur-2xl opacity-[0.16]` 的品牌渐变柔光，贴卡片右上角、超出部分由卡片 `overflow-hidden` 裁掉。
+
+### 18.7 死代码清理
+
+| 项 | 说明 |
+|---|---|
+| `.hover-lift` 整块删除 | 它设置 `translateY(-4px)`，与 `.glass-card:hover` 的 `translateY(-2px)` 重复且互斥（同处一元素，靠源码顺序决胜）。全站 5 处 `glass-card + hover-lift` 双写已去重为单一 `glass-card`，该类遂无任何引用，连同 reduce 分支里的对应项一并删除 |
+| `Button` 的 `sm/lg` 尺寸去掉 `rounded-md` | 基础类已是 `rounded-lg`，而 Tailwind 输出顺序中 `rounded-lg` 恒在 `rounded-md` 之后 → 尺寸里的圆角**永远是死代码**；移除后意图明确 |
+
+### 18.8 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `eslint .` / `tsc -p tsconfig.app.json --noEmit` | 0 / 0 |
+| `vitest run` | **51/51** |
+| `npm run build` | 成功（2.08s），最大 chunk 仍为 `react-vendor` 142KB |
+| 产物 CSS 断言 | `.hero-enter{animation:...both hero-rise}` ✓；`@keyframes hero-rise` ✓；reduce 块内含 `.hero-enter` / `.animate-float` / `.glass-card:hover` / `.gradient-button` ✓；`.hover-lift` **0 条** ✓；`h1,h2{font-weight:700}` 与 `h3,h4,h5,h6{font-weight:600}` 分层并存 ✓ |
+| a11y 双向断言 | 图标缺 `aria-hidden` **0**；`aria-hidden` 误挂业务组件 **0** |
+| 路由 | `vite preview` 下 `/`、`/docs`、`/gallery`、`/admin` 均 200 |
+| 规范验收 grep | 旧蓝色 0；`font-black` 0；`text-[10px]` 0；`shadow-[` 仅剩 1 条 `drop-shadow-[...]`（标题文字辉光，非 box-shadow，刻意保留） |
+
+### 18.9 区块副标题：同一语义量出两种字号
+
+区块副标题（标题下那句说明）在全站有两种尺寸：
+
+| 位置 | 前 |
+|---|---|
+| 居中区块（优势 / 统计 / 投稿 / 更新日志 / 文档） | `text-base sm:text-lg` → 16 / 18px |
+| 左对齐区块（在线预览 / 图库精选 / 图库页头） | `text-sm` → 14px |
+
+同一个信息角色在桌面端相差 4px，看起来像疏漏而非设计。统一为 **14 / 16px**：`18px` 的副标题与 30–36px 的区块标题比值仅 2:1，本身也偏抢戏。
+
+### 18.10 验证结果（补）
+
+| 项 | 结果 |
+|---|---|
+| 产物 CSS 断言 | `.section-header p` 基础档 `font-size:var(--text-sm)` + `sm:` 档 `var(--text-base)` ✓ |
+| 复跑 `eslint` / `tsc` / `vitest` / `build` | 0 / 0 / **51 passed** / 成功（1.86s） |

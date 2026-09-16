@@ -4,7 +4,7 @@ import { Heart, Mail, MessageSquare, ChevronRight } from 'lucide-react';
 
 export function ImageSubmission() {
   return (
-    <section id="contribute" className="relative z-10 py-16 sm:py-20 px-4 sm:px-6">
+    <section id="contribute" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
       <div className="section-header reveal">
         <p className="section-eyebrow">
           <Heart className="w-3.5 h-3.5" aria-hidden="true" />
@@ -15,7 +15,7 @@ export function ImageSubmission() {
       </div>
 
       <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto">
-        <Card className="glass-card rounded-2xl hover-lift border-white/60">
+        <Card className="glass-card rounded-2xl border-white/60">
           <CardContent className="p-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
@@ -34,7 +34,7 @@ export function ImageSubmission() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card rounded-2xl hover-lift border-white/60">
+        <Card className="glass-card rounded-2xl border-white/60">
           <CardContent className="p-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-iris-50 flex items-center justify-center">

@@ -107,15 +107,18 @@ export function ApiDocsSection() {
                   <CodeRow
                     label="API 地址（默认 302）"
                     code={randomApiUrl}
-                    onCopy={() => copyCode(randomApiUrl)} aria-hidden="true" />
+                    onCopy={() => copyCode(randomApiUrl)}
+                  />
                   <CodeRow
                     label="HTML 使用示例"
                     code={`<img src="${randomApiUrl}" alt="随机图片" />`}
-                    onCopy={() => copyCode(`<img src="${randomApiUrl}" alt="随机图片" />`)} aria-hidden="true" />
+                    onCopy={() => copyCode(`<img src="${randomApiUrl}" alt="随机图片" />`)}
+                  />
                   <CodeRow
                     label="Markdown 使用示例"
                     code={`![随机图片](${randomApiUrl})`}
-                    onCopy={() => copyCode(`![随机图片](${randomApiUrl})`)} aria-hidden="true" />
+                    onCopy={() => copyCode(`![随机图片](${randomApiUrl})`)}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -137,7 +140,8 @@ export function ApiDocsSection() {
                 </div>
                 <CodeRow
                   code={randomTagApiUrl}
-                  onCopy={() => copyCode(randomTagApiUrl)} aria-hidden="true" />
+                  onCopy={() => copyCode(randomTagApiUrl)}
+                  />
               </CardContent>
             </Card>
           </TabsContent>
@@ -159,7 +163,8 @@ export function ApiDocsSection() {
                 <div className="space-y-2.5">
                   <CodeRow
                     code={randomJsonApiUrl}
-                    onCopy={() => copyCode(randomJsonApiUrl)} aria-hidden="true" />
+                    onCopy={() => copyCode(randomJsonApiUrl)}
+                  />
                   <div className="rounded-xl overflow-hidden code-block">
                     <div className="code-block-header">
                       <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">

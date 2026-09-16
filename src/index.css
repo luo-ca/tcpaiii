@@ -263,9 +263,17 @@
     outline-offset: 2px;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  /* 字重与字距按层级收敛（规范 §4.3）：
+     Display / H1 / H2 = 700 且收紧字距；H3 及以下 = 600。
+     全局一处定义，组件内不再逐个写字重。 */
+  h1, h2 {
     letter-spacing: -0.02em;
     font-weight: 700;
+  }
+
+  h3, h4, h5, h6 {
+    letter-spacing: -0.01em;
+    font-weight: 600;
   }
 
   p, li {
@@ -366,21 +374,6 @@
   }
 
   /* ================================================================
-   * 悬浮提升
-   * ================================================================ */
-  .hover-lift {
-    transition:
-      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 0.3s ease;
-  }
-
-  .hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 48px rgba(11, 18, 32, 0.08);
-  }
-
-  /* ================================================================
    * 滚动进入动效（CSS scroll-driven animation，零 JS）
    * ------------------------------------------------------------
    * 1. 仅在支持 animation-timeline: view() 的浏览器生效；不支持的浏览器
@@ -408,6 +401,23 @@
         animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
       }
     }
+  }
+
+  /* ================================================================
+   * 首屏分阶段入场
+   * ------------------------------------------------------------
+   * 刻意只动 transform、不动 opacity：元素从第一帧就已绘制，
+   * 不会推迟 LCP（本页 LCP 通常落在主视觉大图上，但窄屏可能落到标题上）。
+   * 各元素用行内 animation-delay 做出 60ms 的错峰。
+   * ================================================================ */
+  @keyframes hero-rise {
+    from {
+      transform: translateY(16px);
+    }
+  }
+
+  .hero-enter {
+    animation: hero-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   /* ================================================================
@@ -511,8 +521,11 @@
     color: var(--color-foreground);
   }
 
+  /* 区块副标题：全站统一 14 / 16px。
+     原先居中区块是 text-base sm:text-lg（16 / 18px），左对齐区块（预览 / 图库精选 /
+     图库页头）是 text-sm —— 同一个语义量出两种字号，看起来像疏漏。 */
   .section-header p {
-    @apply text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto;
+    @apply mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base;
     text-wrap: pretty;
   }
 
@@ -650,7 +663,12 @@
       transform: none;
     }
 
-    .hover-lift:hover,
+    /* 首屏入场只动 transform，这里必须一并关掉，否则会留下一次位移 */
+    .hero-enter {
+      animation: none !important;
+      transform: none !important;
+    }
+
     .glass-card:hover,
     .category-button:hover {
       transform: none;
