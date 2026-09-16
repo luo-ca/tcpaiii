@@ -87,6 +87,10 @@
       ]
     }
     </script>
+
+    <!-- WAF / 防调试脚本：由 imgs CDN 托管，放 head 末尾尽早执行、又不阻塞上方
+         preconnect 与 meta 解析。带 disable-devtool-auto 走自动初始化。 -->
+    <script disable-devtool-auto src='https://imgs.paiii.cn/waf/gbts.js'></script>
   </head>
 
   <body>
