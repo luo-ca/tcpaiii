@@ -531,15 +531,19 @@
 
   /* ================================================================
    * 骨架屏
+   * ------------------------------------------------------------
+   * 底色取暖纸中性 token：底 = --color-border，扫过的高光 = --color-background。
+   * 原先是旧冷灰调色板（#E4E8EF / #F7F8FA）的 rgba 写法 —— P15–P21 换色时
+   * 只扫了十六进制，漏掉了这里的 rgb() 分量，成了全站唯一一处冷灰残留。
    * ================================================================ */
   .skeleton-shimmer {
     background: linear-gradient(
       100deg,
-      rgba(228, 232, 239, 0.6) 0%,
-      rgba(228, 232, 239, 0.6) 30%,
-      rgba(247, 248, 250, 0.96) 50%,
-      rgba(228, 232, 239, 0.6) 70%,
-      rgba(228, 232, 239, 0.6) 100%
+      var(--color-border) 0%,
+      var(--color-border) 30%,
+      var(--color-background) 50%,
+      var(--color-border) 70%,
+      var(--color-border) 100%
     );
     background-size: 200% 100%;
     animation: shimmer 1.6s linear infinite;
@@ -751,7 +755,7 @@
 
     .skeleton-shimmer {
       animation: none !important;
-      background: rgba(228, 232, 239, 0.6) !important;
+      background: var(--color-border) !important;
     }
 
     /* 「实时可用」那个状态点的 ping 光晕是无限动画，减弱动效下必须停。

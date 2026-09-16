@@ -104,4 +104,27 @@ describe("入口层与设计语言一致", () => {
       }
     });
   });
+
+  describe("骨架屏改用暖纸中性 token", () => {
+    /**
+     * P15–P21 换色板时只扫了十六进制字面量，漏掉了 .skeleton-shimmer 里
+     * 以 rgb() 分量写的旧冷灰（rgba(228,232,239,…) / rgba(247,248,250,…)）。
+     * 这组值正是入口层早已废弃的冷灰调色板（#E4E8EF / #F7F8FA），
+     * 也是全站最后一处「不在暖纸底语言里」的残留。
+     *
+     * 注意：断言只针对 rgb() 分量写法，不针对十六进制 —— 因为 index.css 里
+     * `--color-sidebar-*` 与 `.dark` 仍刻意保留同名冷灰作为兼容占位，
+     * 一刀切地禁 hex 会误伤这些有意留存的值。
+     */
+    it("不再出现旧冷灰的 rgb 分量写法", () => {
+      expect(cssSource).not.toContain("228, 232, 239");
+      expect(cssSource).not.toContain("247, 248, 250");
+    });
+
+    it("底色改引 --color-border / --color-background", () => {
+      const block = cssSource.slice(cssSource.indexOf(".skeleton-shimmer {"));
+      expect(block).toContain("var(--color-border)");
+      expect(block).toContain("var(--color-background)");
+    });
+  });
 });
