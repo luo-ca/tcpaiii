@@ -51,7 +51,7 @@ export function WhyChoose() {
 
         <div className="reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {features.map((f, i) => (
-            <Card key={i} className="glass-card rounded-2xl border-white/60">
+            <Card key={i} className="spotlight-card glass-card rounded-2xl border-white/60">
               <CardContent className="p-6">
                 <div
                   className={`w-12 h-12 rounded-xl ${f.bgColor} flex items-center justify-center mb-5`}

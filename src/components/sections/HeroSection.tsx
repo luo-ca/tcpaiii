@@ -131,7 +131,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
           style={{ animationDelay: '60ms' }}
         >
           <span className="block">二次元图片</span>
-          <span className="block text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-iris-300 drop-shadow-[0_2px_18px_rgba(11,18,32,0.45)]">
+          <span className="text-gradient-animated block drop-shadow-[0_2px_18px_rgba(11,18,32,0.45)]">
             人人可用
           </span>
         </h1>

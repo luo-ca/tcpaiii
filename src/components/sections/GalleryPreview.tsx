@@ -1,53 +1,21 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Images } from 'lucide-react';
 import { NavLink } from '@/components/ui/nav-link';
-import type { ImageRecord, PaginatedImages } from '@/lib/types';
+import { MasonryTile } from '@/components/ui/masonry-tile';
+import { ImageLightbox } from '@/components/ui/image-lightbox';
+import type { PaginatedImages } from '@/lib/types';
 import { fetchImagesPage } from '@/lib/api';
 
 const PREVIEW_COUNT = 8;
 
-/** 单张缩略图。加载失败时把自己藏起来，避免首页出现裂图。 */
-function PreviewTile({ image }: { image: ImageRecord }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return null;
-
-  return (
-    <a
-      href={image.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group relative block aspect-video overflow-hidden rounded-2xl border border-white/60 bg-secondary shadow-sm transition-all duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-lg"
-      title={image.title || '查看原图'}
-    >
-      <img
-        src={image.url}
-        alt={image.title || '二次元图片'}
-        loading="lazy"
-        decoding="async"
-        onError={() => setFailed(true)}
-        className="h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-105"
-      />
-      {/* 触摸设备没有 hover，说明条必须常显，否则手机上只看到图看不到标题 */}
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-black/75 to-transparent p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-coarse:opacity-100">
-        <span className="truncate text-xs font-medium text-white">
-          {image.title || '未命名'}
-        </span>
-        {image.tags[0] && (
-          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm">
-            {image.tags[0]}
-          </span>
-        )}
-      </div>
-    </a>
-  );
-}
-
 /**
- * 首页图库预览。取图库最新的 8 张，点任意一张看原图，或进 `/gallery` 逛完整图库。
+ * 首页图库预览。取图库最新的 8 张。
  *
- * `/gallery` 现在是**面向访客的瀑布流浏览页**（管理后台已迁到 `/admin`），
- * 所以这里的「浏览完整图库」是一个真实可达的承诺。
+ * 与 `/gallery` 共用 `MasonryTile` + `ImageLightbox`：同一站点两处点图应当同一种
+ * 行为。原先首页是「新标签页打开原图」、公开图库是就地开灯箱，用户容易困惑；
+ * 现在两处都是就地开灯箱，可左右切换、Esc 关闭。
+ *
  * 数据来自不写统计的 `/api/list`。
  */
 export function GalleryPreview() {
@@ -58,7 +26,20 @@ export function GalleryPreview() {
     retry: 1,
   });
 
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const items = data?.items ?? [];
+
+  const navigateLightbox = useCallback(
+    (delta: number) => {
+      setLightboxIndex((current) => {
+        if (current === null) return current;
+        const next = current + delta;
+        if (next < 0 || next >= items.length) return current;
+        return next;
+      });
+    },
+    [items.length],
+  );
 
   // 图库为空（或彻底取不到）时整段收起，不留一个空壳区块在首页
   if (!isLoading && items.length === 0) return null;
@@ -74,7 +55,7 @@ export function GalleryPreview() {
             </p>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">图库精选</h2>
             <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              点任意一张查看原图，或进图库按标签筛选浏览。
+              点任意一张看大图，左右方向键切换，或进图库按标签筛选浏览。
             </p>
           </div>
           <NavLink
@@ -89,20 +70,37 @@ export function GalleryPreview() {
           </NavLink>
         </div>
 
+        {/* 与公开图库同形的瀑布流：同一批数据两种排版会显得两个站点 */}
         {isLoading ? (
-          <div className="reveal grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
+          <div className="reveal columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4">
             {Array.from({ length: PREVIEW_COUNT }).map((_, i) => (
-              <div key={i} className="aspect-video rounded-2xl skeleton-shimmer" />
+              <div
+                key={i}
+                className="mb-3 break-inside-avoid rounded-2xl skeleton-shimmer sm:mb-4"
+                style={{ aspectRatio: String([16 / 9, 3 / 2, 16 / 10][i % 3]) }}
+              />
             ))}
           </div>
         ) : (
-          <div className="reveal grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
-            {items.map((image) => (
-              <PreviewTile key={image.id} image={image} />
+          <div className="reveal columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4">
+            {items.map((image, index) => (
+              <MasonryTile
+                key={image.id}
+                image={image}
+                priority={index === 0}
+                onOpen={() => setLightboxIndex(index)}
+              />
             ))}
           </div>
         )}
       </div>
+
+      <ImageLightbox
+        images={items}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={navigateLightbox}
+      />
     </section>
   );
 }

@@ -678,10 +678,14 @@ function ImageCard({
                       variant="destructive"
                       size="icon"
                       className="w-7 h-7 rounded-lg bg-red-500/28 hover:bg-red-500/50 text-white border-0 backdrop-blur-sm transition-colors"
-                      aria-label="删除图片"
+                      aria-label={isDeleting ? '正在删除' : '删除图片'}
                       disabled={isDeleting}
                     >
-                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      {isDeleting ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="glass-strong rounded-2xl border-white/60">
@@ -1172,7 +1176,7 @@ export default function GalleryPage() {
             onDelete={(id) => deleteMutation.mutate(id)}
             onRefresh={refreshGallery}
             onRequireToken={requireAdminToken}
-            isDeleting={deleteMutation.isPending}
+            isDeleting={deleteMutation.isPending && deleteMutation.variables === img.id}
           />
         ))}
       </div>

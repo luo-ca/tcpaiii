@@ -647,6 +647,64 @@
   }
 
   /* ================================================================
+   * 光标跟随柔光（.spotlight-card）
+   * ------------------------------------------------------------
+   * 指针在卡片上移动时，一束品牌柔光贴着光标走，给静态卡片一点「活着」的反馈。
+   * 坐标由 useCardSpotlight 用**事件委托**写入 --spot-x / --spot-y，这里只负责绘制。
+   * 只在精确指针（有 hover 的设备）下渲染光斑：触摸端无 hover，直接不画。
+   * 光斑压在内容之上，但 pointer-events:none，不挡任何点击。
+   * ================================================================ */
+  .spotlight-card {
+    position: relative;
+  }
+
+  .spotlight-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    background: radial-gradient(
+      240px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      rgba(0, 122, 255, 0.12),
+      rgba(88, 86, 214, 0.07) 42%,
+      transparent 66%
+    );
+  }
+
+  .spotlight-card:hover::after {
+    opacity: 1;
+  }
+
+  @media (pointer: coarse) {
+    .spotlight-card::after {
+      display: none;
+    }
+  }
+
+  /* ================================================================
+   * 品牌渐变文字流光（首屏主标题）
+   * ------------------------------------------------------------
+   * 自包含：自己带 background-image / clip / color，不依赖 Tailwind 的
+   * bg-clip-text 加 from / to 工具类，避免与生成工具类的顺序产生不确定性。
+   * ================================================================ */
+  .text-gradient-animated {
+    background-image: linear-gradient(100deg, #7db8ff 0%, #5856d6 32%, #4da2ff 62%, #9490ec 100%);
+    background-size: 220% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradient-pan 8s ease-in-out infinite;
+  }
+
+  @keyframes gradient-pan {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* ================================================================
    * 无障碍：减弱动效偏好
    * 所有循环与位移动效在此统一关闭
    * ================================================================ */
@@ -693,6 +751,11 @@
     .glass-card:hover,
     .category-button:hover {
       transform: none;
+    }
+
+    /* 品牌渐变文字的自动流光在减弱动效下停止；静态渐变仍在，不会退回纯色 */
+    .text-gradient-animated {
+      animation: none !important;
     }
   }
 }

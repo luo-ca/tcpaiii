@@ -127,6 +127,25 @@ function OnlinePreviewImpl(
 
   const hasImage = imageUrl && imageLoaded && !previewError;
 
+  // 状态灯三态：加载中（琥珀）/ 出错（红）/ 可用（绿）。
+  // 原先只按 imageLoading 判断，handleImageError 后 imageLoading=false
+  // 会让出错时仍显示绿色「实时可用」，与红色失败面板自相矛盾。
+  const statusTone = previewError ? 'error' : imageLoading ? 'loading' : 'ready';
+  const statusDotClass =
+    statusTone === 'error'
+      ? 'bg-red-500'
+      : statusTone === 'loading'
+        ? 'bg-amber-500'
+        : 'bg-emerald-500';
+  const statusPingClass =
+    statusTone === 'error'
+      ? 'bg-red-400'
+      : statusTone === 'loading'
+        ? 'bg-amber-400'
+        : 'bg-emerald-400';
+  const statusLabel =
+    statusTone === 'error' ? '加载失败' : statusTone === 'loading' ? '加载中' : '实时可用';
+
   return (
     <section ref={ref} id="preview" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
       <div className="mx-auto max-w-6xl">
@@ -176,6 +195,11 @@ function OnlinePreviewImpl(
           <div className="grid gap-0 lg:grid-cols-[1.3fr_0.7fr]">
             {/* Image Preview Panel */}
             <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden bg-secondary sm:min-h-[460px]">
+              {/* 换图是异步的：给读屏一个礼貌播报，说明现在展示的是哪张，
+                  否则视障用户点「刷新」后无法感知内容已更新。 */}
+              <span aria-live="polite" className="sr-only">
+                {hasImage ? `已加载随机图片：${imageTitle}` : previewError ? '随机图片加载失败' : ''}
+              </span>
               {imageLoading && <div className="absolute inset-0 z-20 skeleton-shimmer" />}
 
               {!imageUrl && !imageLoading && !previewError && (
@@ -278,17 +302,13 @@ function OnlinePreviewImpl(
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="relative flex h-2 w-2">
                       <span
-                        className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
-                          imageLoading ? 'bg-amber-400' : 'bg-emerald-400'
-                        }`}
+                        className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${statusPingClass}`}
                       />
                       <span
-                        className={`relative inline-flex h-2 w-2 rounded-full ${
-                          imageLoading ? 'bg-amber-500' : 'bg-emerald-500'
-                        }`}
+                        className={`relative inline-flex h-2 w-2 rounded-full ${statusDotClass}`}
                       />
                     </span>
-                    {imageLoading ? '加载中' : '实时可用'}
+                    {statusLabel}
                   </span>
                 </div>
                 <h3 className="text-2xl font-semibold leading-snug tracking-tight">

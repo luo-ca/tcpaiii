@@ -1,285 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent, SyntheticEvent } from 'react';
 import { useInfiniteQuery, useQuery, keepPreviousData } from '@tanstack/react-query';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  Copy as CopyIcon,
-  ExternalLink,
-  ImageOff,
-  Images,
-  Loader2,
-  Search,
-  SearchX,
-  Tag,
-  X,
-} from 'lucide-react';
+import { Images, Loader2, Search, SearchX, Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import type { ImageRecord, PaginatedImages, Stats } from '@/lib/types';
+import { MasonryTile, SKELETON_RATIOS } from '@/components/ui/masonry-tile';
+import { ImageLightbox } from '@/components/ui/image-lightbox';
+import type { PaginatedImages, Stats } from '@/lib/types';
 import { fetchImagesPage, fetchStats } from '@/lib/api';
 import { getErrorMessage } from '@/lib/helpers';
-import { getImageRatio, rememberImageRatio } from '@/lib/image-ratio';
 import { readGalleryQuery, writeGalleryQuery } from '@/lib/url';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ErrorState } from '@/components/states/ErrorState';
 import { EmptyState } from '@/components/states/EmptyState';
-import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 
 /** 后端 MAX_LIST_PAGE_SIZE = 60，这里取默认值 24，保证翻页粒度舒服 */
 const BROWSE_PAGE_SIZE = 24;
-
-/**
- * 尺寸未知时的临时占位比例。
- *
- * 这个值不是拍脑袋来的：实测图库 40 张样本，**39 张是横构图壁纸**
- * （3500×2475、3840×2160、5000×2813 这类），中位比例 ≈1.75、众数 16:9。
- * 取 16/9 作占位时，平均绝对偏差仅 0.064；原先误用 3:4（竖构图）偏差高达 0.99——
- * 占位框几乎全错，图片到达时整块塌缩，这正是一开始 CLS 的主因。
- */
-const DEFAULT_RATIO = 16 / 9;
-
-/** 骨架屏用的三种横构图比例，贴近真实分布 */
-const SKELETON_RATIOS = [16 / 9, 3 / 2, 16 / 10];
-
-// ============================================================
-// 单张瀑布流卡片
-// ============================================================
-
-/**
- * 单张瀑布流卡片。
- *
- * `priority` 只给第一张：它恒在首屏（已在 390 与 1440 两档实测），
- * 且实测它还是本批数据里最高的一张（264×373，面积约为普通瓦片的 2.5 倍），
- * 也就是最可能的 LCP 候选 —— 让它先于另外 23 张抢到带宽。
- *
- * 注意**不要**顺手写成「前 N 张优先」：CSS multi-column 是逐列向下填充的，
- * DOM 里 index 0/1/2/3 会同处第一列（实测桌面 4 列时 0~4 全在第 1 列），
- * 那样会把 3 张首屏外的图提到前面，反而拖慢首屏。
- */
-function MasonryTile({
-  image,
-  priority = false,
-  onOpen,
-}: {
-  image: ImageRecord;
-  priority?: boolean;
-  onOpen: () => void;
-}) {
-  // 优先用缓存过的真实比例占位（重复访问 → 布局稳定）
-  const [ratio, setRatio] = useState<number>(() => getImageRatio(image.url) ?? DEFAULT_RATIO);
-  const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
-
-  const handleLoad = (event: SyntheticEvent<HTMLImageElement>) => {
-    const el = event.currentTarget;
-    const real = el.naturalWidth / el.naturalHeight;
-    if (Number.isFinite(real) && real > 0) {
-      rememberImageRatio(image.url, el.naturalWidth, el.naturalHeight);
-      // 首次访问：用真实比例纠正占位，之后这张图就稳定了
-      if (Math.abs(real - ratio) > 0.001) setRatio(real);
-    }
-    setState('loaded');
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      aria-label={`查看大图：${image.title || '未命名图片'}`}
-      className="reveal group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/60 bg-secondary shadow-sm transition-all duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-lg sm:mb-4"
-      style={{ aspectRatio: String(ratio) }}
-    >
-      {state === 'loading' && <div className="absolute inset-0 skeleton-shimmer" aria-hidden="true" />}
-
-      {state === 'error' ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-muted-foreground/50">
-          <ImageOff className="h-6 w-6 opacity-40" aria-hidden="true" />
-          <span className="text-xs">加载失败</span>
-        </div>
-      ) : (
-        <img
-          src={image.url}
-          alt={image.title || '二次元图片'}
-          loading={priority ? 'eager' : 'lazy'}
-          {...(priority ? { fetchpriority: 'high' as const } : {})}
-          decoding="async"
-          onLoad={handleLoad}
-          onError={() => setState('error')}
-          className={`h-full w-full object-cover transition-all duration-500 motion-safe:group-hover:scale-[1.03] ${
-            state === 'loaded' ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-      )}
-
-      {/* 说明浮层：可悬停设备上收成 hover 显示；触摸设备（primary pointer 为 coarse）
-          没有 hover，必须常显，否则手机上永远看不到标题与标签。 */}
-      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-coarse:opacity-100" />
-      <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-coarse:opacity-100">
-        <span className="min-w-0 flex-1 truncate text-left text-xs font-medium text-white">
-          {image.title || '未命名'}
-        </span>
-        {image.tags[0] && (
-          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm">
-            {image.tags[0]}
-          </span>
-        )}
-      </span>
-    </button>
-  );
-}
-
-// ============================================================
-// 灯箱
-// ============================================================
-
-function Lightbox({
-  images,
-  index,
-  onClose,
-  onNavigate,
-}: {
-  images: ImageRecord[];
-  index: number | null;
-  onClose: () => void;
-  onNavigate: (delta: number) => void;
-}) {
-  const { copied, copy } = useCopyFeedback();
-  const image = index === null ? null : images[index];
-  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
-
-  // 切换图片（含方向键翻页）时重新回到「加载中」，避免沿用上一张的完成态
-  useEffect(() => {
-    setStatus('loading');
-  }, [image?.id]);
-  const hasPrev = index !== null && index > 0;
-  const hasNext = index !== null && index < images.length - 1;
-
-  // Esc 由 Radix Dialog 负责；这里补左右方向键
-  const handleKeyDown = (event: ReactKeyboardEvent) => {
-    if (event.key === 'ArrowLeft' && hasPrev) {
-      event.preventDefault();
-      onNavigate(-1);
-    }
-    if (event.key === 'ArrowRight' && hasNext) {
-      event.preventDefault();
-      onNavigate(1);
-    }
-  };
-
-  return (
-    <Dialog open={index !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        onKeyDown={handleKeyDown}
-        aria-describedby={undefined}
-        className="w-auto max-w-[min(1120px,94vw)] gap-0 border-0 bg-transparent p-0 shadow-none [&>button]:text-white/70 [&>button:hover]:text-white"
-      >
-        <DialogTitle className="sr-only">
-          {image?.title || '图片预览'}
-          {index !== null ? `（第 ${index + 1} 张，共 ${images.length} 张）` : ''}
-        </DialogTitle>
-
-        {image && (
-          <figure className="flex flex-col items-center gap-3">
-            {/* 原图较大，加载中先给一个占位框；失败则给明确兜底而不是留白 */}
-            <div className="relative flex min-h-[38vh] min-w-[min(74vw,320px)] items-center justify-center">
-              {status === 'loading' && (
-                <Loader2 className="absolute h-7 w-7 animate-spin text-white/70" aria-hidden />
-              )}
-              {status === 'error' ? (
-                <div className="flex min-h-[38vh] flex-col items-center justify-center gap-3 rounded-2xl bg-white/10 px-8 py-10 text-center">
-                  <ImageOff className="h-8 w-8 text-white/50" aria-hidden />
-                  <p className="text-sm text-white/85">原图加载失败</p>
-                  <a
-                    href={image.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-8 items-center gap-1 rounded-full bg-white/15 px-3.5 text-xs text-white transition-colors hover:bg-white/25"
-                  >
-                    在新标签页打开
-                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                  </a>
-                </div>
-              ) : (
-                <img
-                  key={image.id}
-                  src={image.url}
-                  alt={image.title || '二次元图片'}
-                  onLoad={() => setStatus('loaded')}
-                  onError={() => setStatus('error')}
-                  className={`max-h-[78vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl transition-opacity duration-300 ${
-                    status === 'loaded' ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
-              )}
-            </div>
-
-            <figcaption className="flex w-full flex-wrap items-center justify-center gap-2 px-1">
-              <span className="max-w-[46vw] truncate text-sm font-medium text-white/90">
-                {image.title || '未命名'}
-              </span>
-              {image.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] text-white/80 backdrop-blur-sm"
-                >
-                  {tag}
-                </span>
-              ))}
-              <span className="inline-flex items-center gap-1.5">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 rounded-full border-0 bg-white/15 text-xs text-white backdrop-blur-sm hover:bg-white/25"
-                  onClick={() => void copy(image.url, '图片地址已复制')}
-                >
-                  {copied ? <Check className="mr-1 h-3 w-3" aria-hidden="true" /> : <CopyIcon className="mr-1 h-3 w-3" aria-hidden="true" />}
-                  {copied ? '已复制' : '复制地址'}
-                </Button>
-                <a
-                  href={image.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-7 items-center gap-1 rounded-full bg-white/15 px-3 text-xs text-white backdrop-blur-sm transition-colors hover:bg-white/25"
-                >
-                  原图
-                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                </a>
-              </span>
-            </figcaption>
-          </figure>
-        )}
-
-        {/* 左右切换 */}
-        {hasPrev && (
-          <button
-            type="button"
-            onClick={() => onNavigate(-1)}
-            aria-label="上一张"
-            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/12 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-white/25 sm:left-4"
-          >
-            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-          </button>
-        )}
-        {hasNext && (
-          <button
-            type="button"
-            onClick={() => onNavigate(1)}
-            aria-label="下一张"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/12 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-white/25 sm:right-4"
-          >
-            <ChevronRight className="h-5 w-5" aria-hidden="true" />
-          </button>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ============================================================
-// 页面
-// ============================================================
 
 export default function GalleryBrowse() {
   // 首帧直接从地址栏取初值，避免「先渲染整库、再跳成筛选结果」的闪动
@@ -350,22 +85,36 @@ export default function GalleryBrowse() {
   const isInitialLoading = imagesQuery.isLoading && !imagesQuery.data;
   const isEmpty = !isInitialLoading && images.length === 0;
   const hasFilter = Boolean(selectedTag) || searchQuery.length > 0;
+  const hasNextPage = Boolean(imagesQuery.hasNextPage);
+  const fetchNextPage = imagesQuery.fetchNextPage;
 
-  // 数据变化后，灯箱里索引可能越界
+  // 灯箱索引越界处理。
+  // 允许索引停在 `images.length` —— 那是「已请求、但下一页还没到达」的占位，
+  // 等 fetchNextPage 回来后数据变长，索引自然落到新图上。只有当越界且确实
+  // 没有下一页（例如切换筛选后结果变少）时才收起灯箱。
   useEffect(() => {
-    if (lightboxIndex !== null && lightboxIndex >= images.length) setLightboxIndex(null);
-  }, [images.length, lightboxIndex]);
+    if (lightboxIndex === null) return;
+    if (lightboxIndex <= images.length - 1) return;
+    if (hasNextPage && lightboxIndex === images.length) return;
+    setLightboxIndex(null);
+  }, [images.length, lightboxIndex, hasNextPage]);
 
   const navigateLightbox = useCallback(
     (delta: number) => {
       setLightboxIndex((current) => {
         if (current === null) return current;
         const next = current + delta;
-        if (next < 0 || next >= images.length) return current;
+        if (next < 0 || next > images.length) return current;
+        // 走到末尾再按「下一张」：就地续加载下一页，而不是把用户卡住
+        if (next === images.length) {
+          if (!hasNextPage) return current;
+          void fetchNextPage();
+          return next;
+        }
         return next;
       });
     },
-    [images.length],
+    [images.length, hasNextPage, fetchNextPage],
   );
 
   const clearFilters = () => {
@@ -526,11 +275,12 @@ export default function GalleryBrowse() {
         </>
       )}
 
-      <Lightbox
+      <ImageLightbox
         images={images}
         index={lightboxIndex}
         onClose={() => setLightboxIndex(null)}
         onNavigate={navigateLightbox}
+        hasMore={hasNextPage}
       />
     </div>
   );

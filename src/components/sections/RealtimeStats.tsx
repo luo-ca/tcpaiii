@@ -99,7 +99,7 @@ export function RealtimeStats() {
         {/* Stat Cards */}
         <div className="reveal grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {statCards.map((card, i) => (
-            <Card key={i} className="glass-card overflow-hidden rounded-2xl border-white/60">
+            <Card key={i} className="spotlight-card glass-card overflow-hidden rounded-2xl border-white/60">
               <CardContent className="p-4 sm:p-5">
                 <div className="relative h-full">
                   <div className="flex items-center justify-between mb-4">
@@ -124,7 +124,7 @@ export function RealtimeStats() {
         </div>
 
         {/* Chart Card */}
-        <Card className="reveal glass-strong rounded-2xl border-white/60">
+        <Card className="spotlight-card reveal glass-strong rounded-2xl border-white/60">
           <CardContent className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">

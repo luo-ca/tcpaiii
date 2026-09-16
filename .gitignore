@@ -29,6 +29,9 @@ vite.config.ts.timestamp-*.mjs
 # 本地工作产物（截图、草稿等）
 .workbuddy/shots/
 
+# AI agent 本地工作目录
+.ohmyagent/
+
 # Local release packages (manual CDN upload)
 /release/
 

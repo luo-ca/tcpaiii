@@ -7,14 +7,24 @@ import { useRoute } from '@/lib/router';
 export function Header() {
   const route = useRoute();
   const [scrolled, setScrolled] = useState(false);
+  // 阅读进度：0~1。用 transform: scaleX 表达，避免每帧改 width 触发重排。
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 12);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 12);
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(scrollable > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollable)) : 0);
+    };
     // 挂载时先读一次当前滚动位置：刷新 / 从历史回退到已滚动页面时，
     // 顶栏能立刻呈现「已滚动」样式，而不是先渲染未滚动态再被监听器纠正。
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
   }, []);
 
   /** 首页只在完全相等时点亮，其余按前缀匹配（将来加子路由也不会漏） */
@@ -112,6 +122,17 @@ export function Header() {
             </NavLink>
           ))}
         </nav>
+      </div>
+
+      {/* 阅读进度线：绝对定位在顶栏底缘，不改变顶栏高度（--header-h 契约不受影响） */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 overflow-hidden"
+      >
+        <div
+          className="h-full origin-left bg-gradient-to-r from-brand-500 to-iris-500 transition-transform duration-150 ease-out motion-reduce:transition-none"
+          style={{ transform: `scaleX(${progress})` }}
+        />
       </div>
     </header>
   );

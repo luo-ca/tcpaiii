@@ -1,7 +1,9 @@
-import { lazy, Suspense, useCallback, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { RandomRequest } from '@/lib/types';
+import type { RoutePath } from '@/lib/router';
 import { useRoute } from '@/lib/router';
 import { useRouteMeta } from '@/hooks/use-route-meta';
+import { useCardSpotlight } from '@/hooks/use-card-spotlight';
 import { AmbientBackground } from '@/components/layout/AmbientBackground';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -141,13 +143,39 @@ function DocsPage() {
 export default function App() {
   const route = useRoute();
   useRouteMeta();
+  // 指针下方最近卡片的柔光跟随，全站只挂一个监听（内部做事件委托）
+  useCardSpotlight();
+
+  const mainRef = useRef<HTMLElement>(null);
+  // 记住上一次路由，只在「真的换页」时移动焦点——首次挂载不抢焦点，
+  // 否则会打断浏览器对地址栏/首屏的默认处理。
+  const prevRouteRef = useRef<RoutePath>(route);
+
+  useEffect(() => {
+    if (prevRouteRef.current === route) return;
+    prevRouteRef.current = route;
+    // 抽到下一帧：目标页可能是 lazy 的，等它挂载完再聚焦，落点才稳定。
+    const id = requestAnimationFrame(() => {
+      mainRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [route]);
 
   return (
     <div id="top" className="relative min-h-screen overflow-x-hidden page-bg">
       <AmbientBackground />
       <Header />
 
-      <main>
+      {/* 跳到主内容：键盘/读屏用户不必每页从头 Tab 过整条顶栏。
+          平时视觉隐藏，获得焦点时浮到左上角。 */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+      >
+        跳到主内容
+      </a>
+
+      <main id="main" ref={mainRef} tabIndex={-1} className="focus:outline-none">
         {route === '/' && <HomePage />}
         {route === '/gallery' && (
           <Suspense fallback={<GalleryFallback />}>
