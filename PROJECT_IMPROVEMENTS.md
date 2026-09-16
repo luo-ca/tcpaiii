@@ -1,5 +1,23 @@
 # 项目改进总结
 
+> ## ⚠️ 历史快照（2026-05-01）· 部分内容已过时
+>
+> 本文记录的是 **2026 年 5 月 1 日** 的一次构建与编码修复。其中若干数字和结论已被后续开发取代，
+> 直接照做会踩坑。**以下为权威更正，下文保留为当时的原始记录。**
+>
+> | 本文当时记载 | 当前事实（2026-09） |
+> |---|---|
+> | 单元测试 **35/35** | **68 项**（并新增顶栏高度、浮层指针能力等守卫测试） |
+> | `vite.config.ts` 含 `chart-vendor` / `recharts` / `d3-*` | 已**整体移除**（图表改用 CSS 柱状），`manualChunks` 现为 `react-vendor` / `ui-vendor`（@radix-ui）/ `query-vendor`（@tanstack）/ `icons-vendor`（lucide-react）四组 |
+> | `chunkSizeWarningLimit: 600` | 现为 **`500`** |
+> | 提到 `src/features/gallery-page.tsx` | 已拆分为 `src/features/gallery-browse.tsx`（公开图库）与 `src/features/admin-page.tsx`（后台管理） |
+> | 提到 `tmp_head_*.tsx`、`fix-*.py`、`fix-result.txt`、`src/App.tsx.bak` | 均已删除；`.gitignore` 已加入对应模式（`tmp_*`、`fix-*.py`、`fix-*.txt`、`*.bak`） |
+> | 「所有测试通过 (35/35)」「可以安全部署」 | 测试数见上；部署仍需先跑 `tsc` / `eslint` / `vitest` / `vite build` 四道门禁 |
+>
+> - 站点图标已改为本地自托管 `public/favicon.svg`（原指向外域 200×200 的 `imgs.paiii.cn/logo.svg`）。
+> - **当前项目状态、约定与坑**请以 `.workbuddy/memory/MEMORY.md` 为准；API 行为与部署见 `README.md`。
+> - 本文关于「中文编码修复」的教训仍然有效：改动含中文的源文件后必须确认 UTF-8 编码正确。
+
 ## 完成时间
 2026年5月1日
 

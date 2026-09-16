@@ -2,7 +2,11 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="https://imgs.paiii.cn/logo.svg" />
+    <!-- 站点图标使用本地自托管的 public/favicon.svg（64×64、圆角、专为小尺寸设计）。
+         原先指向远程 https://imgs.paiii.cn/logo.svg：那是 200×200 的复杂渐变/高光图，
+         缩到 16px 会糊，且每次访问都多一次跨域握手，外域故障时还会没有图标可用。
+         Header 的品牌 Logo 仍走 imgs CDN（见 src/lib/constants.ts 与下方 JSON-LD）。 -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!--

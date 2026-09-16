@@ -627,10 +627,14 @@ function ImageCard({
             />
           )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent sm:hidden" />
+          {/* 标题/标签/操作按钮浮层。是否「悬停才显示」必须按**指针能力**判断，
+              不能按视口宽度：平板（如 768px iPad）宽度已 ≥sm 却仍是触摸屏、没有 hover，
+              用视口断点来近似 hover，会把浮层永久藏住，里面的复制/编辑/删除按钮直接点不到。
+              这里的 pointer-coarse 与公开图库（gallery-browse）、首页图库（GalleryPreview）一致。
+              另补 group-focus-within：键盘 Tab 到按钮时也要能看见浮层。 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100" />
 
-          <div className="absolute inset-x-0 bottom-0 p-3.5 translate-y-1 sm:translate-y-2 sm:group-hover:translate-y-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300">
+          <div className="absolute inset-x-0 bottom-0 p-3.5 translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 pointer-coarse:translate-y-0 pointer-coarse:opacity-100">
             <div className="flex items-end justify-between gap-2">
               <div className="min-w-0 flex-1">
                 {/* h3 而不是 h4：这个标题在文档里早于页面的 h1「图片管理」出现
