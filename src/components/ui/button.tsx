@@ -17,9 +17,12 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
+        // 小/大号按钮比默认档少一档圆角（10px vs 12px）。
+        // 这不是死代码：cn 走 twMerge，同组里靠后的胜出，所以调用处再写
+        // rounded-xl / rounded-full 仍然能盖住它。
         default: "h-10 px-4 py-2",
-        sm: "h-9 px-3",
-        lg: "h-11 px-8",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
         icon: "h-10 w-10",
       },
     },

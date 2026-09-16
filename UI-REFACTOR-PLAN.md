@@ -906,35 +906,42 @@ h3, h4, h5, h6 { letter-spacing: -0.01em; font-weight: 600; }
 
 ## 19. P9：圆角覆盖失效修复 + 文案/骨架/筛选同步
 
-### 19.1 根因：Tailwind v4 按主题键**字母序**输出圆角工具类
+### 19.1 真正坏掉的只有一处：基础类用了 `sm:` 变体
 
-产物 CSS 里的实际顺序（数字为在样式表中的字节位置，越靠后优先级越高）：
+> **本节在 P10 被实测推翻过一版，以下是更正后的结论。**
+
+P9 当时的推理是：「`cn()` 会输出 `rounded-lg rounded-2xl`，而 Tailwind v4 按主题键字母序排类、`rounded-lg` 恒在 `rounded-2xl` 之后 → 调用处覆盖失效」。
+
+这个推理**漏了 `cn()` 的运行时行为**。`cn = twMerge(clsx(...))`，同冲突组里靠后的直接胜出：
 
 ```
-rounded-2xl(20px) → rounded-3xl(24px) → rounded-full → rounded-lg(12px) → rounded-md(10px) → rounded-sm(8px) → rounded-xl(16px)
+cn("rounded-lg border", "rounded-2xl")        ->  border rounded-2xl          ← 基础类被删掉了
+cn("rounded-lg", "rounded-full")              ->  rounded-full
 ```
 
-同特异性下后写的赢。于是**组件基础类里的圆角会盖掉调用处写的圆角**，覆盖静默失效，且方向恰好反直觉：
+也就是说：Card / Button / Input 上写的 `rounded-2xl`、`rounded-full` **本来就是生效的**，产物 CSS 的顺序压根轮不到它们。实测确认卡片一直是 20px、胶囊按钮一直是胶囊。
 
-| 写法 | 预期 | 实际 |
-|---|---|---|
-| `<Button className="rounded-full">`（图上的胶囊按钮，4 处） | 胶囊 | 12px 圆角矩形 |
-| `<Card className="rounded-2xl">`（全站卡片） | 20px | **12px**，比卡内 16px 的图标底座还直 |
-| `<DialogContent className="rounded-2xl">` + 基础类 `sm:rounded-lg` | 20px | 手机 20px / 桌面 **12px**（反了） |
+**真正坏的只有一处**，而它坏在同变体组这个前提上：基础类写 `sm:rounded-lg`、调用处写 `rounded-2xl`，twMerge 认为二者不冲突，两个类被一起留在元素上 —— 这才轮到 CSS 顺序决胜，而 `rounded-lg` 排在 `rounded-2xl` 之后：
 
-第三行最隐蔽：弹窗在小屏上反而更圆。
+| 元素 | 实际渲染 |
+|---|---|
+| `<DialogContent className="rounded-2xl sm:max-w-md">`（后台两个弹窗） | 手机上 20px、**桌面（≥640px）12px** |
+| `<AlertDialogContent className="rounded-2xl">` | 同样在桌面被压回 12px |
 
-**修法**：在 `index.css` 的 utilities 层末尾按「圆角越大越靠后」重排 `rounded-2xl` / `rounded-3xl` / `rounded-full`，让调用处表达更大圆角时必然生效。全站不存在「调用处想把圆角改小」的写法（已逐一确认），因此该规则只修不伤。
+**修法**：把 `dialog.tsx` / `alert-dialog.tsx` 基础类里的 `sm:rounded-lg` 改成不带变体的 `rounded-lg`。这样 twMerge 能合并，调用处的 `rounded-2xl` 在三档视口下都生效，也去掉了「桌面比手机更方」的反直觉行为。
 
-> 背景：P6 就把 `rounded-2xl` 写满了卡片，但一直到 P9 才用产物 CSS 反推出它从未生效 —— 以前只 grep 类名存在与否，没验证**级联结果**。
+同时**删掉了 P9 加的「圆角覆盖阶梯」**（一段在 utilities 层重排 `.rounded-2xl/.rounded-3xl/.rounded-full` 的 CSS）。它建立在错误前提上，而且会引入新的静默陷阱：若日后真有人写 `className="rounded-lg sm:rounded-2xl"` 想在某断点**收小**，基础类的 `.rounded-full` 会反压住 `sm:rounded-2xl`。
 
-### 19.2 修正 P8 的一处错误结论（诚实记录）
+> 教训：验证覆盖是否生效，要看**运行后元素上的类**（`cn()` 的输出），不能只看产物 CSS 里有没有那个类名。P9 两次都栽在「拿静态产物推运行时行为」上。
+
+### 19.2 修正 P8 的一处错误结论（再次更正）
 
 P8 把 `Button` 的 `sm` / `lg` 尺寸里的 `rounded-md` 当死代码删了，理由是「基础类 `rounded-lg` 恒胜出」。
 
-**这个理由是错的。** `rounded-md`(10px) 排在 `rounded-lg`(12px) **之后**，它一直在生效：小号按钮实际是 10px。删除后它们变成了 12px。
+**这个理由是错的。** `rounded-md` 不是死代码 —— 它排在 size 组里、经过同一个 twMerge，小号按钮本来就是 10px。P8 删除后小号按钮从 10px 变成了 12px。**已于 P10 回滚**。
 
-2px 的差异不值得为它回滚，但结论得改：`rounded-md` 不是死代码，是有效覆盖；真正恒胜出的是 `rounded-xl`。
+（P9 曾进而推断「`rounded-md` 排在 `rounded-lg` 之后所以一直在生效」——结论碰巧对，但依据错了：twMerge 根本不会让两个类同时留在元素上。）
+
 
 ### 19.3 用户可见文案里的英文（中文化）
 
@@ -992,3 +999,88 @@ Tailwind 默认扫描整个项目，**包括 Markdown**。于是本文件里作�
 
 这个层级自身是自洽的，但与规范 §4.2 的卡片 16px 不一致。是「把代码改成规范」还是「把规范改成代码」，会整体影响观感，留待明确后再动。
 
+---
+
+## 20. P10：更正 P9 的错误结论 + 可访问性/动效巡检
+
+### 20.1 一句话概括
+
+P9 那次修复建立在**没有验证过的运行时前提**上，其中最主要的一条是错的。P10 先用实测把 `cn()` 的真实合并语义钉死，再据此决定改什么、回滚什么。
+
+### 20.2 `cn()` 的真实行为（实测，非推断）
+
+`cn = twMerge(clsx(...))`，**同冲突组里靠后的胜出**：
+
+| 输入 | 输出 |
+|---|---|
+| `cn("rounded-lg border", "rounded-2xl")` | `border rounded-2xl` |
+| `cn("rounded-lg", "rounded-full")` | `rounded-full` |
+| `cn("rounded-lg", "rounded-md")` | `rounded-md` |
+| `buttonVariants({ size:"sm", className:"rounded-full" })` | 含 `rounded-full`，不含 `rounded-md` |
+| `cn("sm:rounded-lg", "rounded-2xl")` | `sm:rounded-lg rounded-2xl` ← **两个都留下** |
+
+最后一行是关键：**变体不同 = 不成组 = 合并不掉**。
+
+### 20.3 被推翻的结论与回滚
+
+| 结论 | 判定 |
+|---|---|
+| 卡片 `rounded-2xl` 从未生效、实际 12px | **错**，一直就是 20px |
+| 图上胶囊按钮被压成 12px 圆角矩形 | **错**，一直是胶囊 |
+| 全站 `rounded-md` 是死代码（P8 删除） | **错**，已回滚（小号按钮恢复 10px） |
+| 弹窗桌面端被压回 12px | **对**，已修 |
+
+P9 加的「圆角覆盖阶梯」CSS 已整体删除 —— 前提不成立，且会妨碍日后合法的 `sm:` 缩小写法。
+
+### 20.4 防复发：把语义固化成测试
+
+新增 `src/test/class-merge.test.ts`（3→63 条总用例）：
+
+1. 调用处的圆角覆盖基础类（同变体组）；
+2. `Button` 各尺寸默认圆角 + 被覆盖时只留其一；
+3. **全站源码扫描：组件基础类不得用 `sm:rounded-*` 写默认圆角**。
+
+第 3 条已用「注入错误 → 测试变红 → 还原」验证过它不是空转（把 Card 基础圆角临时改成 `sm:rounded-lg`，测试准确报出 `card.tsx:9`）。
+
+### 20.5 修复：首屏搜索框的焦点指示器对比度不足
+
+`.focus-within:ring-brand-500/40` —— `#007aff` 40% 叠在白底上合成 `#99CAFF`，对白底对比度仅 **1.72:1**，低于 WCAG 1.4.11 对非文本 UI 组件要求的 3:1。而全站其它地方的焦点指示器是实心 `#007aff`（**4.02:1**）。
+
+首屏搜索框是全站最显眼的控件，指示器却最弱。改为实心 `ring-brand-500`，与全站一致。
+
+### 20.6 修复：`animate-ping` 是 reduced-motion 的漏网之鱼
+
+「实时可用」状态点的脉冲光晕用 `animate-ping`（Tailwind 内建、无限循环），从未进入 reduce 关闭列表 —— 减弱动效的用户仍会看到它一直脉动。
+
+已加入关闭列表，**单独成条且只关 `animation`**：若并入上面那组通用规则（会强制 `opacity:1`），光晕会变成实心圆，比动的时候还抢眼。
+
+`animate-spin`（10 处）刻意保留：它是加载指示器，属于功能性反馈，停掉反而丢状态。
+
+### 20.7 后台卡片标题：`h4` → `h3`
+
+该标题在文档里**早于**页面的 `h1`（「图片管理」）出现（页头在卡片网格之后渲染），`h4` 会让读屏按标题跳读时出现「h4 → h1」的乱序，改为 `h3`。
+
+公开图库的瓦片标题刻意**不用**标题元素 —— 它整个是 `<button>`，标题元素不能嵌在按钮里（用了会被 HTML 解析器闭合，产生不可预期的 DOM）。
+
+### 20.8 复核结果：以下「疑似问题」经核实**不存在**
+
+巡检中列出但最终判定为误报，记录以免日后重复排查：
+
+| 疑似 | 实情 |
+|---|---|
+| `OnlinePreview` / `ErrorState` 有「无文本的图标按钮」 | 前者是 `asChild` + `<a>` 内 `sr-only` 文本，后者是 `{retryLabel}`（默认「重新加载」）。均为扫描正则剥掉 `{…}` 所致 |
+| 12 处 `<img>` 缺 `alt` | 跨行属性，逐个核对后 12 处全部有 `alt` |
+| 非按钮元素挂 `onClick` | 0 处 |
+| `animate-shimmer` 未进 reduce 列表 | 该 token **零引用**（骨架屏走 `.skeleton-shimmer`，已在列表内） |
+| `animate-accordion-*` 未进 reduce 列表 | accordion 组件全站未使用 |
+
+### 20.9 P10 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `tsc --noEmit` / `eslint` | 0 / 0 |
+| `vitest run` | 5 文件 **63 passed** |
+| `vite build` | 成功（1.88s） |
+| reduce 块 | `.animate-ping` 已在内，且规则为纯 `animation:none!important`（不含 opacity） |
+| 产物 CSS | `sm:rounded-*` 归零；`.rounded-md` 恢复存在（小号按钮 10px） |
+| 回归测试有效性 | 注入 `sm:rounded-lg` → 准确报 `card.tsx:9` → 还原转绿 |

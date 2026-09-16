@@ -9,6 +9,14 @@
  */
 @source not "../UI-REFACTOR-PLAN.md";
 @source not "../README.md";
+
+/*
+ * 测试目录同样要排除：测试里出现的类名是「字符串描述」而不是「实际使用」
+ * （比如 `class-merge.test.ts` 的注释里会写 `sm:rounded-lg` 作为反例），
+ * 让它们参与扫描会把根本不存在的类编译进产物。
+ * 测试不渲染任何 UI，排除后产物不受影响。
+ */
+@source not "../src/test";
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
@@ -668,6 +676,14 @@
       background: rgba(228, 232, 239, 0.6) !important;
     }
 
+    /* 「实时可用」那个状态点的 ping 光晕是无限动画，减弱动效下必须停。
+       单独写、且只关动画不碰 opacity：若归到上面那组（会强制 opacity:1），
+       光晕会变成实心圆，比动的时候还抢眼。
+       animate-spin 是加载指示器，属于功能性反馈，刻意不动 —— 停了反而丢状态。 */
+    .animate-ping {
+      animation: none !important;
+    }
+
     .gradient-button,
     .gradient-button:hover {
       transform: none;
@@ -683,40 +699,5 @@
     .category-button:hover {
       transform: none;
     }
-  }
-}
-
-/* ============================================================
-   圆角覆盖阶梯
-   ------------------------------------------------------------
-   Tailwind v4 把圆角工具类按主题键的**字母序**排进样式表：
-
-       2xl(20) → 3xl(24) → full → lg(12) → md(10) → sm(8) → xl(16)
-
-   同特异性下后写的赢，所以 `rounded-full` / `rounded-2xl` 恒排在
-   `rounded-lg`（Button / Card / Dialog 基础类用的档位）**之前**，
-   调用处写在 className 里的覆盖会被基础类静默吃掉：
-
-     · `<Button className="rounded-full">`  → 实际渲染 12px 圆角矩形，不是胶囊
-     · `<Card className="rounded-2xl">`     → 实际渲染 12px，小于卡内 16px 的图标底座（层级倒挂）
-     · `<DialogContent className="rounded-2xl">` + 基础类 `sm:rounded-lg`
-       → ≥640px 反而变小：手机上 20px、桌面上 12px（反了）
-
-   这里按「圆角越大越靠后」重排一遍，让调用处表达更大的圆角时必然生效。
-   全站不存在「调用处想把圆角改小」的写法，因此该规则只修不伤。
-
-   最终层级：大容器 24 > 卡片 20 > 卡内底座 16 > 按钮/输入框 12 > 小标签 10。
-   ============================================================ */
-@layer utilities {
-  .rounded-2xl {
-    border-radius: var(--radius-2xl);
-  }
-
-  .rounded-3xl {
-    border-radius: var(--radius-3xl);
-  }
-
-  .rounded-full {
-    border-radius: 9999px;
   }
 }

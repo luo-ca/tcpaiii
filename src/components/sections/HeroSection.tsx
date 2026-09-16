@@ -145,7 +145,10 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
 
         {/* Search Box */}
         <div className="hero-enter mt-8 w-full max-w-xl" style={{ animationDelay: '180ms' }}>
-          <div className="relative flex items-center rounded-2xl bg-white/95 shadow-lg border border-white/20 overflow-hidden backdrop-blur-xl transition-shadow focus-within:ring-2 focus-within:ring-brand-500/40">
+          {/* 焦点环用实心 brand-500，不降透明度：
+              40% 叠在白底上合成 #99CAFF，对白底只有 1.72:1，低于 WCAG 1.4.11 要求的 3:1；
+              实心 #007aff 是 4.02:1，也与全站全局焦点指示器同色同强度。 */}
+          <div className="relative flex items-center rounded-2xl bg-white/95 shadow-lg border border-white/20 overflow-hidden backdrop-blur-xl transition-shadow focus-within:ring-2 focus-within:ring-brand-500">
             <div className="flex flex-1 items-center gap-2 px-4">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
               <Input
