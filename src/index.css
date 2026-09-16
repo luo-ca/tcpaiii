@@ -131,48 +131,23 @@
   --shadow-md: 0 4px 16px rgba(11, 18, 32, 0.07);
   --shadow-lg: 0 16px 48px rgba(11, 18, 32, 0.1);
 
-  /* ── 动效 ──────────────────────────────────────────────────────────── */
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
+  /* ── 动效 ────────────────────────────────────────────────────────────
+   * 只保留真正有调用点的 keyframes：
+   *   · fade-in  → .animate-fade-in（back-to-top / admin 卡片）
+   *   · shimmer  → .skeleton-shimmer 按名直接引用
+   *   · count-up → .stat-value 按名直接引用
+   * accordion-* / slide-up / float / pulse-glow 已随 Radix accordion、柔光呼吸灯
+   * 与悬浮装饰一并退场（P21）；这里不再定义，避免留下会误导后续维护者的死 token。 */
   --animate-fade-in: fade-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  --animate-slide-up: slide-up 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  --animate-shimmer: shimmer 1.6s linear infinite;
-  --animate-float: float 6s ease-in-out infinite;
-  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
-
-  @keyframes accordion-down {
-    from { height: 0; }
-    to { height: var(--radix-accordion-content-height); }
-  }
-
-  @keyframes accordion-up {
-    from { height: var(--radix-accordion-content-height); }
-    to { height: 0; }
-  }
 
   @keyframes fade-in {
     from { opacity: 0; transform: scale(0.98); }
     to { opacity: 1; transform: scale(1); }
   }
 
-  @keyframes slide-up {
-    from { opacity: 0; transform: translateY(24px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-8px); }
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(0, 122, 255, 0.22); }
-    50% { box-shadow: 0 0 36px rgba(0, 122, 255, 0.38); }
   }
 
   @keyframes count-up {
@@ -767,11 +742,7 @@
       scroll-behavior: auto;
     }
 
-    .animate-slide-up,
     .animate-fade-in,
-    .animate-shimmer,
-    .animate-float,
-    .animate-pulse-glow,
     .stat-value {
       animation: none !important;
       opacity: 1 !important;
