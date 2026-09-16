@@ -40,7 +40,12 @@ export function Header() {
       }`}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex h-14 sm:h-16 items-center justify-between gap-3">
+        {/* 高度断点必须与移动导航行的隐藏断点一致（都是 md/768px）：
+            顶部行长高是为了容纳「桌面导航 + PAIII 链接」并排，
+            而桌面导航正是在 md 才出现。若写成 sm:h-16，
+            640–767px 区间会出现「顶部行 64 + 导航行 40 = 104px」，
+            而 --header-h 只有 96px，页面顶部被遮 8px。 */}
+        <div className="flex h-14 md:h-16 items-center justify-between gap-3">
           {/* Logo */}
           <NavLink
             to="/"

@@ -365,6 +365,7 @@ function OnlinePreviewImpl(
             <div className="category-strip flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory sm:flex-wrap sm:overflow-visible">
               <button
                 type="button"
+                aria-pressed={selectedTag === undefined}
                 className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
                   selectedTag === undefined
                     ? 'active bg-primary text-primary-foreground shadow-md'
@@ -378,6 +379,7 @@ function OnlinePreviewImpl(
                 <button
                   key={tag}
                   type="button"
+                  aria-pressed={selectedTag === tag}
                   className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
                     selectedTag === tag
                       ? 'active bg-primary text-primary-foreground shadow-md'

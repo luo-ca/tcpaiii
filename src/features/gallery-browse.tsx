@@ -432,6 +432,7 @@ export default function GalleryBrowse() {
           <button
             type="button"
             onClick={() => setSelectedTag(null)}
+            aria-pressed={selectedTag === null}
             className={chipClass(selectedTag === null)}
           >
             全部

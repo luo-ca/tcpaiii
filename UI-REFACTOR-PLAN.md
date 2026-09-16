@@ -1084,3 +1084,72 @@ P9 加的「圆角覆盖阶梯」CSS 已整体删除 —— 前提不成立，�
 | reduce 块 | `.animate-ping` 已在内，且规则为纯 `animation:none!important`（不含 opacity） |
 | 产物 CSS | `sm:rounded-*` 归零；`.rounded-md` 恢复存在（小号按钮 10px） |
 | 回归测试有效性 | 注入 `sm:rounded-lg` → 准确报 `card.tsx:9` → 还原转绿 |
+
+
+## 21. P11：全站巡检（顶栏高度契约 · 可访问性一致性 · 死代码清理）
+
+> 目标：把 P10 之后**尚未逐行看过的区块**全部过一遍（`OnlinePreview` / `RealtimeStats` / `ApiDocsSection` / `SecurityFeatures` / `ImageSubmission` / `Changelog` / `GalleryPreview` / `HeroSection` / `select.tsx` / `nav-link.tsx` / 三态组件 / 全部 lib 层），只修**经核实的真问题**。不改信息架构、不引入新色相、不引入 JS 依赖。
+
+### 21.1 修复：顶栏高度契约在 640–767px 区间少算 8px
+
+顶栏是 `fixed` 的，页面靠 `--header-h` 给自己留顶部空间，因此该 token 必须**恒等于顶栏实际渲染高度**。但顶栏有两种形态：
+
+| 视口 | 顶部行 | 移动导航行 | 实际总高 | 原 token | 结果 |
+|---|---|---|---|---|---|
+| <640px | 56 (`h-14`) | 40 | 96 | 96 | ✓ |
+| **640–767px** | **64** (`sm:h-16`) | **40** | **104** | **96** | **遮挡 8px** |
+| ≥768px | 64 | — | 64 | 64 | ✓ |
+
+根因：**顶部行在 `sm`(640) 变高，而移动导航行要到 `md`(768) 才隐藏**，两者断点不齐 —— 中间 104px 实际高度，token 只给了 96px。
+
+修法：顶部行改为 `md:h-16`，与移动导航行的隐藏断点对齐（顶部行本来就只在桌面导航出现时才需要长高，而桌面导航正是在 `md` 出现）。
+
+### 21.2 防复发：把顶栏高度契约固化成测试
+
+新增 `src/test/chrome-layout.test.ts`：
+1. `--header-h` token 为 64px，且移动端覆盖为 96px；
+2. **「顶部行开始变高的断点」必须不早于「移动导航行隐藏的断点」**。
+
+已用「注入原 bug（`md:h-16` → `sm:h-16`）→ 测试变红（`expected 1 to be >= 2`）→ 还原转绿」验证非空转。
+
+### 21.3 修复：三处「标签筛选」控件的可访问性不一致
+
+同一语义（选中/未选中的二态 chip）在三处实现，`aria-pressed` 却只有一处有：
+
+| 位置 | 「全部」 | 各标签 | 修复 |
+|---|---|---|---|
+| `gallery-browse.tsx` | 缺 | 有 | 补「全部」 |
+| `OnlinePreview.tsx` | 缺 | 缺 | 两处都补 |
+| `admin-page.tsx` | 缺 | 缺 | 两处都补 |
+
+读屏用户在另两处无法感知「当前选中了哪个标签」。现已三处对齐。
+
+### 21.4 清理：三处死代码
+
+| 位置 | 内容 | 证据 |
+|---|---|---|
+| `index.css` | `.header-offset`（首屏顶栏补偿工具类） | 全站零引用（`.header-offset` 只在定义处出现） |
+| `api-client.ts` | `getErrorMessage` | 真源在 `helpers.ts`（被引 9 次），此份零引用 |
+| `helpers.ts` | `cn()` + `formatDateTime()` | `cn` 真源在 `utils.ts`（被引 10 次）；`formatDateTime` 全仓零引用 |
+
+删 `helpers.ts` 的 `cn()` 后，其 `clsx` / `twMerge` 导入随之失效，一并移除。
+
+### 21.5 复核：以下「疑似问题」经核实**不存在**
+
+| 疑似 | 实情 |
+|---|---|
+| `RealtimeStats` 图表标「近 7 天」但渲染全部 `dailyRequests` | 服务端 `handleStats` 只回填 `getRecentStatsDateKeys(7)` 的 7 天窗口，标签名实相符 |
+| 44 处 `emerald`/`amber`/`red` 违反「不引入新色相」 | 规范 §10.3 已**刻意保留**：三者语义独立（就绪/加载/错误），不算违规 |
+| `w-4.5` / `h-4.5` / `h-18` 等类未生成 | 产物 CSS 里 `.w-4\.5` / `.h-4\.5` **存在**（首次 grep 转义写错导致误判）；`.h-18` 零引用是对的 |
+| HeroSection 首屏污染统计 | 已走 `/api/list`（不写统计），`grep` 确认无 `fetchRandomImage` |
+| `hooks` 目录名含非 ASCII 字符 | 实际路径全为 `@/hooks/...`，无异常 |
+
+### 21.6 P11 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `tsc --noEmit` / `eslint` | 0 / 0 |
+| `vitest run` | 6 文件 **65 passed** |
+| `vite build` | 成功（1.90s），CSS 73.8 kB |
+| 回归测试有效性 | 注入 `sm:h-16` → 准确报错 → 还原转绿 |
+| 死导出扫描 | 归零（全仓 `export function` 均被引用） |

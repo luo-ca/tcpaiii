@@ -55,10 +55,6 @@ function getNonJsonApiMessage(response: Response, body: string, fallback: string
 
 // ---- exported helpers ----
 
-export function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
 export function withNoCacheQuery(input: RequestInfo | URL, init?: RequestInit): RequestInfo | URL {
   const method = (
     init?.method || (input instanceof Request ? input.method : undefined) || 'GET'

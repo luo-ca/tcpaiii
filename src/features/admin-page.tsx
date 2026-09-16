@@ -1087,6 +1087,7 @@ export default function GalleryPage() {
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
+                aria-pressed={selectedTag === null}
                 className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                   selectedTag === null
                     ? 'bg-primary text-primary-foreground shadow-md'
@@ -1103,6 +1104,7 @@ export default function GalleryPage() {
                 <button
                   key={tag}
                   type="button"
+                  aria-pressed={selectedTag === tag}
                   className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                     selectedTag === tag
                       ? 'bg-primary text-primary-foreground shadow-md'
