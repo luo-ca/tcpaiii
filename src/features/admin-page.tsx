@@ -288,7 +288,7 @@ function AddImageDialog({
               <Label htmlFor="url">图片地址 *</Label>
               <Input
                 id="url"
-                className="rounded-lg bg-secondary/30 border-border/70"
+                className="rounded-lg"
                 placeholder="https://example.com/image.jpg"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -299,7 +299,7 @@ function AddImageDialog({
               <Label htmlFor="title">标题</Label>
               <Input
                 id="title"
-                className="rounded-lg bg-secondary/30 border-border/70"
+                className="rounded-lg"
                 placeholder="给图片起个名字"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -309,7 +309,7 @@ function AddImageDialog({
               <Label htmlFor="tags">标签（逗号分隔）</Label>
               <Input
                 id="tags"
-                className="rounded-lg bg-secondary/30 border-border/70"
+                className="rounded-lg"
                 placeholder="风景, 自然, 山脉"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
@@ -336,7 +336,7 @@ function AddImageDialog({
                 }}
                 required
                 rows={6}
-                className="w-full min-h-[140px] rounded-lg border border-border/70 bg-secondary/30 px-3 py-2 text-sm placeholder:text-muted-foreground resize-y font-mono"
+                className="w-full min-h-[140px] rounded-lg border-2 border-ink bg-white px-3 py-2 text-sm placeholder:text-muted-foreground resize-y font-mono"
               />
               <p className="text-xs text-muted-foreground">
                 粘贴后自动归一化并预检，单次最多 {MAX_BATCH_IMAGE_COUNT} 张
@@ -345,7 +345,7 @@ function AddImageDialog({
             </div>
 
             {batchUrls.trim() && (
-              <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+              <div className="rounded-xl border-2 border-ink bg-white p-3">
                 <div className="flex flex-wrap gap-1.5 text-xs">
                   <Badge className="rounded-full bg-emerald-50 text-emerald-700 border-emerald-200">
                     可导入 {batchPreview.validNew.length}
@@ -402,7 +402,7 @@ function AddImageDialog({
               <Label htmlFor="batch-tags">统一标签（逗号分隔，可选）</Label>
               <Input
                 id="batch-tags"
-                className="rounded-lg bg-secondary/30 border-border/70"
+                className="rounded-lg"
                 placeholder="风景, 自然"
                 value={batchTags}
                 onChange={(e) => setBatchTags(e.target.value)}
@@ -535,7 +535,7 @@ function EditImageDialog({
             <Label htmlFor="edit-url">图片地址</Label>
             <Input
               id="edit-url"
-              className="rounded-lg bg-secondary/30 border-border/70"
+              className="rounded-lg"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               required
@@ -545,7 +545,7 @@ function EditImageDialog({
             <Label htmlFor="edit-title">标题</Label>
             <Input
               id="edit-title"
-              className="rounded-lg bg-secondary/30 border-border/70"
+              className="rounded-lg"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
@@ -554,7 +554,7 @@ function EditImageDialog({
             <Label htmlFor="edit-tags">标签</Label>
             <Input
               id="edit-tags"
-              className="rounded-lg bg-secondary/30 border-border/70"
+              className="rounded-lg"
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
             />
@@ -982,7 +982,7 @@ export default function GalleryPage() {
                 value={adminToken}
                 onChange={(event) => handleAdminTokenChange(event.target.value)}
                 placeholder="输入管理密钥后才能添加、编辑、删除"
-                className="bg-secondary/30 rounded-xl"
+                className="rounded-lg"
                 autoComplete="off"
               />
             </div>
@@ -991,7 +991,7 @@ export default function GalleryPage() {
                 variant={hasVerifiedAdminToken ? 'default' : 'outline'}
                 className={`rounded-full text-xs px-2.5 py-0.5 ${
                   hasVerifiedAdminToken
-                    ? 'bg-emerald-600 text-white border-0 shadow-sm'
+                    ? 'bg-emerald-600 text-white border-0 shadow-[2px_2px_0_0_var(--color-ink)]'
                     : adminAuthStatus === 'invalid'
                       ? 'bg-red-50 text-red-600 border-red-100'
                       : 'text-muted-foreground border-border'
@@ -1090,7 +1090,7 @@ export default function GalleryPage() {
                 }}
                 placeholder="搜索标题、URL 或标签"
                 aria-label="搜索图片标题、URL 或标签"
-                className="pl-9 rounded-xl bg-secondary/30"
+                className="pl-9 rounded-lg"
               />
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -1159,7 +1159,7 @@ export default function GalleryPage() {
       )}
 
       {imagesQuery.isFetching && images.length > 0 && (
-        <div className="mb-4 flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/55 px-4 py-2 text-sm text-muted-foreground">
+        <div className="mb-4 flex items-center justify-center gap-2 rounded-xl border-2 border-ink bg-secondary px-4 py-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           正在刷新图库数据...
         </div>
@@ -1229,7 +1229,7 @@ export default function GalleryPage() {
                       <Button
                         variant={pageNumber === page ? 'default' : 'outline'}
                         size="icon"
-                        className={`h-8 w-8 rounded-xl text-xs ${pageNumber === page ? 'shadow-sm' : ''}`}
+                        className={`h-8 w-8 rounded-xl text-xs ${pageNumber === page ? 'shadow-[2px_2px_0_0_var(--color-ink)]' : ''}`}
                         disabled={imagesQuery.isFetching}
                         onClick={() => goToPage(pageNumber)}
                         aria-current={pageNumber === page ? 'page' : undefined}
@@ -1277,7 +1277,7 @@ export default function GalleryPage() {
                   max={totalPages}
                   value={pageJumpInput}
                   onChange={(event) => setPageJumpInput(event.target.value)}
-                  className="h-8 w-18 bg-background/60 text-center rounded-xl text-sm"
+                  className="h-8 w-18 bg-secondary text-center rounded-lg text-sm"
                   disabled={imagesQuery.isFetching}
                 />
                 <Button
@@ -1303,7 +1303,7 @@ export default function GalleryPage() {
                 >
                   <SelectTrigger
                     id="gallery-page-size"
-                    className="h-8 w-22 bg-background/60 rounded-xl text-xs"
+                    className="h-8 w-22 bg-secondary rounded-lg text-xs"
                   >
                     <SelectValue />
                   </SelectTrigger>
