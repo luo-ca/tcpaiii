@@ -429,7 +429,7 @@ function AddImageDialog({
                     {progress.current} / {progress.total}
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full border border-ink bg-muted">
+                <div className="h-2 overflow-hidden rounded-full border-2 border-ink bg-muted">
                   <div
                     className="h-full rounded-full bg-brand-500 transition-all duration-300"
                     style={{ width: `${(progress.current / progress.total) * 100}%` }}
@@ -994,7 +994,7 @@ export default function GalleryPage() {
                     ? 'bg-emerald-600 text-white border-0 shadow-[2px_2px_0_0_var(--color-ink)]'
                     : adminAuthStatus === 'invalid'
                       ? 'bg-red-50 text-red-600 border-red-100'
-                      : 'text-muted-foreground border-border'
+                      : 'text-muted-foreground border-ink'
                 }`}
               >
                 {adminAuthStatus === 'checking' && (

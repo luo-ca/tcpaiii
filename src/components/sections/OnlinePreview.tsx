@@ -158,7 +158,7 @@ function OnlinePreviewImpl(
               每次刷新随机一张，复制地址即可接入你的网站。
             </p>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/60 rounded-full px-3 py-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground border-2 border-ink bg-secondary rounded-full px-3 py-1.5">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             <span>实时更新</span>
           </div>
@@ -381,7 +381,7 @@ function OnlinePreviewImpl(
           </div>
 
           {/* Category Tags Bar */}
-          <div className="border-t border-border bg-secondary/70 p-4">
+          <div className="border-t-2 border-ink bg-secondary p-4">
             <div className="category-strip flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory sm:flex-wrap sm:overflow-visible">
               <button
                 type="button"

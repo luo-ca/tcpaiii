@@ -158,7 +158,7 @@ export default function GalleryBrowse() {
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="搜索标题…"
               aria-label="搜索图片标题"
-              className="h-10 rounded-xl border-border bg-white pl-9"
+              className="h-10 rounded-xl pl-9"
             />
           </div>
           {/* 筛选生效时才出现：原先只能滚到空结果页里清筛选，筛选条件在地址栏里也看不见 */}
