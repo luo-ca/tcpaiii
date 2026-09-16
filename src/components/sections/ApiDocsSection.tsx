@@ -65,25 +65,25 @@ export function ApiDocsSection() {
           <TabsList className="glass mb-6 grid h-auto min-h-[3rem] w-full grid-cols-2 gap-1 rounded-xl p-1.5 sm:grid-cols-4">
             <TabsTrigger
               value="basic"
-              className="rounded-lg text-xs sm:text-sm px-2.5 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:shadow-black/5"
+              className="rounded-lg text-xs font-bold sm:text-sm px-2.5 py-2 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700 data-[state=active]:shadow-[2px_2px_0_0_var(--color-ink)] data-[state=inactive]:text-muted-foreground"
             >
               基础调用
             </TabsTrigger>
             <TabsTrigger
               value="params"
-              className="rounded-lg text-xs sm:text-sm px-2.5 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:shadow-black/5"
+              className="rounded-lg text-xs font-bold sm:text-sm px-2.5 py-2 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700 data-[state=active]:shadow-[2px_2px_0_0_var(--color-ink)] data-[state=inactive]:text-muted-foreground"
             >
               分类参数
             </TabsTrigger>
             <TabsTrigger
               value="json"
-              className="rounded-lg text-xs sm:text-sm px-2.5 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:shadow-black/5"
+              className="rounded-lg text-xs font-bold sm:text-sm px-2.5 py-2 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700 data-[state=active]:shadow-[2px_2px_0_0_var(--color-ink)] data-[state=inactive]:text-muted-foreground"
             >
               JSON 返回
             </TabsTrigger>
             <TabsTrigger
               value="advanced"
-              className="rounded-lg text-xs sm:text-sm px-2.5 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:shadow-black/5"
+              className="rounded-lg text-xs font-bold sm:text-sm px-2.5 py-2 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700 data-[state=active]:shadow-[2px_2px_0_0_var(--color-ink)] data-[state=inactive]:text-muted-foreground"
             >
               高级用法
             </TabsTrigger>

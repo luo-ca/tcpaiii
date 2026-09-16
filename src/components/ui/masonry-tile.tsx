@@ -99,7 +99,7 @@ export function MasonryTile({
           {image.title || '未命名'}
         </span>
         {image.tags[0] && (
-          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm">
+          <span className="sticker-chip shrink-0 rounded-full px-2 py-0.5 text-[11px]">
             {image.tags[0]}
           </span>
         )}

@@ -737,6 +737,29 @@
     background-size: 11px 11px;
   }
 
+  /* ================================================================
+   * 图上白贴纸（图片浮层里的标签 / 圆钮）
+   * ------------------------------------------------------------
+   * 图片浮层原先用半透明白 + backdrop-blur（玻璃拟态）——那是通用「AI 落地页」
+   * 最典型的视觉。这里统一改为实色白贴纸：墨线描边 + 硬投影，放在图片上
+   * 依旧清晰可读，又和全站线稿语言一致。
+   *
+   * 背景用 background-image（同色 linear-gradient）而非 background-color，
+   * 原因与 .gradient-button 相同：这样能稳定压过 Button 基础变体的 bg-secondary，
+   * 不受工具类输出顺序影响。文字色不写在这里，交给各元素自己的 text-* 决定。
+   * ================================================================ */
+  .sticker-chip {
+    border: 2px solid var(--color-ink);
+    background-image: linear-gradient(#fff, #fff);
+    box-shadow: 2px 2px 0 0 var(--color-ink);
+    color: var(--color-ink);
+  }
+
+  /* 悬停只把白底换成极浅品牌蓝，保持实色，避免又滑回半透明玻璃 */
+  .sticker-chip:hover {
+    background-image: linear-gradient(var(--color-brand-50), var(--color-brand-50));
+  }
+
   /* 品牌色半调网点块：给白卡一角做制版颗粒点缀（与白点版区分） */
   .halftone-brand {
     background-image: radial-gradient(circle at 1px 1px, var(--color-brand-500) 1.4px, transparent 0);

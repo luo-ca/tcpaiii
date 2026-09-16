@@ -210,7 +210,7 @@ function OnlinePreviewImpl(
               )}
 
               {previewError && !imageLoading && (
-                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/85 p-6 text-center backdrop-blur-md">
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background p-6 text-center">
                   <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-red-200 bg-red-50">
                     <Camera className="h-8 w-8 text-red-400" aria-hidden="true" />
                   </div>
@@ -254,7 +254,7 @@ function OnlinePreviewImpl(
                         {imageTags.map((tag) => (
                           <span
                             key={tag}
-                            className="rounded-full border-2 border-ink bg-white/18 px-2 py-0.5 text-xs text-white/88 backdrop-blur-sm"
+                            className="sticker-chip rounded-full px-2 py-0.5 text-xs"
                           >
                             {tag}
                           </span>
@@ -265,7 +265,7 @@ function OnlinePreviewImpl(
                       <Button
                         size="sm"
                         variant="secondary"
-                        className="h-8 min-w-0 rounded-full border-0 bg-white/18 text-xs text-white backdrop-blur-sm hover:bg-white/28 transition-colors"
+                        className="sticker-chip h-8 min-w-0 rounded-full text-xs transition-transform"
                         onClick={copyUrl}
                       >
                         {copied ? (
@@ -278,7 +278,7 @@ function OnlinePreviewImpl(
                       <Button
                         size="sm"
                         variant="secondary"
-                        className="h-8 w-8 rounded-full border-0 bg-white/18 p-0 text-white backdrop-blur-sm hover:bg-white/28 transition-colors"
+                        className="sticker-chip h-8 w-8 rounded-full p-0 transition-transform"
                         asChild
                       >
                         <a href={imageUrl} target="_blank" rel="noopener noreferrer">
@@ -293,7 +293,7 @@ function OnlinePreviewImpl(
             </div>
 
             {/* Sidebar Info Panel */}
-            <div className="flex flex-col gap-5 bg-white/65 p-5 sm:p-6">
+            <div className="flex flex-col gap-5 bg-card p-5 sm:p-6">
               <div>
                 <div className="mb-4 flex items-center justify-between gap-2">
                   <Badge className="rounded-full bg-brand-50 text-brand-600 border-brand-100 hover:bg-brand-50 text-xs">
@@ -321,7 +321,7 @@ function OnlinePreviewImpl(
               </div>
 
               {/* Code Block */}
-              <div className="rounded-xl bg-code overflow-hidden shadow-xl">
+              <div className="rounded-xl bg-code border-2 border-ink overflow-hidden shadow-[4px_4px_0_0_var(--color-ink)]">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
                   <span className="text-[11px] font-medium text-emerald-400 uppercase tracking-wider">
                     GET
@@ -365,7 +365,7 @@ function OnlinePreviewImpl(
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-xl h-10 bg-white/70 hover:bg-white/90 transition-all duration-200"
+                  className="rounded-xl h-10 bg-white transition-all duration-200"
                   onClick={() => void copyUrl()}
                   disabled={!imageUrl}
                 >
@@ -388,8 +388,8 @@ function OnlinePreviewImpl(
                 aria-pressed={selectedTag === undefined}
                 className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
                   selectedTag === undefined
-                    ? 'active bg-primary text-primary-foreground shadow-md'
-                    : 'bg-white/70 text-muted-foreground border border-border hover:bg-white hover:text-foreground'
+                    ? 'active border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
+                    : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
                 }`}
                 onClick={() => handleSelectTag(undefined)}
               >
@@ -402,8 +402,8 @@ function OnlinePreviewImpl(
                   aria-pressed={selectedTag === tag}
                   className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
                     selectedTag === tag
-                      ? 'active bg-primary text-primary-foreground shadow-md'
-                      : 'bg-white/70 text-muted-foreground border border-border hover:bg-white hover:text-foreground'
+                      ? 'active border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
+                      : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
                   }`}
                   onClick={() => handleSelectTag(tag)}
                 >

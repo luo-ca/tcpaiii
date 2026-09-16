@@ -60,7 +60,7 @@ export function GalleryPreview() {
           </div>
           <NavLink
             to="/gallery"
-            className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-border bg-white/70 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white sm:self-auto"
+            className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border-2 border-ink bg-white px-4 py-2 text-sm font-medium text-foreground shadow-[2px_2px_0_0_var(--color-ink)] transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5 sm:self-auto"
           >
             浏览完整图库
             {data && data.total > 0 && (

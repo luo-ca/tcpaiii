@@ -255,15 +255,15 @@ function AddImageDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl bg-secondary/60 p-1">
+        <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl border-2 border-ink bg-secondary p-1">
           <button
             type="button"
             aria-pressed={mode === 'single'}
             onClick={() => setMode('single')}
             className={`h-8 rounded-lg text-xs font-medium transition-all duration-200 ${
               mode === 'single'
-                ? 'bg-white text-foreground shadow-sm shadow-black/5'
-                : 'text-muted-foreground hover:bg-white/60 hover:text-foreground'
+                ? 'bg-white text-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
+                : 'text-muted-foreground hover:bg-brand-50 hover:text-foreground'
             }`}
           >
             单张添加
@@ -274,8 +274,8 @@ function AddImageDialog({
             onClick={() => setMode('batch')}
             className={`h-8 rounded-lg text-xs font-medium transition-all duration-200 ${
               mode === 'batch'
-                ? 'bg-white text-foreground shadow-sm shadow-black/5'
-                : 'text-muted-foreground hover:bg-white/60 hover:text-foreground'
+                ? 'bg-white text-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
+                : 'text-muted-foreground hover:bg-brand-50 hover:text-foreground'
             }`}
           >
             批量添加
@@ -517,7 +517,7 @@ function EditImageDialog({
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/20"
+          className="sticker-chip h-7 w-7 rounded-lg p-0"
           aria-label="编辑图片"
         >
           <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
@@ -646,7 +646,7 @@ function ImageCard({
                   {img.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="text-[11px] bg-white/15 backdrop-blur-sm text-white/85 px-1.5 py-0.5 rounded-full border border-white/10"
+                      className="sticker-chip rounded-full px-1.5 py-0.5 text-[11px]"
                     >
                       {tag}
                     </span>
@@ -657,7 +657,7 @@ function ImageCard({
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="w-7 h-7 rounded-lg bg-white/18 hover:bg-white/28 text-white border-0 backdrop-blur-sm transition-colors"
+                  className="sticker-chip h-7 w-7 rounded-lg transition-transform"
                   onClick={(e) => {
                     e.stopPropagation();
                     onCopyUrl(img.url);
@@ -677,7 +677,7 @@ function ImageCard({
                     <Button
                       variant="destructive"
                       size="icon"
-                      className="w-7 h-7 rounded-lg bg-red-500/28 hover:bg-red-500/50 text-white border-0 backdrop-blur-sm transition-colors"
+                      className="h-7 w-7 rounded-lg border-2 border-ink bg-destructive text-destructive-foreground shadow-[2px_2px_0_0_var(--color-ink)] transition-transform hover:bg-destructive/90"
                       aria-label={isDeleting ? '正在删除' : '删除图片'}
                       disabled={isDeleting}
                     >
@@ -1099,8 +1099,8 @@ export default function GalleryPage() {
                 aria-pressed={selectedTag === null}
                 className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                   selectedTag === null
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'border border-border bg-white/70 text-muted-foreground hover:bg-white hover:text-foreground'
+                    ? 'border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
+                    : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
                 }`}
                 onClick={() => {
                   setSelectedTag(null);
@@ -1116,8 +1116,8 @@ export default function GalleryPage() {
                   aria-pressed={selectedTag === tag}
                   className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                     selectedTag === tag
-                      ? 'bg-primary text-primary-foreground shadow-md'
-                      : 'border border-border bg-white/70 text-muted-foreground hover:bg-white hover:text-foreground'
+                      ? 'border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
+                      : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
                   }`}
                   onClick={() => {
                     setSelectedTag(tag);
@@ -1182,7 +1182,7 @@ export default function GalleryPage() {
       </div>
 
       {filteredTotal > 0 && (
-        <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-border/50 bg-background/60 glass px-4 py-3.5 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-8 flex flex-col gap-4 rounded-2xl border-2 border-ink bg-white px-4 py-3.5 text-sm text-muted-foreground shadow-[4px_4px_0_0_var(--color-ink)] lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
             <span className="font-medium text-foreground/70">
               共 <span className="text-foreground font-bold">{filteredTotal}</span> 张

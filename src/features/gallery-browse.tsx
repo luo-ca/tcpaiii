@@ -125,8 +125,8 @@ export default function GalleryBrowse() {
   const chipClass = (active: boolean) =>
     `category-button shrink-0 snap-start rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
       active
-        ? 'bg-primary text-primary-foreground shadow-md'
-        : 'border border-border bg-white/70 text-muted-foreground hover:bg-white hover:text-foreground'
+        ? 'border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
+        : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
     }`;
 
   return (
@@ -158,7 +158,7 @@ export default function GalleryBrowse() {
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="搜索标题…"
               aria-label="搜索图片标题"
-              className="h-10 rounded-xl border-border bg-white/70 pl-9"
+              className="h-10 rounded-xl border-border bg-white pl-9"
             />
           </div>
           {/* 筛选生效时才出现：原先只能滚到空结果页里清筛选，筛选条件在地址栏里也看不见 */}
@@ -255,7 +255,7 @@ export default function GalleryBrowse() {
             {imagesQuery.hasNextPage ? (
               <Button
                 variant="outline"
-                className="h-11 rounded-xl bg-white/70 px-6 hover:bg-white"
+                className="h-11 rounded-xl bg-white px-6 hover:bg-brand-50"
                 onClick={() => void imagesQuery.fetchNextPage()}
                 disabled={imagesQuery.isFetchingNextPage}
               >

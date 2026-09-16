@@ -48,7 +48,7 @@ export function Header() {
       className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
         scrolled
           ? 'border-b-2 border-ink bg-white shadow-[0_3px_0_0_var(--color-ink)]'
-          : 'border-b-2 border-transparent bg-[#f8f7f3]/85 backdrop-blur-sm'
+          : 'border-b-2 border-transparent bg-background'
       }`}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6">

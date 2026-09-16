@@ -240,7 +240,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/55 to-transparent" />
               <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-white/90">精选图库 · 持续更新</span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-black/30 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md transition-colors group-hover:bg-white/20">
+                <span className="sticker-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
                   浏览图库
                   <ArrowRight
                     className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5"

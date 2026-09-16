@@ -110,7 +110,7 @@ export function ImageLightbox({
           swipeStartRef.current = null;
         }}
         aria-describedby={undefined}
-        className="w-auto max-w-[min(1120px,94vw)] gap-0 border-0 bg-transparent p-0 shadow-none [&>button]:text-white/70 [&>button:hover]:text-white"
+        className="w-auto max-w-[min(1120px,94vw)] gap-0 border-0 bg-transparent p-0 shadow-none"
       >
         <DialogTitle className="sr-only">
           {image?.title || '图片预览'}
@@ -124,7 +124,7 @@ export function ImageLightbox({
         {index !== null && images.length > 1 && (
           <span
             aria-hidden="true"
-            className="absolute left-1/2 top-1 -translate-x-1/2 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium tabular-nums text-white/85 backdrop-blur-sm sm:top-2"
+            className="sticker-chip absolute left-1/2 top-1 -translate-x-1/2 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums sm:top-2"
           >
             {Math.min(index + 1, images.length)} / {images.length}
           </span>
@@ -149,14 +149,14 @@ export function ImageLightbox({
                 <Loader2 className="absolute h-7 w-7 animate-spin text-white/70" aria-hidden />
               )}
               {status === 'error' ? (
-                <div className="flex min-h-[38vh] flex-col items-center justify-center gap-3 rounded-2xl bg-white/10 px-8 py-10 text-center">
-                  <ImageOff className="h-8 w-8 text-white/50" aria-hidden />
-                  <p className="text-sm text-white/85">原图加载失败</p>
+                <div className="flex min-h-[38vh] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-ink bg-white px-8 py-10 text-center shadow-[4px_4px_0_0_var(--color-ink)]">
+                  <ImageOff className="h-8 w-8 text-muted-foreground" aria-hidden />
+                  <p className="text-sm text-foreground">原图加载失败</p>
                   <a
                     href={image.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex h-8 items-center gap-1 rounded-full bg-white/15 px-3.5 text-xs text-white transition-colors hover:bg-white/25"
+                    className="sticker-chip inline-flex h-8 items-center gap-1 rounded-full px-3.5 text-xs"
                   >
                     在新标签页打开
                     <ExternalLink className="h-3 w-3" aria-hidden="true" />
@@ -169,7 +169,7 @@ export function ImageLightbox({
                   alt={image.title || '二次元图片'}
                   onLoad={() => setStatus('loaded')}
                   onError={() => setStatus('error')}
-                  className={`max-h-[78vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl transition-opacity duration-300 ${
+                  className={`max-h-[78vh] w-auto max-w-full rounded-2xl border-2 border-white/20 object-contain transition-opacity duration-300 ${
                     status === 'loaded' ? 'opacity-100' : 'opacity-0'
                   }`}
                 />
@@ -183,7 +183,7 @@ export function ImageLightbox({
               {image.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] text-white/80 backdrop-blur-sm"
+                  className="sticker-chip rounded-full px-2 py-0.5 text-[11px]"
                 >
                   {tag}
                 </span>
@@ -192,7 +192,7 @@ export function ImageLightbox({
                 <Button
                   size="sm"
                   variant="secondary"
-                  className="h-7 rounded-full border-0 bg-white/15 text-xs text-white backdrop-blur-sm hover:bg-white/25"
+                  className="sticker-chip h-7 rounded-full text-xs transition-transform"
                   onClick={() => void copy(image.url, '图片地址已复制')}
                 >
                   {copied ? (
@@ -206,7 +206,7 @@ export function ImageLightbox({
                   href={image.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-7 items-center gap-1 rounded-full bg-white/15 px-3 text-xs text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+                  className="sticker-chip inline-flex h-7 items-center gap-1 rounded-full px-3 text-xs"
                 >
                   原图
                   <ExternalLink className="h-3 w-3" aria-hidden="true" />
@@ -222,7 +222,7 @@ export function ImageLightbox({
             type="button"
             onClick={() => onNavigate(-1)}
             aria-label="上一张"
-            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/12 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-white/25 sm:left-4"
+            className="sticker-chip absolute left-2 top-1/2 -translate-y-1/2 rounded-full p-2.5 sm:left-4"
           >
             <ChevronLeft className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -232,7 +232,7 @@ export function ImageLightbox({
             type="button"
             onClick={() => onNavigate(1)}
             aria-label="下一张"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/12 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-white/25 sm:right-4"
+            className="sticker-chip absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2.5 sm:right-4"
           >
             <ChevronRight className="h-5 w-5" aria-hidden="true" />
           </button>
