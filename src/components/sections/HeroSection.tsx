@@ -79,30 +79,16 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
 
   return (
     <section className="relative isolate overflow-hidden pb-16 pt-[calc(var(--header-h)+36px)] sm:pb-20 lg:pb-24">
-      {/* 背景层：漫画网点 + 线稿几何 + 片假名水印。
-          全部是「印刷/线稿」语言（描边、虚线框、单色水印），
-          替代原先的柔光光斑 —— 后者是典型「AI 落地页」的柔焦氛围，
-          与二次元的硬朗线稿、留白纸面完全相反。 */}
+      {/* 背景层：只保留一层极淡的点阵纸面。
+          原先另有两个大尺寸线稿几何（旋转方框 + 虚线圆）与一枚 176px 的
+          片假名水印 —— 降噪后全部移除：它们几乎不可见，却在每个区块之间
+          留下零散的「碎线」，是首屏显脏的主因之一。 */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 hero-grid" />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-12 -z-10 h-64 w-64 rotate-12 rounded-[28px] border-2 border-ink/[0.07]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-[-8%] left-[-22%] -z-10 h-64 w-64 rounded-full border-2 border-dashed border-ink/[0.08]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute right-4 top-28 -z-10 select-none text-[120px] font-bold leading-none tracking-tighter text-brand-500/[0.06] sm:right-12 sm:text-[176px]"
-      >
-        ア
-      </div>
 
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10">
         {/* ── 左栏：文案 + 动作 ───────────────────────────────────────── */}
         <div className="text-center lg:text-left">
-          <div className="hero-enter ink-border ink-shadow-xs inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-600">
+          <div className="hero-enter inline-flex items-center gap-1.5 rounded-full border border-brand-500/20 bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-600">
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             <span>二次元图片 · EdgeOne 加速 · JSON / 302 双模式</span>
           </div>
@@ -188,7 +174,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               {statBadges.map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-center gap-2 rounded-xl border-2 border-ink bg-white px-3.5 py-2 text-xs sm:text-sm"
+                  className="flex items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2 text-xs sm:text-sm"
                 >
                   <item.icon className="h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true" />
                   <span className="text-muted-foreground">{item.label}</span>
@@ -206,11 +192,8 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
 
         {/* ── 右栏：图库主视觉卡（可点击进入图库 + 浮动状态卡） ───────────── */}
         <div className="hero-enter relative mx-auto w-full max-w-md lg:mx-0 lg:max-w-none" style={{ animationDelay: '120ms' }}>
-          {/* 卡后虚线框：像分镜里贴在主卡后面的一层稿纸边。 */}
-          <div
-            aria-hidden="true"
-            className="absolute -inset-2 -z-10 rounded-[32px] border-2 border-dashed border-ink/15"
-          />
+          {/* 降噪：移除卡后虚线框 —— 主卡自带 2px 墨线 + 硬投影，
+              虚线框叠在外面形成一圈「双线」，视觉上显脏。 */}
 
           {/* 整张主视觉即通往图库的入口：悬停时图片轻微放大、
               「浏览图库」箭头右移并加深底色，给出可点击的反馈。 */}

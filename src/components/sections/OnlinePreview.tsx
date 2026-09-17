@@ -158,7 +158,7 @@ function OnlinePreviewImpl(
               每次刷新随机一张，复制地址即可接入你的网站。
             </p>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground border-2 border-ink bg-secondary rounded-full px-3 py-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground border border-border bg-secondary rounded-full px-3 py-1.5">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             <span>实时更新</span>
           </div>
@@ -174,7 +174,7 @@ function OnlinePreviewImpl(
               <div className="browser-dot browser-dot-green" />
             </div>
             <div className="min-w-0 flex-1 sm:ml-2">
-              <div className="truncate rounded-md border-2 border-ink bg-white px-3 py-1.5 font-mono text-xs text-muted-foreground">
+              <div className="truncate rounded-md border border-border bg-white px-3 py-1.5 font-mono text-xs text-muted-foreground">
                 {randomApiUrl}
               </div>
             </div>
@@ -388,8 +388,8 @@ function OnlinePreviewImpl(
                 aria-pressed={selectedTag === undefined}
                 className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium ${
                   selectedTag === undefined
-                    ? 'active border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
-                    : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
+                    ? 'active border-2 border-transparent bg-primary text-primary-foreground'
+                    : 'border-2 border-transparent bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
                 }`}
                 onClick={() => handleSelectTag(undefined)}
               >
@@ -402,8 +402,8 @@ function OnlinePreviewImpl(
                   aria-pressed={selectedTag === tag}
                   className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium ${
                     selectedTag === tag
-                      ? 'active border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
-                      : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
+                      ? 'active border-2 border-transparent bg-primary text-primary-foreground'
+                      : 'border-2 border-transparent bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
                   }`}
                   onClick={() => handleSelectTag(tag)}
                 >

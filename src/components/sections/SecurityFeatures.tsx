@@ -51,7 +51,7 @@ export function SecurityFeatures() {
       <div className="glass-strong reveal rounded-2xl p-6">
         {/* 该组件只在 `/docs` 渲染，是「API 文档」h1 之下的二级区块 */}
         <h2 className="mb-5 flex items-center gap-2 text-base font-bold">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-brand-50">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50">
             <Shield className="h-4 w-4 text-brand-500" aria-hidden="true" />
           </div>
           安全防护与性能优化
@@ -63,7 +63,7 @@ export function SecurityFeatures() {
               className="group flex items-start gap-3 rounded-xl p-3.5 transition-colors hover:bg-brand-50"
             >
               <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-ink ${item.bg} mt-0.5 transition-transform duration-200 motion-safe:group-hover:scale-110`}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${item.bg} mt-0.5 transition-transform duration-200 motion-safe:group-hover:scale-110`}
               >
                 <item.icon className={`h-4.5 w-4.5 ${item.color}`} aria-hidden="true" />
               </div>

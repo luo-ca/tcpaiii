@@ -51,7 +51,7 @@ export function WhyChoose() {
             <Card key={i} className="glass-card rounded-2xl">
               <CardContent className="p-6">
                 <div
-                  className={`halftone-dots mb-5 flex h-12 w-12 items-center justify-center rounded-xl border-2 border-ink shadow-[2px_2px_0_0_var(--color-ink)] ${f.tile}`}
+                  className={`halftone-dots mb-5 flex h-12 w-12 items-center justify-center rounded-xl ${f.tile}`}
                 >
                   <f.icon className={`h-6 w-6 ${f.iconColor}`} aria-hidden="true" />
                 </div>

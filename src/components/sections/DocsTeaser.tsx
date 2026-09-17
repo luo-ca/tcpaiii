@@ -38,7 +38,7 @@ export function DocsTeaser() {
                 {HIGHLIGHTS.map((item) => (
                   <div
                     key={item.label}
-                    className="flex items-center gap-2 rounded-xl border-2 border-ink bg-white px-3 py-2"
+                    className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2"
                   >
                     <item.icon className="h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true" />
                     <span className="text-xs font-semibold text-foreground">{item.label}</span>

@@ -70,7 +70,7 @@ export function Changelog() {
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className="text-xs text-muted-foreground font-mono">{update.date}</span>
                   <span
-                    className={`rounded-full border-2 border-ink px-2 py-0.5 text-[11px] font-extrabold tracking-wide ${tagColors[update.tag] ?? ''}`}
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-bold tracking-wide ${tagColors[update.tag] ?? ''}`}
                   >
                     {update.tag}
                   </span>

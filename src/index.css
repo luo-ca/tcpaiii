@@ -503,14 +503,13 @@
 
   /* 独立工具类：section-header 内外的区块标题都能用
      （GalleryPreview / DocsTeaser / gallery-browse 的页头是左对齐 flex 结构，不在 .section-header 里）
-     样式上做成「章节贴纸」：品牌浅底 + 墨线描边 + 微小硬投影，
-     让每个区块的引导词都像从同人本上抠下来的一枚标签。 */
+     降噪后：品牌浅底 + 极细品牌色描边，不再挂墨线硬投影 ——
+     全站 10 处区块引导词都挂它，贴纸太重时会把版面切成一排排硬块。 */
   .section-eyebrow {
     @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold uppercase text-brand-600 mb-3;
     letter-spacing: 0.16em;
     background: var(--color-brand-50);
-    border: 1.5px solid var(--color-ink);
-    box-shadow: 2px 2px 0 0 var(--color-ink);
+    border: 1px solid color-mix(in srgb, var(--color-brand-500) 25%, transparent);
   }
 
   /* h1 也纳入：`/docs` 的「API 文档」是整页唯一的顶级标题，
@@ -704,9 +703,15 @@
     background-image: linear-gradient(var(--color-brand-50), var(--color-brand-50));
   }
 
-  /* 品牌色半调网点块：给白卡一角做制版颗粒点缀（与白点版区分） */
+  /* 品牌色半调网点块：给白卡一角做制版颗粒点缀（与白点版区分）。
+     降噪后用 30% 品牌色点：原先实心 brand-500 点叠 opacity-20 仍偏抢，
+     降一档后角落只留一点「制版感」，不再和白卡争注意力。 */
   .halftone-brand {
-    background-image: radial-gradient(circle at 1px 1px, var(--color-brand-500) 1.4px, transparent 0);
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-brand-500) 30%, transparent) 1.4px,
+      transparent 0
+    );
     background-size: 9px 9px;
   }
 

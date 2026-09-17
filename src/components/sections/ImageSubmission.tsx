@@ -18,7 +18,7 @@ export function ImageSubmission() {
         <Card className="glass-card rounded-2xl">
           <CardContent className="p-5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="halftone-dots flex h-10 w-10 items-center justify-center rounded-xl border-2 border-ink bg-brand-500">
+              <div className="halftone-dots flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500">
                 <Mail className="h-5 w-5 text-white" aria-hidden="true" />
               </div>
               <div>
@@ -28,7 +28,7 @@ export function ImageSubmission() {
                 </p>
               </div>
             </div>
-            <div className="rounded-xl border-2 border-ink bg-brand-50 p-3 text-center">
+            <div className="rounded-xl border border-brand-500/20 bg-brand-50 p-3 text-center">
               <code className="text-sm font-bold text-brand-700">2553256126</code>
             </div>
           </CardContent>
@@ -37,7 +37,7 @@ export function ImageSubmission() {
         <Card className="glass-card rounded-2xl">
           <CardContent className="p-5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="halftone-dots flex h-10 w-10 items-center justify-center rounded-xl border-2 border-ink bg-iris-500">
+              <div className="halftone-dots flex h-10 w-10 items-center justify-center rounded-xl bg-iris-500">
                 <MessageSquare className="h-5 w-5 text-white" aria-hidden="true" />
               </div>
               <div>

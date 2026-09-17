@@ -92,7 +92,7 @@ export function RealtimeStats() {
               <CardContent className="p-4 sm:p-5">
                 <div className="relative h-full">
                   <div className="mb-4 flex items-center justify-between">
-                    <div className={`halftone-dots flex h-10 w-10 items-center justify-center rounded-xl border-2 border-ink shadow-[2px_2px_0_0_var(--color-ink)] ${card.tile}`}>
+                    <div className={`halftone-dots flex h-10 w-10 items-center justify-center rounded-xl ${card.tile}`}>
                       <card.icon className="h-5 w-5 text-white" aria-hidden="true" />
                     </div>
                     {/* 贴角网点：漫画制版圆点阵列，替代模糊柔光 */}
@@ -121,7 +121,7 @@ export function RealtimeStats() {
                 <span className="text-sm font-bold">近 7 天趋势</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full border-2 border-ink bg-brand-50 px-3 py-1 text-xs font-bold text-brand-600">
+                <span className="rounded-full border border-brand-500/20 bg-brand-50 px-3 py-1 text-xs font-bold text-brand-600">
                   近 7 天 {formatNumber(totalRecentRequests)} 次
                 </span>
               </div>

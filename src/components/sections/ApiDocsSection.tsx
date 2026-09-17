@@ -16,7 +16,7 @@ function CodeRow({
   onCopy: () => void;
 }) {
   return (
-    <div className="group flex flex-col gap-2.5 rounded-xl border-2 border-ink bg-white p-3.5 transition-colors hover:bg-brand-50 sm:flex-row sm:items-center sm:justify-between">
+    <div className="group flex flex-col gap-2.5 rounded-xl border border-border bg-white p-3.5 transition-colors hover:bg-brand-50 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
         {label && (
           <p className="text-xs text-muted-foreground mb-1.5 font-medium">{label}</p>
@@ -93,7 +93,7 @@ export function ApiDocsSection() {
             <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-brand-50">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50">
                     <Code className="w-4 h-4 text-brand-500" aria-hidden="true" />
                   </div>
                   <div>
@@ -128,7 +128,7 @@ export function ApiDocsSection() {
             <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-iris-50">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-iris-50">
                     <Tag className="w-4 h-4 text-iris-500" aria-hidden="true" />
                   </div>
                   <div>
@@ -150,7 +150,7 @@ export function ApiDocsSection() {
             <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-brand-50">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50">
                     <Code className="w-4 h-4 text-brand-500" aria-hidden="true" />
                   </div>
                   <div>
@@ -193,7 +193,7 @@ export function ApiDocsSection() {
             <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-emerald-50">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
                     <Zap className="w-4 h-4 text-emerald-500" aria-hidden="true" />
                   </div>
                   <div>
