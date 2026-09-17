@@ -523,8 +523,14 @@
 
   /* 区块副标题：全站统一 14 / 16px。
      原先居中区块是 text-base sm:text-lg（16 / 18px），左对齐区块（预览 / 图库精选 /
-     图库页头）是 text-sm —— 同一个语义量出两种字号，看起来像疏漏。 */
-  .section-header p {
+     图库页头）是 text-sm —— 同一个语义量出两种字号，看起来像疏漏。
+
+     必须 `:not()` 排除 .section-eyebrow / .kana-label：这两个是独立的设计系统标签类
+     （上面注释已声明「section-header 内外都能用」），却常以 <p> 挂在 .section-header 内。
+     裸 `p` 选择器（特异性 0,1,1）会静默盖掉它们的 font-size / color / line-height
+     （0,1,0）—— 于是同一枚「章节贴纸」在 section-header 内外两种样子：里面是 14/16px
+     灰字，外面才是设计意图的 11px 品牌蓝。这里只收窄匹配范围，不动任一方的优先级。 */
+  .section-header p:not(.section-eyebrow):not(.kana-label) {
     @apply mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base;
     text-wrap: pretty;
   }
