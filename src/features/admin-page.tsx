@@ -801,10 +801,14 @@ export default function GalleryPage() {
   }, [page]);
 
   useEffect(() => {
+    // 仅在拿到「本次请求」的真实数据时对齐页码。
+    // placeholderData 会把上一页的数据留在 data 里（isPlaceholderData=true），
+    // 此时 data.page 仍是旧页号，若据此回写会把刚翻到的页码弹回上一页。
+    if (imagesQuery.isPlaceholderData) return;
     if (imagesQuery.data?.page && imagesQuery.data.page !== page) {
       setPage(imagesQuery.data.page);
     }
-  }, [imagesQuery.data?.page, page]);
+  }, [imagesQuery.data?.page, imagesQuery.isPlaceholderData, page]);
 
   useEffect(() => {
     if (!imagesQuery.data) return;
