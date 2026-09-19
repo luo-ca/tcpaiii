@@ -40,11 +40,12 @@ export const GALLERY_PAGE_SIZE = 24;
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 
 import type { RoutePath } from './router';
-import { Code, Image, Shuffle } from 'lucide-react';
+import { Activity, Code, Image, Shuffle } from 'lucide-react';
 
 /** 顶栏导航。`path` 直接就是地址栏里的路径，可分享、可被爬虫抓取。 */
 export const HEADER_TABS: Array<{ path: RoutePath; label: string; icon: typeof Shuffle }> = [
   { path: '/', label: '随机', icon: Shuffle },
   { path: '/gallery', label: '图库', icon: Image },
   { path: '/docs', label: 'API 文档', icon: Code },
+  { path: '/status', label: '状态', icon: Activity },
 ];

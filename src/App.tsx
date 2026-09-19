@@ -29,6 +29,7 @@ const SecurityFeatures = lazy(() =>
 );
 const GalleryBrowse = lazy(() => import('@/features/gallery-browse'));
 const AdminPage = lazy(() => import('@/features/admin-page'));
+const StatusPage = lazy(() => import('@/features/status-page'));
 
 function SectionFallback() {
   return (
@@ -190,6 +191,11 @@ export default function App() {
           </Suspense>
         )}
         {route === '/docs' && <DocsPage />}
+        {route === '/status' && (
+          <Suspense fallback={<SectionFallback />}>
+            <StatusPage />
+          </Suspense>
+        )}
       </main>
 
       <Footer />

@@ -51,8 +51,12 @@ export function Header() {
       active ? activeTabClass : 'border-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-brand-50'
     }`;
 
+  // 移动端行是 grid-cols-{N}（N=页签数）：320px 屏上每个单元格只有 ~69px，
+  // 「API 文档」+图标 + px-2 会超出。h-8 固定高度虽挡得住行高增长
+  // （--header-h 契约不破），文字却会在卡内折行挤成两行、被 border 裁切。
+  // 所以 compact 档：nowrap + 收窄内距，并只在 <640px 藏掉纯装饰的图标。
   const tabClassCompact = (active: boolean) =>
-    `inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors duration-200 ${
+    `inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-1.5 text-xs font-medium transition-colors duration-200 sm:px-2 ${
       active ? activeTabClass : 'border-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-brand-50'
     }`;
 
@@ -125,8 +129,9 @@ export function Header() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <nav className="grid grid-cols-3 gap-1 pb-2 md:hidden">
+        {/* Mobile Navigation：列数必须跟 HEADER_TABS 数量一致 —— 多一个页签
+            折成两行，实际高度就不再是 --header-h 算的 40px 了 */}
+        <nav className="grid grid-cols-4 gap-1 pb-2 md:hidden">
           {HEADER_TABS.map((item) => (
             <NavLink
               key={item.path}
@@ -134,7 +139,7 @@ export function Header() {
               aria-current={isActive(item.path) ? 'page' : undefined}
               className={tabClassCompact(isActive(item.path))}
             >
-              <item.icon className="w-3.5 h-3.5" aria-hidden="true" />
+              <item.icon className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
               {item.label}
             </NavLink>
           ))}

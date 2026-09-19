@@ -2,8 +2,9 @@
 // Business API Functions
 // ============================================================
 
-import type { ImageRecord, Stats, PaginatedImages } from './types';
+import type { HealthPayload, ImageRecord, Stats, PaginatedImages } from './types';
 import { apiRequest } from './api-client';
+import { buildApiPath } from './url';
 import { canonicalizeImageUrl } from './helpers';
 
 // ---- Public API ----
@@ -20,6 +21,34 @@ export async function fetchRandomImage(tag?: string, exclude?: string): Promise<
     undefined,
     '获取随机图片失败',
   );
+}
+
+/**
+ * 服务健康检查。状态页专用 —— 不读 KV 之外的数据，也不计入 stats（后端
+ * health 分支只回 runtime/buildId/kv 绑定），所以点「重新检查」不会污染调用量。
+ */
+export async function fetchHealth(): Promise<HealthPayload> {
+  // no-store 破缓：状态页的本职就是「现在、此刻真的可用吗」，
+  // 拿 5 分钟前的边缘缓存自证等于没测
+  return apiRequest<HealthPayload>('/api/health', undefined, '健康检查失败');
+}
+
+/**
+ * 自助测速：走用户真实接入方式（302 到图片直链，不解析 JSON），
+ * 返回「发起到收到响应头」的毫秒数。失败照常 throw 交给调用方归类。
+ * no-cors 在部分浏览器下拿不到状态但能拿到耗时 —— 所以用 cors 并只读
+ * response.ok，后端已放行 CORS（OPTIONS + ACAO:*）。
+ */
+export async function measureRandomLatency(): Promise<number> {
+  const start = performance.now();
+  // 走 buildApiPath：预览链接（?eo_token=…）上裸 fetch 会打到生产部署，
+  // 测出来的延迟与预览环境无关 —— 与 apiRequest 补预览参数同一契约。
+  await fetch(buildApiPath('/api/random'), {
+    method: 'GET',
+    redirect: 'follow',
+    cache: 'no-store',
+  });
+  return Math.round(performance.now() - start);
 }
 
 export async function fetchStats(): Promise<Stats> {

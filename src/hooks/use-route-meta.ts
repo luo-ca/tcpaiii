@@ -29,6 +29,11 @@ const ROUTE_META: Record<RoutePath, { title: string; description: string; noinde
     description:
       '派次元随机图片 API 完整文档：基础调用、分类参数、JSON 返回格式与高级用法。复制即可接入，无需申请 Key。',
   },
+  '/status': {
+    title: '服务状态 - 派次元 API',
+    description:
+      '派次元随机图片 API 实时服务状态：健康检查、存储绑定与延迟自测，接口是否可用一目了然。',
+  },
   '/admin': {
     title: '图库管理 - 派次元 API',
     description: '派次元图库管理后台：外链图片的批量导入、标签归档与检索。',

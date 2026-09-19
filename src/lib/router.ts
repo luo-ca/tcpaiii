@@ -18,8 +18,10 @@ import { prefersReducedMotion } from './helpers';
 /**
  * 站内页面。`/admin` 是图库管理后台（需 admin token），刻意不放进任何对外导航
  * 与 sitemap，且带 noindex —— 它不是给访客和搜索引擎看的。
+ * `/status` 是迷你服务状态页：健康检查 + KV 绑定 + 自助调用测速，给「接口挂了？」
+ * 的访客一个不用翻文档就能自证的入口。
  */
-export const ROUTES = ['/', '/gallery', '/docs', '/admin'] as const;
+export const ROUTES = ['/', '/gallery', '/docs', '/status', '/admin'] as const;
 export type RoutePath = (typeof ROUTES)[number];
 
 const isBrowser = typeof window !== 'undefined';

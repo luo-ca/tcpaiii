@@ -48,3 +48,18 @@ export type ApiErrorPayload = {
 export type AdminAuthStatus = 'empty' | 'unverified' | 'checking' | 'valid' | 'invalid' | 'unconfigured';
 
 export type LazyImageState = 'idle' | 'loading' | 'loaded' | 'error';
+
+/**
+ * GET /api/health 的响应。后端字段（[[default]].ts 的 health 分支 +
+ * kv.ts 的 getKvHealth）—— 改任何一侧都要同步，状态页直接消费。
+ */
+export interface HealthPayload {
+  ok: boolean;
+  runtime: string;
+  buildId: string;
+  timestamp: string;
+  kv: {
+    imagesBound: boolean;
+    statsBound: boolean;
+  };
+}
