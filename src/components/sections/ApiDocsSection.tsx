@@ -170,7 +170,7 @@ export function ApiDocsSection() {
                       <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">
                         Response
                       </span>
-                      <span className="text-[11px] text-emerald-400">application/json</span>
+                      <span className="text-[11px] text-success-bright">application/json</span>
                     </div>
                     <div className="p-4">
                       <pre className="text-xs text-white/80 overflow-x-auto leading-relaxed">
@@ -193,8 +193,8 @@ export function ApiDocsSection() {
             <Card className="glass-strong rounded-2xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
-                    <Zap className="w-4 h-4 text-emerald-500" aria-hidden="true" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success-soft">
+                    <Zap className="w-4 h-4 text-success-ink" aria-hidden="true" />
                   </div>
                   <div>
                     <span className="text-sm font-bold">高级用法</span>
@@ -206,7 +206,7 @@ export function ApiDocsSection() {
                 <div className="space-y-3">
                   <div className="code-block">
                     <div className="code-block-header">
-                      <span className="text-[11px] font-medium text-amber-400 uppercase tracking-wider">
+                      <span className="text-[11px] font-medium text-warning-bright uppercase tracking-wider">
                         JavaScript
                       </span>
                     </div>

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TagChip } from '@/components/ui/tag-chip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -369,11 +370,11 @@ function AddImageDialog({
             {batchUrls.trim() && (
               <div className="rounded-xl border-2 border-ink bg-white p-3">
                 <div className="flex flex-wrap gap-1.5 text-xs">
-                  <Badge className="rounded-full bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <Badge className="rounded-full bg-success-soft text-success-ink border-success-line">
                     可导入 {batchPreview.validNew.length}
                   </Badge>
                   {batchPreview.duplicatesInBatch.length > 0 && (
-                    <Badge className="rounded-full bg-amber-50 text-amber-700 border-amber-200">
+                    <Badge className="rounded-full bg-warning-soft text-warning-ink border-warning-line">
                       本次重复 {batchPreview.duplicatesInBatch.length}
                     </Badge>
                   )}
@@ -383,14 +384,14 @@ function AddImageDialog({
                     </Badge>
                   )}
                   {batchPreview.invalid.length > 0 && (
-                    <Badge className="rounded-full bg-red-50 text-red-600 border-red-200">
+                    <Badge className="rounded-full bg-destructive-soft text-destructive-ink border-destructive-line">
                       无效 {batchPreview.invalid.length}
                     </Badge>
                   )}
                 </div>
 
                 {batchPreview.invalid.length > 0 && (
-                  <div className="mt-2 max-h-20 overflow-y-auto rounded-lg bg-red-50/60 p-2 font-mono text-[11px] text-red-600">
+                  <div className="mt-2 max-h-20 overflow-y-auto rounded-lg bg-destructive-soft p-2 font-mono text-[11px] text-destructive-ink">
                     {batchPreview.invalid.slice(0, 10).map((line) => (
                       <div key={line} className="truncate">
                         ✕ {line}
@@ -433,7 +434,7 @@ function AddImageDialog({
             </div>
 
             {batchFailures.length > 0 && (
-              <div className="max-h-28 overflow-y-auto rounded-xl border border-red-200 bg-red-50/60 p-2.5 text-xs text-red-600">
+              <div className="max-h-28 overflow-y-auto rounded-xl border border-destructive-line bg-destructive-soft p-2.5 text-xs text-destructive-ink">
                 <p className="mb-1 font-semibold">以下 {batchFailures.length} 条未导入：</p>
                 {batchFailures.slice(0, 10).map((item) => (
                   <div key={item.url} className="truncate font-mono text-[11px]">
@@ -1026,9 +1027,9 @@ export default function GalleryPage() {
                 variant={hasVerifiedAdminToken ? 'default' : 'outline'}
                 className={`rounded-full text-xs px-2.5 py-0.5 ${
                   hasVerifiedAdminToken
-                    ? 'bg-emerald-600 text-white border-0 shadow-[2px_2px_0_0_var(--color-ink)]'
+                    ? 'bg-success text-white border-0 shadow-[2px_2px_0_0_var(--color-ink)]'
                     : adminAuthStatus === 'invalid'
-                      ? 'bg-red-50 text-red-600 border-red-100'
+                      ? 'bg-destructive-soft text-destructive-ink border-destructive-line'
                       : 'text-muted-foreground border-ink'
                 }`}
               >
@@ -1129,38 +1130,28 @@ export default function GalleryPage() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                aria-pressed={selectedTag === null}
-                className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium ${
-                  selectedTag === null
-                    ? 'border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
-                    : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
-                }`}
+              <TagChip
+                size="sm"
+                active={selectedTag === null}
                 onClick={() => {
                   setSelectedTag(null);
                   setPage(1);
                 }}
               >
                 全部
-              </button>
+              </TagChip>
               {tags.map((tag) => (
-                <button
+                <TagChip
                   key={tag}
-                  type="button"
-                  aria-pressed={selectedTag === tag}
-                  className={`category-button cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium ${
-                    selectedTag === tag
-                      ? 'border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
-                      : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
-                  }`}
+                  size="sm"
+                  active={selectedTag === tag}
                   onClick={() => {
                     setSelectedTag(tag);
                     setPage(1);
                   }}
                 >
                   {tag}
-                </button>
+                </TagChip>
               ))}
             </div>
           </div>

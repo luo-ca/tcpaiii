@@ -143,7 +143,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               title="点击复制 API 地址"
               className="group mt-3 flex w-full items-center gap-2.5 rounded-xl border-2 border-ink bg-white px-3.5 py-2.5 text-left transition-colors hover:bg-brand-50"
             >
-              <span className="shrink-0 rounded-md bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-emerald-600">
+              <span className="shrink-0 rounded-md bg-success-soft px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-success-ink">
                 GET
               </span>
               <code className="min-w-0 flex-1 truncate font-mono text-xs text-foreground/80 sm:text-[13px]">
@@ -151,7 +151,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               </code>
               <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground transition-colors group-hover:text-brand-600">
                 {copiedApi ? (
-                  <Check className="h-3.5 w-3.5 text-emerald-500" aria-hidden="true" />
+                  <Check className="h-3.5 w-3.5 text-success-ink" aria-hidden="true" />
                 ) : (
                   <CopyIcon className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
@@ -234,8 +234,8 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               pointer-events-none 保证它不会遮住下方图库入口的点击。 */}
           <div className="hero-float-slow pointer-events-none absolute -bottom-5 -right-3 hidden items-center gap-2.5 rounded-2xl border-2 border-ink bg-white px-4 py-3 shadow-[4px_4px_0_0_var(--color-ink)] sm:flex">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-success" />
             </span>
             <span className="flex flex-col leading-tight">
               <span className="text-sm font-semibold text-foreground">实时可用</span>

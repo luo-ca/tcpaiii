@@ -184,17 +184,36 @@ describe("设计系统类不得被同属性 Tailwind 工具类架空", () => {
     for (const g of grads) expect(g.text).not.toMatch(/\bborder-/);
   });
 
-  it("category-button 自带过渡，分类标签不再挂 transition-all", () => {
-    // gallery-browse 的类名来自 chipClass 辅助模板串（非 className=），
-    // 这里一并锁定，正是字面量扫描相对 className 扫描多出来的覆盖。
+  it("分类标签 chip 收敛到 TagChip 单点，且不再挂 transition-*", () => {
+    // P32 起三处筛选标签共用 <TagChip>，category-button 字面量只允许出现在单点定义里
+    const chips = classLiterals("src/components/ui/tag-chip.tsx").filter((c) =>
+      /\bcategory-button\b/.test(c.text)
+    );
+    expect(chips.length).toBeGreaterThan(0);
+    for (const c of chips) expect(c.text).not.toMatch(/\btransition-/);
     for (const rel of [
       "src/components/sections/OnlinePreview.tsx",
       "src/features/gallery-browse.tsx",
       "src/features/admin-page.tsx",
     ]) {
-      const chips = classLiterals(rel).filter((c) => /\bcategory-button\b/.test(c.text));
-      expect(chips.length).toBeGreaterThan(0);
-      for (const c of chips) expect(c.text).not.toMatch(/\btransition-/);
+      expect(classLiterals(rel).filter((c) => /\bcategory-button\b/.test(c.text))).toEqual([]);
     }
+  });
+
+  it("非 token 的 Tailwind palette 数值色不得出现在类名里", () => {
+    // P32 补全语义色梯度（*-soft/*-line/*-ink/*-bright）后，
+    // emerald/amber/red 这类手搓 palette 色失去存在理由，锁死防再生。
+    const PALETTE =
+      /\b(?:bg|text|border|from|via|to|fill|stroke|ring|divide|placeholder|decoration|shadow)-(?:red|green|blue|orange|amber|yellow|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-\d{2,3}\b/;
+    const offenders: string[] = [];
+    for (const file of walk(resolve(process.cwd(), "src"))) {
+      if (file.includes(join("src", "test"))) continue;
+      const source = readFileSync(file, "utf8");
+      const rel = relative(process.cwd(), file).replace(/\\/g, "/");
+      for (const { text, line } of literals(source)) {
+        if (PALETTE.test(text)) offenders.push(`${rel}:${line} ${text.slice(0, 80)}`);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });

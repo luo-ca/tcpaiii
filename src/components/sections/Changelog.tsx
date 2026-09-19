@@ -37,8 +37,8 @@ const updates = [
 
 const tagColors: Record<string, string> = {
   Major: 'bg-brand-500 text-white',
-  Update: 'bg-emerald-500 text-white',
-  API: 'bg-amber-400 text-ink',
+  Update: 'bg-success text-white',
+  API: 'bg-warning text-ink',
 };
 
 export function Changelog() {

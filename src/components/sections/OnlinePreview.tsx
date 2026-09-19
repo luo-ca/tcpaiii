@@ -16,6 +16,7 @@ import type { RandomRequest, Stats } from '@/lib/types';
 import { fetchRandomImage, statsQueryOptions } from '@/lib/api';
 import { getErrorMessage } from '@/lib/helpers';
 import { useCopyFeedback } from '@/hooks/use-copy-feedback';
+import { TagChip } from '@/components/ui/tag-chip';
 import { buildAppUrl } from '@/lib/url';
 
 /**
@@ -128,16 +129,16 @@ function OnlinePreviewImpl(
   const statusTone = previewError ? 'error' : imageLoading ? 'loading' : 'ready';
   const statusDotClass =
     statusTone === 'error'
-      ? 'bg-red-500'
+      ? 'bg-destructive'
       : statusTone === 'loading'
-        ? 'bg-amber-500'
-        : 'bg-emerald-500';
+        ? 'bg-warning'
+        : 'bg-success';
   const statusPingClass =
     statusTone === 'error'
-      ? 'bg-red-400'
+      ? 'bg-destructive opacity-60'
       : statusTone === 'loading'
-        ? 'bg-amber-400'
-        : 'bg-emerald-400';
+        ? 'bg-warning opacity-60'
+        : 'bg-success opacity-60';
   const statusLabel =
     statusTone === 'error' ? '加载失败' : statusTone === 'loading' ? '加载中' : '实时可用';
 
@@ -206,8 +207,8 @@ function OnlinePreviewImpl(
 
               {previewError && !imageLoading && (
                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background p-6 text-center">
-                  <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-red-200 bg-red-50">
-                    <Camera className="h-8 w-8 text-red-400" aria-hidden="true" />
+                  <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-destructive-line bg-destructive-soft">
+                    <Camera className="h-8 w-8 text-destructive" aria-hidden="true" />
                   </div>
                   <p className="text-sm font-bold text-foreground">预览加载失败</p>
                   <p className="mt-1 max-w-sm text-xs text-muted-foreground">{previewError}</p>
@@ -318,7 +319,7 @@ function OnlinePreviewImpl(
               {/* Code Block */}
               <div className="rounded-xl bg-code border-2 border-ink overflow-hidden shadow-[4px_4px_0_0_var(--color-ink)]">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
-                  <span className="text-[11px] font-medium text-emerald-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-medium text-success-bright uppercase tracking-wider">
                     GET
                   </span>
                   <div className="flex gap-1">
@@ -339,7 +340,7 @@ function OnlinePreviewImpl(
                     className="shrink-0 rounded-lg p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
                   >
                     {copiedApi ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+                      <Check className="h-3.5 w-3.5 text-success-bright" aria-hidden="true" />
                     ) : (
                       <CopyIcon className="h-3.5 w-3.5" aria-hidden="true" />
                     )}
@@ -365,7 +366,7 @@ function OnlinePreviewImpl(
                   disabled={!imageUrl}
                 >
                   {copied ? (
-                    <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-500" aria-hidden="true" />
+                    <Check className="mr-1.5 h-3.5 w-3.5 text-success-ink" aria-hidden="true" />
                   ) : (
                     <CopyIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                   )}
@@ -378,32 +379,17 @@ function OnlinePreviewImpl(
           {/* Category Tags Bar */}
           <div className="border-t-2 border-ink bg-secondary p-4">
             <div className="category-strip flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory sm:flex-wrap sm:overflow-visible">
-              <button
-                type="button"
-                aria-pressed={selectedTag === undefined}
-                className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium ${
-                  selectedTag === undefined
-                    ? 'active border-2 border-transparent bg-primary text-primary-foreground'
-                    : 'border-2 border-transparent bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
-                }`}
-                onClick={() => handleSelectTag(undefined)}
-              >
+              <TagChip active={selectedTag === undefined} onClick={() => handleSelectTag(undefined)}>
                 全部
-              </button>
+              </TagChip>
               {stats?.tags?.map((tag) => (
-                <button
+                <TagChip
                   key={tag}
-                  type="button"
-                  aria-pressed={selectedTag === tag}
-                  className={`category-button shrink-0 snap-start px-3.5 py-1.5 rounded-full text-sm font-medium ${
-                    selectedTag === tag
-                      ? 'active border-2 border-transparent bg-primary text-primary-foreground'
-                      : 'border-2 border-transparent bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
-                  }`}
+                  active={selectedTag === tag}
                   onClick={() => handleSelectTag(tag)}
                 >
                   {tag}
-                </button>
+                </TagChip>
               ))}
             </div>
           </div>

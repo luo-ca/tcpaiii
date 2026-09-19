@@ -60,7 +60,7 @@ describe("glass 族不得与边框色工具类同元素共存", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("ErrorState 外卡保持中性：不再挂 border-red-200", () => {
+  it("ErrorState 外卡保持中性：红色信号只在内层图标容器", () => {
     const src = readFileSync(
       resolve(process.cwd(), "src/components/states/ErrorState.tsx"),
       "utf8"
@@ -69,10 +69,10 @@ describe("glass 族不得与边框色工具类同元素共存", () => {
     const classes = src.split(/\r?\n/).flatMap(classStringsOf);
     const outer = classes.find((c) => GLASS.test(c)) ?? "";
     expect(outer).toContain("glass-strong");
-    expect(outer).not.toContain("border-red-200");
-    // 红色信号由内层图标容器承担
-    expect(classes.some((c) => c.includes("border-red-200") && c.includes("bg-red-50"))).toBe(
-      true
-    );
+    expect(outer).not.toMatch(/\bborder-(?:red|destructive)/);
+    // P32 起红色信号改用语义色 token 梯度（曾为 border-red-200 + bg-red-50）
+    expect(
+      classes.some((c) => c.includes("border-destructive-line") && c.includes("bg-destructive-soft"))
+    ).toBe(true);
   });
 });

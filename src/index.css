@@ -90,7 +90,22 @@
   --color-destructive: #ff3b30;
   --color-destructive-foreground: #ffffff;
   --color-success: #34c759;
+  --color-success-foreground: #ffffff;
   --color-warning: #ff9f0a;
+  /* 语义色浅层梯度：soft=淡底、line=描边、ink=浅底上的正文色（对比度拉够）、
+   * bright=深色代码块上的强调色。补齐梯度是为了根治「回落到 Tailwind palette
+   * 手搓 emerald/amber/red」的 22 处散色——同一语义全站只从这组 token 取色。 */
+  --color-destructive-soft: #feeceb;
+  --color-destructive-line: #ffcac7;
+  --color-destructive-ink: #c9271f;
+  --color-success-soft: #e7f8ec;
+  --color-success-line: #b7e6c5;
+  --color-success-ink: #177f36;
+  --color-success-bright: #5ede82;
+  --color-warning-soft: #fff3e1;
+  --color-warning-line: #ffdda8;
+  --color-warning-ink: #8f5b00;
+  --color-warning-bright: #ffc45c;
 
   /* ── 圆角：单调递增六档（修复原先 lg > 2xl 的层级倒挂） ────────────── */
   --radius-sm: 8px;

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MasonryTile, SKELETON_RATIOS } from '@/components/ui/masonry-tile';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
+import { TagChip } from '@/components/ui/tag-chip';
 import type { PaginatedImages, Stats } from '@/lib/types';
 import { fetchImagesPage, statsQueryOptions } from '@/lib/api';
 import { getErrorMessage } from '@/lib/helpers';
@@ -120,13 +121,6 @@ export default function GalleryBrowse() {
   // 稳定引用：配合 MasonryTile 的 memo，搜索输入等无关渲染不会逐张重排瓦片
   const openTile = useCallback((index: number) => setLightboxIndex(index), []);
 
-  const chipClass = (active: boolean) =>
-    `category-button shrink-0 snap-start rounded-full px-3.5 py-1.5 text-sm font-medium ${
-      active
-        ? 'border-2 border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
-        : 'border-2 border-ink bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground'
-    }`;
-
   return (
     <div className="relative z-10 mx-auto max-w-6xl px-4 pb-24 pt-[calc(var(--header-h)+32px)] sm:px-6">
       {/* 页头 */}
@@ -176,25 +170,18 @@ export default function GalleryBrowse() {
       {/* 标签筛选 */}
       {tags.length > 0 && (
         <div className="reveal category-strip mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory sm:flex-wrap sm:overflow-visible">
-          <button
-            type="button"
-            onClick={() => setSelectedTag(null)}
-            aria-pressed={selectedTag === null}
-            className={chipClass(selectedTag === null)}
-          >
+          <TagChip active={selectedTag === null} onClick={() => setSelectedTag(null)}>
             全部
-          </button>
+          </TagChip>
           {tags.map((tag) => (
-            <button
+            <TagChip
               key={tag}
-              type="button"
+              active={selectedTag === tag}
               onClick={() => setSelectedTag((current) => (current === tag ? null : tag))}
-              aria-pressed={selectedTag === tag}
-              className={chipClass(selectedTag === tag)}
             >
               <Tag className="mr-1 inline h-3 w-3 align-[-2px]" aria-hidden="true" />
               {tag}
-            </button>
+            </TagChip>
           ))}
         </div>
       )}
