@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { Stats } from '@/lib/types';
 import { fetchImagesPage, statsQueryOptions } from '@/lib/api';
+import { MAX_TAG_LENGTH } from '@/lib/constants';
 import { formatNumber } from '@/lib/helpers';
 import { buildAppUrl } from '@/lib/url';
 import { useCopyFeedback } from '@/hooks/use-copy-feedback';
@@ -29,18 +30,17 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
   // 走的是 /api/list（公开读接口），它不写入调用统计：
   // 既不消耗随机额度，也不会把本站自己的访问算进 /api/stats 的调用数与站点数。
   // 取不到图时交给品牌渐变兜底 —— 绝不回退到会出现占位图的第三方接口。
+  // 失败要往外抛而不是吞成 ''：空串会被当作「成功结果」按 staleTime 钉住 5 分钟，
+  // 且全站关掉了 refetchOnWindowFocus，一次网络抖动能让兜底渐变持续整场会话；
+  // 抛错则查询进 error 态（data 仍是 undefined → 渐变），重挂载/刷新图库时自动重试。
   const { data: heroImageUrl = '' } = useQuery<string>({
     queryKey: ['hero-image'],
     queryFn: async () => {
-      try {
-        const page = await fetchImagesPage({ page: 1, pageSize: 1 });
-        return page.items[0]?.url ?? '';
-      } catch {
-        return '';
-      }
+      const page = await fetchImagesPage({ page: 1, pageSize: 1 });
+      return page.items[0]?.url ?? '';
     },
     staleTime: 5 * 60_000,
-    retry: 0,
+    retry: 1,
   });
   const [heroImageFailed, setHeroImageFailed] = useState(false);
 
@@ -122,6 +122,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                   }}
                   placeholder="搜索标签：acg、壁纸、头像..."
                   aria-label="搜索标签"
+                  maxLength={MAX_TAG_LENGTH}
                   className="h-12 border-0 bg-transparent p-0 text-base shadow-none focus-visible:outline-none placeholder:text-muted-foreground/70"
                 />
               </div>

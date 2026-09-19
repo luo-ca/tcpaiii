@@ -466,6 +466,22 @@ describe("functions api", () => {
     expect(String(body.error).length).toBeLessThanOrEqual("No images found with tag: ".length + 40);
   });
 
+  it("truncates random tags to the storage cap before the index lookup", async () => {
+    const cappedTag = "a".repeat(40);
+    await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/cap.jpg", tags: [cappedTag] }),
+    });
+
+    // 超出 40 字的部分在查索引前就被截掉：前 40 字与库内标签全等 → 命中，
+    // 与 /api/list 的 tag 截断规则保持同一契约
+    const response = await request(`/api/random?tag=${cappedTag}${"y".repeat(20)}&format=json`);
+    expect(response.status).toBe(200);
+    const body = await json(response);
+    expect(body).toMatchObject({ url: "https://cdn.example.test/cap.jpg" });
+  });
+
   it("marks random redirects as non-cacheable", async () => {
     await request("/api/create", {
       method: "POST",

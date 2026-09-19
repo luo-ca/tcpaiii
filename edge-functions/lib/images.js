@@ -15,7 +15,10 @@ function generateImageId() {
 // ── GET /api/random ──────────────────────────────────────────
 export async function handleRandomImage(request, runtimeEnv, executionContext) {
     const url = new URL(request.url);
-    const tag = url.searchParams.get('tag') || url.searchParams.get('type');
+    // tag 是用户输入：查索引前先截到入库上限（与 list 同规则），
+    // 免得超长串变成 byTag.get 前无界的 toLowerCase 分配
+    const rawTag = url.searchParams.get('tag') || url.searchParams.get('type');
+    const tag = rawTag ? rawTag.slice(0, MAX_TAG_LENGTH) : null;
     const format = url.searchParams.get('format');
     const wantsJson = url.searchParams.has('json')
         || format === 'json'
@@ -29,8 +32,8 @@ export async function handleRandomImage(request, runtimeEnv, executionContext) {
         candidates = imagesState.index.byTag.get(tag.toLowerCase()) ?? [];
     }
     if (candidates.length === 0) {
-        // tag 是用户输入：回显前截断，别把 404 变成大字符串反射器
-        return json({ error: `No images found with tag: ${tag?.slice(0, MAX_TAG_LENGTH) ?? ''}` }, 404);
+        // tag 已在查索引前截到 MAX_TAG_LENGTH，回显直接透传即可
+        return json({ error: `No images found with tag: ${tag ?? ''}` }, 404);
     }
     const randomIndex = Math.floor(Math.random() * candidates.length);
     const selected = candidates[randomIndex];

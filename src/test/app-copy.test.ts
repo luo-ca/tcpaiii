@@ -73,4 +73,15 @@ describe("home page copy", () => {
     // renders its own empty/error state now) — keep it dead for good.
     expect(apiSource).not.toContain("fetchRandomImageWithFallback");
   });
+
+  it("keeps the hero tag box and hero fetch aligned with backend contracts", () => {
+    // The hero input caps at the stored-tag length (backend slices tags to 40
+    // chars before lookup), so users can never type a query that can't match.
+    expect(heroSource).toContain("maxLength={MAX_TAG_LENGTH}");
+    // A swallowed error becomes a *successful* '' result pinned by staleTime
+    // (window-focus refetch is globally off) — the query must let failures
+    // throw so the error state retries on remount instead.
+    expect(heroSource).toContain("retry: 1");
+    expect(heroSource).not.toMatch(/catch\s*\{\s*return '';\s*\}/);
+  });
 });
