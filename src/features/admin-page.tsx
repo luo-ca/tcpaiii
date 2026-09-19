@@ -830,6 +830,9 @@ export default function GalleryPage() {
     // 已不存在的地址，导入预览也会漏判。增删改后一并作废。
     queryClient.invalidateQueries({ queryKey: ['hero-image'] });
     queryClient.invalidateQueries({ queryKey: ['all-image-urls'] });
+    // 「最新收录」区块与 hero 同族：同样缓存 /api/list 第一页、staleTime 5 分钟，
+    // 漏掉它会让删掉的图在首页继续挂 5 分钟（裂图 + 灯箱 404），新图 5 分钟上不了榜。
+    queryClient.invalidateQueries({ queryKey: ['gallery-preview'] });
   }, [queryClient]);
 
   const prefetchGalleryPage = useCallback(
