@@ -24,7 +24,7 @@ export function TagChip({
         'category-button shrink-0 snap-start cursor-pointer rounded-full border-2 border-ink font-medium',
         size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-3.5 py-1.5 text-sm',
         active
-          ? 'active bg-primary text-primary-foreground'
+          ? 'active bg-brand-600 text-white'
           : 'bg-white text-muted-foreground hover:bg-brand-50 hover:text-foreground',
         className
       )}

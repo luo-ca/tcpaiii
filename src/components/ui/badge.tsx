@@ -8,11 +8,12 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+        // 同 Button：小字号徽章白字压在亮底上过不了 AA，实底统一压深一档。
+        default: "border-transparent bg-brand-600 text-white hover:bg-brand-600/80",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+          "border-transparent bg-destructive-ink text-white hover:bg-destructive-ink/80",
         outline: "border-ink text-foreground",
       },
     },

@@ -113,7 +113,7 @@ export function RealtimeStats() {
                     {card.value}
                   </p>
                   <p className="mt-1 text-xs font-bold text-muted-foreground">{card.label}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground/60">{card.sub}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{card.sub}</p>
                 </div>
               </CardContent>
             </Card>
@@ -180,7 +180,7 @@ export function RealtimeStats() {
                   </div>
                 </>
               ) : (
-                <div className="flex h-full items-center justify-center text-muted-foreground/40">
+                <div className="flex h-full items-center justify-center text-muted-foreground">
                   <div className="text-center">
                     <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-25" aria-hidden="true" />
                     <p className="text-sm">暂无调用数据</p>

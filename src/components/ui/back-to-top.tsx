@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
+import { prefersReducedMotion } from '@/lib/helpers';
 
 /** 滚动超过这个距离才出现，避免短页面也弹一个按钮 */
 const SHOW_AFTER_PX = 900;
@@ -24,8 +25,7 @@ export function BackToTop() {
 
   const handleClick = () => {
     // 显式传 smooth 会绕过 html 上的 reduced-motion 降级，这里自己判断一次
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   };
 
   if (!visible) return null;

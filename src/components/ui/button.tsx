@@ -9,12 +9,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        // 对比度门槛：白字压在亮底上，#007aff 只有 4.02:1、#ff3b30 只有 3.54:1，
+        // 都够不到小字号 AA。实底按钮统一压深一档（brand-600 ≈ 5.8:1、
+        // destructive-ink ≈ 5:1）；hover 仍走同色 alpha，不引入第三色。
+        default: "bg-brand-600 text-white hover:bg-brand-600/90",
+        destructive: "bg-destructive-ink text-white hover:bg-destructive-ink/90",
         outline: "border-2 border-ink bg-white hover:bg-brand-50",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-brand-600 underline-offset-4 hover:underline",
       },
       size: {
         // 小/大号按钮比默认档少一档圆角（10px vs 12px）。

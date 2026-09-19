@@ -77,7 +77,7 @@ export const MasonryTile = memo(function MasonryTile({
       )}
 
       {state === 'error' ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-muted-foreground/50">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-muted-foreground">
           <ImageOff className="h-6 w-6 opacity-40" aria-hidden="true" />
           <span className="text-xs">加载失败</span>
         </div>

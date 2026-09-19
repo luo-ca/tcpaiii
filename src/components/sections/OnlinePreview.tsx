@@ -199,7 +199,7 @@ function OnlinePreviewImpl(
               {imageLoading && <div className="absolute inset-0 z-20 skeleton-shimmer" />}
 
               {!imageUrl && !imageLoading && !previewError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
                   <Camera className="mb-3 h-16 w-16 opacity-25" aria-hidden="true" />
                   <p className="text-sm">等待加载预览图片</p>
                 </div>
@@ -228,7 +228,8 @@ function OnlinePreviewImpl(
                 <img
                   key={imageKey}
                   src={imageUrl}
-                  alt={imageTitle}
+                  alt={imageTitle || '二次元图片'}
+                  decoding="async"
                   className={`h-full w-full object-cover transition-[opacity,transform] duration-500 ${
                     imageLoaded && !previewError
                       ? 'opacity-100 scale-100'

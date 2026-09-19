@@ -94,6 +94,10 @@ describe("入口层与设计语言一致", () => {
       expect(reduceBlock).toContain(".animate-fade-in");
       expect(reduceBlock).toContain(".stat-value");
       expect(reduceBlock).toContain(".skeleton-shimmer");
+      // Radix 弹层（对话框/下拉/灯箱）的 animate-in/out 工具类也必须在闸内，
+      // 否则减动效偏好下删图确认框照样飞入。
+      expect(reduceBlock).toContain(".animate-in");
+      expect(reduceBlock).toContain(".animate-out");
       for (const dead of [
         ".animate-slide-up",
         ".animate-shimmer",

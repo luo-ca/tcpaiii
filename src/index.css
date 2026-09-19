@@ -419,11 +419,13 @@
    *   悬停 = 整块向左上掀起，硬投影同步拉长
    *   按下 = 压回纸面，硬投影归零
    * 背景用 background-image（同色 linear-gradient）而非 background-color，
-   * 这样能稳定压过 Button 基础变体的 bg-primary，不受工具类输出顺序影响。
+   * 这样能稳定压过 Button 基础变体的实底色，不受工具类输出顺序影响。
+   * 平涂用 brand-600 而非 brand-500：白字压 #007aff 只有 4.02:1，够不到
+   * 小字号 AA；#0062cc 约 5.8:1。悬停再深一档到 brand-700。
    * ================================================================ */
   .gradient-button {
     position: relative;
-    background-image: linear-gradient(var(--color-brand-500), var(--color-brand-500));
+    background-image: linear-gradient(var(--color-brand-600), var(--color-brand-600));
     border: 2px solid var(--color-ink);
     box-shadow: 3px 3px 0 0 var(--color-ink);
     transition:
@@ -432,7 +434,7 @@
   }
 
   .gradient-button:hover {
-    background-image: linear-gradient(var(--color-brand-600), var(--color-brand-600));
+    background-image: linear-gradient(var(--color-brand-700), var(--color-brand-700));
     transform: translate(-1px, -1px);
     box-shadow: 4px 4px 0 0 var(--color-ink);
   }
@@ -785,6 +787,14 @@
     }
     .hero-zoom {
       transform: none !important;
+    }
+
+    /* Radix 弹层（灯箱 / 删除确认 / 下拉）的入场出场走 tailwindcss-animate 的
+       animate-in/out + slide-in-from-* / zoom-in-95 工具类，上面逐条关自定义
+       类的写法盖不到它们。Radix 关闭即卸载、不依赖出场动画回调，可直接掐掉。 */
+    .animate-in,
+    .animate-out {
+      animation: none !important;
     }
 
     .glass-card:hover,

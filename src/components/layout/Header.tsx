@@ -43,7 +43,8 @@ export function Header() {
 
   // 激活态用品牌蓝平涂，与阅读进度线同一套品牌语言。
   // 降噪：不再挂 2px 墨线 + 硬投影（保留 border-2 transparent 只为和未激活态等高）。
-  const activeTabClass = 'border-2 border-transparent bg-brand-500 font-bold text-white';
+  // 平涂压到 brand-600：页签 14px 白字压 brand-500 只有 4.02:1，够不到 AA。
+  const activeTabClass = 'border-2 border-transparent bg-brand-600 font-bold text-white';
 
   const tabClass = (active: boolean) =>
     `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
@@ -89,7 +90,7 @@ export function Header() {
               <span className="truncate font-bold text-[15px] sm:text-base tracking-tight text-foreground">
                 {APP_NAME}
               </span>
-              <span className="mt-1 hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 sm:block">
+              <span className="mt-1 hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:block">
                 Anime Image API
               </span>
             </span>

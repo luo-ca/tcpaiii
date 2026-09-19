@@ -36,9 +36,11 @@ const updates = [
 ];
 
 const tagColors: Record<string, string> = {
-  Major: 'bg-brand-500 text-white',
-  Update: 'bg-success text-white',
-  API: 'bg-warning text-ink',
+  // soft 底 + ink 字：12px 白字压亮底（#007aff/#34c759）都够不到 AA，
+  // 与 admin 状态徽章同一套语义梯度。
+  Major: 'bg-brand-50 text-brand-700',
+  Update: 'bg-success-soft text-success-ink',
+  API: 'bg-warning-soft text-warning-ink',
 };
 
 export function Changelog() {

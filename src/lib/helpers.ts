@@ -23,6 +23,14 @@ export function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 /**
+ * 用户是否要求减弱动效。JS 显式传的 `behavior: 'smooth'` 不受 CSS 的
+ * reduced-motion 媒体查询约束，所以所有编程式滚动都要先过这个闸门。
+ */
+export function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
  * Format "2025-06-15" → "6/15".
  */
 export function formatShortDate(value: string): string {

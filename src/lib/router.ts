@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
+import { prefersReducedMotion } from './helpers';
 
 /**
  * 站内路由。零依赖实现，只用 History API。
@@ -19,9 +20,6 @@ import { flushSync } from 'react-dom';
  */
 export const ROUTES = ['/', '/gallery', '/docs', '/admin'] as const;
 export type RoutePath = (typeof ROUTES)[number];
-
-/** 同页重复跳转时 popstate 不会触发，用自定义事件补齐广播。 */
-const NAVIGATE_EVENT = 'paiii:navigate';
 
 const isBrowser = typeof window !== 'undefined';
 
@@ -69,7 +67,7 @@ const docWithViewTransition = isBrowser
 function getViewTransition(nextPathname: string): StartViewTransition | null {
   const start = docWithViewTransition?.startViewTransition;
   if (!start) return null;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+  if (prefersReducedMotion()) return null;
   if (nextPathname === window.location.pathname) return null;
   return start.bind(docWithViewTransition);
 }
@@ -77,7 +75,6 @@ function getViewTransition(nextPathname: string): StartViewTransition | null {
 if (isBrowser) {
   snapshot = readLocation();
   window.addEventListener('popstate', emit);
-  window.addEventListener(NAVIGATE_EVENT, emit);
 }
 
 /** 当前路由。用 useSyncExternalStore 而非 Context，任何组件都能零成本订阅。 */
@@ -100,7 +97,10 @@ function settleScroll(hash: string) {
         // hash 不是合法选择器（含特殊字符）时放弃滚动，不影响跳转本身
       }
       if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.scrollIntoView({
+          behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+          block: 'start',
+        });
         return;
       }
       if (attempts < 20) {

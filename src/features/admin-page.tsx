@@ -633,7 +633,7 @@ function ImageCard({
           )}
 
           {state === 'error' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/40 text-muted-foreground/50">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/40 text-muted-foreground">
               <Image className="w-8 h-8 opacity-40" aria-hidden="true" />
               <span className="text-xs">加载失败</span>
             </div>
@@ -703,7 +703,7 @@ function ImageCard({
                     <Button
                       variant="destructive"
                       size="icon"
-                      className="h-7 w-7 rounded-lg border-2 border-ink bg-destructive text-destructive-foreground shadow-[2px_2px_0_0_var(--color-ink)] transition-transform hover:bg-destructive/90"
+                      className="h-7 w-7 rounded-lg border-2 border-ink bg-destructive-ink text-white shadow-[2px_2px_0_0_var(--color-ink)] transition-transform hover:bg-destructive-ink/90"
                       aria-label={isDeleting ? '正在删除' : '删除图片'}
                       disabled={isDeleting}
                     >
@@ -727,7 +727,7 @@ function ImageCard({
                         onClick={async () => {
                           if (await onRequireToken()) onDelete(img.id);
                         }}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
+                        className="bg-destructive-ink text-white hover:bg-destructive-ink/90 rounded-xl"
                       >
                         删除
                       </AlertDialogAction>
@@ -1027,7 +1027,7 @@ export default function GalleryPage() {
                 variant={hasVerifiedAdminToken ? 'default' : 'outline'}
                 className={`rounded-full text-xs px-2.5 py-0.5 ${
                   hasVerifiedAdminToken
-                    ? 'bg-success text-white border-0 shadow-[2px_2px_0_0_var(--color-ink)]'
+                    ? 'bg-success-ink text-white border-0 shadow-[2px_2px_0_0_var(--color-ink)]'
                     : adminAuthStatus === 'invalid'
                       ? 'bg-destructive-soft text-destructive-ink border-destructive-line'
                       : 'text-muted-foreground border-ink'
@@ -1248,7 +1248,7 @@ export default function GalleryPage() {
                   return (
                     <div key={pageNumber} className="flex items-center gap-1">
                       {hasGap && (
-                        <span className="flex h-8 w-6 items-center justify-center text-muted-foreground/50 text-xs">
+                        <span className="flex h-8 w-6 items-center justify-center text-muted-foreground text-xs">
                           ···
                         </span>
                       )}

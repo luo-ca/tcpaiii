@@ -203,6 +203,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                   alt="派次元图库精选图片"
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.04]"
                   loading="eager"
+                  decoding="async"
                   {...{ fetchpriority: 'high' }}
                   onError={handleHeroImageError}
                 />

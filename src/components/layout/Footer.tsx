@@ -28,7 +28,7 @@ export function Footer() {
           </div>
 
           {/* Powered By */}
-          <div className="flex flex-col gap-2 text-xs text-muted-foreground/70">
+          <div className="flex flex-col gap-2 text-xs text-muted-foreground">
             <p className="flex flex-wrap items-center justify-center gap-1.5">
               <span>本站由</span>
               <img
@@ -72,7 +72,7 @@ export function Footer() {
             {/* 管理后台入口：低调放在页脚，不进顶栏、不进 sitemap，页面本身带 noindex */}
             <NavLink
               to="/admin"
-              className="inline-flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
             >
               <KeyRound className="w-2.5 h-2.5" aria-hidden />
               管理

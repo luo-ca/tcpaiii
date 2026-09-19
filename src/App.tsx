@@ -3,6 +3,7 @@ import type { RandomRequest } from '@/lib/types';
 import type { RoutePath } from '@/lib/router';
 import { useRoute } from '@/lib/router';
 import { useRouteMeta } from '@/hooks/use-route-meta';
+import { prefersReducedMotion } from '@/lib/helpers';
 import { AmbientBackground } from '@/components/layout/AmbientBackground';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -108,7 +109,10 @@ function HomePage() {
 
   const handleRequestRandom = useCallback((tag?: string) => {
     setRandomRequest((prev) => ({ tag, token: prev.token + 1 }));
-    previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    previewRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      block: 'start',
+    });
   }, []);
 
   return (
