@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { ImageOff } from 'lucide-react';
 import type { ImageRecord } from '@/lib/types';
@@ -34,15 +34,20 @@ export const SKELETON_RATIOS = [16 / 9, 3 / 2, 16 / 10];
  * 注意**不要**顺手写成「前 N 张优先」：CSS multi-column 是逐列向下填充的，
  * DOM 里 index 0/1/2/3 会同处第一列（实测桌面 4 列时 0~4 全在第 1 列），
  * 那样会把 3 张首屏外的图提到前面，反而拖慢首屏。
+ *
+ * `onOpen(index)` + memo：调用方传稳定回调与本张索引，瓦片 props 才可能在
+ * 搜索输入等无关重渲染中保持全等，网格不被逐张重排。
  */
-export function MasonryTile({
+export const MasonryTile = memo(function MasonryTile({
   image,
+  index,
   priority = false,
   onOpen,
 }: {
   image: ImageRecord;
+  index: number;
   priority?: boolean;
-  onOpen: () => void;
+  onOpen: (index: number) => void;
 }) {
   // 优先用缓存过的真实比例占位（重复访问 → 布局稳定）
   const [ratio, setRatio] = useState<number>(() => getImageRatio(image.url) ?? DEFAULT_RATIO);
@@ -62,7 +67,7 @@ export function MasonryTile({
   return (
     <button
       type="button"
-      onClick={onOpen}
+      onClick={() => onOpen(index)}
       aria-label={`查看大图：${image.title || '未命名图片'}`}
       className="reveal group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl border-2 border-ink bg-secondary shadow-sm transition-all duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-md sm:mb-4"
       style={{ aspectRatio: String(ratio) }}
@@ -85,7 +90,7 @@ export function MasonryTile({
           decoding="async"
           onLoad={handleLoad}
           onError={() => setState('error')}
-          className={`h-full w-full object-cover transition-all duration-500 motion-safe:group-hover:scale-[1.03] ${
+          className={`h-full w-full object-cover transition-[opacity,transform] duration-500 motion-safe:group-hover:scale-[1.03] ${
             state === 'loaded' ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -106,4 +111,4 @@ export function MasonryTile({
       </span>
     </button>
   );
-}
+});

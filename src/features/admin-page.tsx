@@ -621,7 +621,7 @@ function ImageCard({
             <img
               src={activeSrc}
               alt={img.title}
-              className={`w-full h-full object-cover transition-all duration-500 motion-safe:group-hover:scale-108 ${
+              className={`w-full h-full object-cover transition-[opacity,transform] duration-500 motion-safe:group-hover:scale-108 ${
                 state === 'loaded' ? 'opacity-100' : 'opacity-0'
               }`}
               style={{ willChange: 'transform' }}

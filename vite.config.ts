@@ -50,10 +50,9 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
             return 'react-vendor';
           }
-          // Radix UI 组件库
-          if (id.includes('node_modules/@radix-ui/')) {
-            return 'ui-vendor';
-          }
+          // 注意：不要把 @radix-ui 整体钉成单一 chunk——那会让所有路由
+          // 都 eager 加载 Select/AlertDialog/Tabs 等只属于 lazy 页的组件。
+          // 交给 rollup 按动态导入边界自动切分（共享部分自然成公共 chunk）。
           // React Query
           if (id.includes('node_modules/@tanstack/')) {
             return 'query-vendor';

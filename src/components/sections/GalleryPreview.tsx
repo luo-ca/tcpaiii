@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Images } from 'lucide-react';
 import { NavLink } from '@/components/ui/nav-link';
-import { MasonryTile } from '@/components/ui/masonry-tile';
+import { MasonryTile, SKELETON_RATIOS } from '@/components/ui/masonry-tile';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
 import type { PaginatedImages } from '@/lib/types';
 import { fetchImagesPage } from '@/lib/api';
@@ -41,6 +41,9 @@ export function GalleryPreview() {
     [items.length],
   );
 
+  // 稳定引用：配合 MasonryTile 的 memo，首页无关渲染不逐张重排瓦片
+  const openTile = useCallback((index: number) => setLightboxIndex(index), []);
+
   // 图库为空（或彻底取不到）时整段收起，不留一个空壳区块在首页
   if (!isLoading && items.length === 0) return null;
 
@@ -77,7 +80,7 @@ export function GalleryPreview() {
               <div
                 key={i}
                 className="mb-3 break-inside-avoid rounded-2xl skeleton-shimmer sm:mb-4"
-                style={{ aspectRatio: String([16 / 9, 3 / 2, 16 / 10][i % 3]) }}
+                style={{ aspectRatio: String(SKELETON_RATIOS[i % SKELETON_RATIOS.length]) }}
               />
             ))}
           </div>
@@ -87,8 +90,9 @@ export function GalleryPreview() {
               <MasonryTile
                 key={image.id}
                 image={image}
+                index={index}
                 priority={index === 0}
-                onOpen={() => setLightboxIndex(index)}
+                onOpen={openTile}
               />
             ))}
           </div>

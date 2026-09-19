@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { APP_NAME, APP_LOGO_URL, HEADER_TABS } from '@/lib/constants';
 import { NavLink } from '@/components/ui/nav-link';
@@ -7,23 +7,34 @@ import { useRoute } from '@/lib/router';
 export function Header() {
   const route = useRoute();
   const [scrolled, setScrolled] = useState(false);
-  // 阅读进度：0~1。用 transform: scaleX 表达，避免每帧改 width 触发重排。
-  const [progress, setProgress] = useState(0);
+  // 阅读进度直接写进进度条的 transform：滚动每帧只跑一次 rAF，
+  // 不再 setState 引发整个 Header（含导航区）按滚动像素重渲染。
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
       setScrolled(window.scrollY > 12);
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-      setProgress(scrollable > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollable)) : 0);
+      const bar = progressBarRef.current;
+      if (bar) {
+        const ratio = scrollable > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollable)) : 0;
+        bar.style.transform = `scaleX(${ratio})`;
+      }
+    };
+    const requestUpdate = () => {
+      if (!frame) frame = requestAnimationFrame(update);
     };
     // 挂载时先读一次当前滚动位置：刷新 / 从历史回退到已滚动页面时，
     // 顶栏能立刻呈现「已滚动」样式，而不是先渲染未滚动态再被监听器纠正。
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll, { passive: true });
+    update();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate, { passive: true });
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', requestUpdate);
+      window.removeEventListener('resize', requestUpdate);
     };
   }, []);
 
@@ -135,8 +146,9 @@ export function Header() {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 overflow-hidden"
       >
         <div
+          ref={progressBarRef}
           className="h-full origin-left bg-brand-500 transition-transform duration-150 ease-out motion-reduce:transition-none"
-          style={{ transform: `scaleX(${progress})` }}
+          style={{ transform: 'scaleX(0)' }}
         />
       </div>
     </header>

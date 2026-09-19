@@ -33,8 +33,10 @@ export function formatShortDate(value: string): string {
 /**
  * Format a number using zh-CN locale (thousands separator).
  */
+const zhNumberFormatter = new Intl.NumberFormat('zh-CN');
+
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('zh-CN').format(value);
+  return zhNumberFormatter.format(value);
 }
 
 /**

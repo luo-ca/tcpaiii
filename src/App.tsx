@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { BackToTop } from '@/components/ui/back-to-top';
 import { HeroSection } from '@/components/sections/HeroSection';
+import { SKELETON_RATIOS } from '@/components/ui/masonry-tile';
 import { OnlinePreview } from '@/components/sections/OnlinePreview';
 import { GalleryPreview } from '@/components/sections/GalleryPreview';
 import { DocsTeaser } from '@/components/sections/DocsTeaser';
@@ -53,7 +54,7 @@ function GalleryFallback() {
           <div
             key={i}
             className="mb-3 break-inside-avoid rounded-2xl skeleton-shimmer sm:mb-4"
-            style={{ aspectRatio: String(i % 3 === 0 ? 16 / 9 : i % 3 === 1 ? 3 / 2 : 16 / 10) }}
+            style={{ aspectRatio: String(SKELETON_RATIOS[i % SKELETON_RATIOS.length]) }}
           />
         ))}
       </div>

@@ -233,7 +233,7 @@ function OnlinePreviewImpl(
                   key={imageKey}
                   src={imageUrl}
                   alt={imageTitle}
-                  className={`h-full w-full object-cover transition-all duration-500 ${
+                  className={`h-full w-full object-cover transition-[opacity,transform] duration-500 ${
                     imageLoaded && !previewError
                       ? 'opacity-100 scale-100'
                       : 'opacity-0 scale-[0.97]'

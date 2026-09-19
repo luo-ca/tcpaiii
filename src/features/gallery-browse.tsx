@@ -122,6 +122,9 @@ export default function GalleryBrowse() {
     setSearchTerm('');
   };
 
+  // 稳定引用：配合 MasonryTile 的 memo，搜索输入等无关渲染不会逐张重排瓦片
+  const openTile = useCallback((index: number) => setLightboxIndex(index), []);
+
   const chipClass = (active: boolean) =>
     `category-button shrink-0 snap-start rounded-full px-3.5 py-1.5 text-sm font-medium ${
       active
@@ -245,8 +248,9 @@ export default function GalleryBrowse() {
               <MasonryTile
                 key={image.id}
                 image={image}
+                index={index}
                 priority={index === 0}
-                onOpen={() => setLightboxIndex(index)}
+                onOpen={openTile}
               />
             ))}
           </div>
