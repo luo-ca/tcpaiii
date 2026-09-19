@@ -78,7 +78,11 @@ function useLazyImage(src: string, eager = false): {
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<LazyImageState>(eager ? 'loading' : 'idle');
 
-  const activeSrc = state !== 'idle' ? src : undefined;
+  // eager 必须能独立取源，不能只看 state：卡片按 img.id 复用，而 eager 由
+  // 数组位置决定，筛选/删除后原本在次屏外、state 仍是 'idle' 的卡片会被挪到
+  // index < 6 上 —— 此时 observer 早已被 cleanup 断开且 eager 分支不再重挂，
+  // state 会永远停在 'idle'，那张图就永远停在骨架屏上。
+  const activeSrc = eager || state !== 'idle' ? src : undefined;
 
   useEffect(() => {
     if (eager) return;
