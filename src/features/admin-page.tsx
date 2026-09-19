@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -178,6 +178,12 @@ function AddImageDialog({
     if (!(await onRequireToken())) return;
 
     const cleanUrls = batchPreview.validNew;
+    // 去重预检还没落地时 validNew 同样混着库里已有地址：
+    // 按钮已禁用，这里是回车直发等旁路的第二道闸
+    if (existingUrlsQuery.isLoading) {
+      toast.error('正在读取库内地址做去重预检，读完即可导入');
+      return;
+    }
     // 去重预检失败时 validNew 其实混着库里已有地址，
     // 「只导入全新 N 张」的承诺不成立，必须拦住而不是静默重复导入
     if (existingUrlsQuery.isError) {
@@ -464,7 +470,7 @@ function AddImageDialog({
             <Button
               type="submit"
               className="gradient-button w-full rounded-xl text-white"
-              disabled={loading || batchPreview.validNew.length === 0}
+              disabled={loading || existingUrlsQuery.isLoading || batchPreview.validNew.length === 0}
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
               {batchPreview.validNew.length > 0
@@ -544,7 +550,7 @@ function EditImageDialog({
           variant="ghost"
           size="sm"
           className="sticker-chip h-7 w-7 rounded-lg p-0"
-          aria-label="编辑图片"
+          aria-label={`编辑图片：${image.title || '未命名图片'}`}
         >
           <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
         </Button>
@@ -599,7 +605,10 @@ function EditImageDialog({
 // Image Card
 // ============================================================
 
-function ImageCard({
+// 一屏最多 48 张卡：不 memo 的话搜索框每敲一个字符，全部卡片连带
+// EditImageDialog 的 state 一起重渲染。回调已全部提到稳定引用，
+// img 对象在 react-query 缓存里没有新数据时身份也不变，memo 命中率高。
+const ImageCard = memo(function ImageCard({
   img,
   index,
   adminToken,
@@ -642,11 +651,10 @@ function ImageCard({
           {activeSrc && (
             <img
               src={activeSrc}
-              alt={img.title}
+              alt={img.title || '未命名图片'}
               className={`w-full h-full object-cover transition-[opacity,transform] duration-500 motion-safe:group-hover:scale-108 ${
                 state === 'loaded' ? 'opacity-100' : 'opacity-0'
               }`}
-              style={{ willChange: 'transform' }}
               decoding="async"
               onLoad={onLoad}
               onError={onError}
@@ -688,7 +696,7 @@ function ImageCard({
                     e.stopPropagation();
                     onCopyUrl(img.url);
                   }}
-                  aria-label="复制图片地址"
+                  aria-label={`复制图片地址：${img.title || '未命名图片'}`}
                 >
                   <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                 </Button>
@@ -704,7 +712,7 @@ function ImageCard({
                       variant="destructive"
                       size="icon"
                       className="h-7 w-7 rounded-lg border-2 border-ink bg-destructive-ink text-white shadow-[2px_2px_0_0_var(--color-ink)] transition-transform hover:bg-destructive-ink/90"
-                      aria-label={isDeleting ? '正在删除' : '删除图片'}
+                      aria-label={isDeleting ? `正在删除：${img.title || '未命名图片'}` : `删除图片：${img.title || '未命名图片'}`}
                       disabled={isDeleting}
                     >
                       {isDeleting ? (
@@ -741,7 +749,7 @@ function ImageCard({
       </CardContent>
     </Card>
   );
-}
+});
 
 // ============================================================
 // Gallery Page
@@ -850,10 +858,12 @@ export default function GalleryPage() {
       toast.error(getErrorMessage(err, '删除失败'));
     },
   });
+  // v5 的 mutate 引用稳定；单独解构出来才能直接当 ImageCard 的 memo prop
+  const deleteImageById = deleteMutation.mutate;
 
-  const handleCopyUrl = async (url: string) => {
-    await copyText(url, '图片地址已复制');
-  };
+  const handleCopyUrl = useCallback((url: string) => {
+    void copyText(url, '图片地址已复制');
+  }, []);
 
   const goToPage = useCallback(
     (nextPage: number) => {
@@ -1198,8 +1208,8 @@ export default function GalleryPage() {
             img={img}
             index={index}
             adminToken={adminToken.trim()}
-            onCopyUrl={(url) => void handleCopyUrl(url)}
-            onDelete={(id) => deleteMutation.mutate(id)}
+            onCopyUrl={handleCopyUrl}
+            onDelete={deleteImageById}
             onRefresh={refreshGallery}
             onRequireToken={requireAdminToken}
             isDeleting={deleteMutation.isPending && deleteMutation.variables === img.id}

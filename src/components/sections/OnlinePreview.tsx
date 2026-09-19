@@ -215,7 +215,7 @@ function OnlinePreviewImpl(
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-4 rounded-full"
+                    className="mt-4 rounded-lg"
                     onClick={() => shuffleImage(selectedTag)}
                   >
                     <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
@@ -371,7 +371,7 @@ function OnlinePreviewImpl(
                   ) : (
                     <CopyIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                   )}
-                  {copied ? '已复制' : '复制图片'}
+                  {copied ? '已复制' : '复制地址'}
                 </Button>
               </div>
             </div>
