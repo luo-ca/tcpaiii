@@ -210,7 +210,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                 />
               ) : (
                 // 无图 / 加载失败：品牌渐变兜底，配 Logo 与文案
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/95">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
                   <ImageIcon className="h-10 w-10 opacity-80" aria-hidden="true" />
                   <p className="text-sm font-medium">派次元图库</p>
                 </div>
@@ -219,7 +219,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               {/* 底部信息渐隐 + 进入图库提示 */}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/55 to-transparent" />
               <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-white/90">精选图库 · 持续更新</span>
+                <span className="text-xs font-medium text-white">精选图库 · 持续更新</span>
                 <span className="sticker-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
                   浏览图库
                   <ArrowRight

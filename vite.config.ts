@@ -25,6 +25,15 @@ export default defineConfig(({ mode }) => ({
       : {}),
   },
   plugins: [tailwindcss(), react()],
+  // 生产构建剔除 console/debugger。必须放顶层 `esbuild`——Vite 不读
+  // `build.esbuildOptions`，之前那份写在 build 里等于没生效。
+  esbuild:
+    mode === 'production'
+      ? {
+          drop: ['console', 'debugger'],
+          legalComments: 'none',
+        }
+      : {},
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

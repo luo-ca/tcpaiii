@@ -47,18 +47,18 @@ export function Header() {
   const activeTabClass = 'border-2 border-transparent bg-brand-600 font-bold text-white';
 
   const tabClass = (active: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+    `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 ${
       active ? activeTabClass : 'border-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-brand-50'
     }`;
 
   const tabClassCompact = (active: boolean) =>
-    `inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-all duration-200 ${
+    `inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors duration-200 ${
       active ? activeTabClass : 'border-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-brand-50'
     }`;
 
   return (
     <header
-      className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
+      className={`fixed left-0 right-0 top-0 z-50 transition-[background-color,border-color,box-shadow] duration-300 ${
         scrolled
           ? 'border-b border-border bg-white shadow-sm'
           : 'border-b border-transparent bg-background'
@@ -74,7 +74,7 @@ export function Header() {
           {/* Brand lockup：Logo 套一层品牌渐变描边 + 双行字标 */}
           <NavLink
             to="/"
-            className="group flex items-center gap-2.5 text-left shrink-0 min-w-0 rounded-xl -ml-2 pl-2 pr-2 py-1.5 hover:bg-brand-50 transition-all duration-200"
+            className="group flex items-center gap-2.5 text-left shrink-0 min-w-0 rounded-xl -ml-2 pl-2 pr-2 py-1.5 hover:bg-brand-50 transition-colors duration-200"
             aria-label="返回首页"
           >
             <span className="relative shrink-0 rounded-xl border border-border bg-white p-[2px] transition-transform duration-300 motion-safe:group-hover:scale-105 motion-safe:group-hover:-rotate-3">

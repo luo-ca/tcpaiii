@@ -69,7 +69,7 @@ export const MasonryTile = memo(function MasonryTile({
       type="button"
       onClick={() => onOpen(index)}
       aria-label={`查看大图：${image.title || '未命名图片'}`}
-      className="reveal group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl border-2 border-ink bg-secondary shadow-sm transition-all duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-md sm:mb-4"
+      className="reveal group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl border-2 border-ink bg-secondary shadow-sm transition-[box-shadow,transform] duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-md sm:mb-4"
       style={{ aspectRatio: String(ratio) }}
     >
       {state === 'loading' && (
@@ -98,8 +98,8 @@ export const MasonryTile = memo(function MasonryTile({
 
       {/* 说明浮层：可悬停设备上收成 hover 显示；触摸设备（primary pointer 为 coarse）
           没有 hover，必须常显，否则手机上永远看不到标题与标签。 */}
-      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-coarse:opacity-100" />
-      <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-coarse:opacity-100">
+      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100 pointer-coarse:opacity-100" />
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100 pointer-coarse:opacity-100">
         <span className="min-w-0 flex-1 truncate text-left text-xs font-medium text-white">
           {image.title || '未命名'}
         </span>

@@ -177,7 +177,7 @@ function OnlinePreviewImpl(
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 shrink-0 rounded-lg p-0 transition-all hover:bg-brand-50"
+              className="h-8 w-8 shrink-0 rounded-lg p-0 transition-colors hover:bg-brand-50"
               onClick={() => shuffleImage(selectedTag)}
               disabled={imageLoading}
               aria-label="刷新随机图片"
@@ -363,7 +363,7 @@ function OnlinePreviewImpl(
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-xl h-10 bg-white transition-all duration-200"
+                  className="rounded-xl h-10 bg-white transition-colors duration-200"
                   onClick={() => void copyUrl()}
                   disabled={!imageUrl}
                 >

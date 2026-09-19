@@ -162,7 +162,7 @@ export function RealtimeStats() {
                         </span>
                         <div className="flex h-32 w-full items-end justify-center sm:h-36">
                           <div
-                            className="w-8 rounded-t-md border-2 border-ink border-b-0 bg-brand-500 transition-all hover:brightness-110 sm:w-12"
+                            className="w-8 rounded-t-md border-2 border-ink border-b-0 bg-brand-500 transition-[filter] hover:brightness-110 sm:w-12"
                             style={{
                               height:
                                 item.requests > 0 && maxDayRequests > 0

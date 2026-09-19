@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { MAX_TAG_LENGTH, MAX_TAGS_PER_IMAGE } from './constants';
 import { copyToClipboard } from './utils';
 
 /**
@@ -49,9 +50,12 @@ export function formatNumber(value: number): string {
 
 /**
  * Parse a comma-separated tag string into a deduplicated, trimmed array.
+ * 按后端同一契约封顶（每张 20 个、单个 40 字，超出静默截断），
+ * 保证「提交什么就存什么」，不靠后端兜底。
  */
 export function parseTagsInput(value: string): string[] {
-  return [...new Set(value.split(/[,，]/).map(tag => tag.trim()).filter(Boolean))];
+  return [...new Set(value.split(/[,，]/).map(tag => tag.trim().slice(0, MAX_TAG_LENGTH)).filter(Boolean))]
+    .slice(0, MAX_TAGS_PER_IMAGE);
 }
 
 /**

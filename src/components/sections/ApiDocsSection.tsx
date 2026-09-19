@@ -212,7 +212,7 @@ export function ApiDocsSection() {
                     </div>
                     <div className="p-4">
                       <pre className="text-xs text-white/80 overflow-x-auto leading-relaxed">
-{`fetch('/api/random?format=json')
+{`fetch('${randomJsonApiUrl}')
   .then(r => r.json())
   .then(data => console.log(data.url))`}
                       </pre>

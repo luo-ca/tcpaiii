@@ -24,6 +24,14 @@ export const API_HTML_FALLBACK_MESSAGE =
   '接口返回的是 HTML 而不是 JSON，请检查 Edge 函数是否已正确部署。';
 
 export const MAX_BATCH_IMAGE_COUNT = 500;
+/**
+ * 标题 / 标签的输入上限，与后端逐字对齐（`edge-functions-src/lib/types.ts`）。
+ * 后端是 `slice` 静默截断而不是报错：前端不拦住的话，用户输入的
+ * 和实际落库的会悄悄不一致，所以表单按同样的值封顶。
+ */
+export const MAX_TITLE_LENGTH = 120;
+export const MAX_TAG_LENGTH = 40;
+export const MAX_TAGS_PER_IMAGE = 20;
 export const GALLERY_PAGE_SIZE = 24;
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 

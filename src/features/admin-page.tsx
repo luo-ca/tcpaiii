@@ -37,7 +37,14 @@ import {
 import { toast } from 'sonner';
 
 import type { ImageRecord, Stats, PaginatedImages, AdminAuthStatus, LazyImageState } from '@/lib/types';
-import { MAX_BATCH_IMAGE_COUNT, GALLERY_PAGE_SIZE, GALLERY_PAGE_SIZE_OPTIONS } from '@/lib/constants';
+import {
+  MAX_BATCH_IMAGE_COUNT,
+  MAX_TITLE_LENGTH,
+  MAX_TAG_LENGTH,
+  MAX_TAGS_PER_IMAGE,
+  GALLERY_PAGE_SIZE,
+  GALLERY_PAGE_SIZE_OPTIONS,
+} from '@/lib/constants';
 import {
   fetchImagesPage,
   statsQueryOptions,
@@ -277,7 +284,7 @@ function AddImageDialog({
             type="button"
             aria-pressed={mode === 'single'}
             onClick={() => setMode('single')}
-            className={`h-8 rounded-lg text-xs font-medium transition-all duration-200 ${
+            className={`h-8 rounded-lg text-xs font-medium transition-[background-color,color,box-shadow] duration-200 ${
               mode === 'single'
                 ? 'bg-white text-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
                 : 'text-muted-foreground hover:bg-brand-50 hover:text-foreground'
@@ -289,7 +296,7 @@ function AddImageDialog({
             type="button"
             aria-pressed={mode === 'batch'}
             onClick={() => setMode('batch')}
-            className={`h-8 rounded-lg text-xs font-medium transition-all duration-200 ${
+            className={`h-8 rounded-lg text-xs font-medium transition-[background-color,color,box-shadow] duration-200 ${
               mode === 'batch'
                 ? 'bg-white text-foreground shadow-[2px_2px_0_0_var(--color-ink)]'
                 : 'text-muted-foreground hover:bg-brand-50 hover:text-foreground'
@@ -305,6 +312,7 @@ function AddImageDialog({
               <Label htmlFor="url">图片地址 *</Label>
               <Input
                 id="url"
+                type="url"
                 className="rounded-lg"
                 placeholder="https://example.com/image.jpg"
                 value={url}
@@ -318,6 +326,7 @@ function AddImageDialog({
                 id="title"
                 className="rounded-lg"
                 placeholder="给图片起个名字"
+                maxLength={MAX_TITLE_LENGTH}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -331,6 +340,9 @@ function AddImageDialog({
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                最多 {MAX_TAGS_PER_IMAGE} 个，每个最长 {MAX_TAG_LENGTH} 字，超出部分不会入库
+              </p>
             </div>
             <Button type="submit" variant="sticker" className="w-full rounded-xl" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
@@ -460,7 +472,7 @@ function AddImageDialog({
                 </div>
                 <div className="h-2 overflow-hidden rounded-full border-2 border-ink bg-muted">
                   <div
-                    className="h-full rounded-full bg-brand-500 transition-all duration-300"
+                    className="h-full rounded-full bg-brand-500 transition-[width] duration-300"
                     style={{ width: `${(progress.current / progress.total) * 100}%` }}
                   />
                 </div>
@@ -568,6 +580,7 @@ function EditImageDialog({
             <Label htmlFor="edit-url">图片地址</Label>
             <Input
               id="edit-url"
+              type="url"
               className="rounded-lg"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
@@ -579,6 +592,7 @@ function EditImageDialog({
             <Input
               id="edit-title"
               className="rounded-lg"
+              maxLength={MAX_TITLE_LENGTH}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
@@ -591,6 +605,9 @@ function EditImageDialog({
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              最多 {MAX_TAGS_PER_IMAGE} 个，每个最长 {MAX_TAG_LENGTH} 字，超出部分不会入库
+            </p>
           </div>
           <Button type="submit" variant="sticker" className="w-full rounded-xl" disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : null}
@@ -669,7 +686,7 @@ const ImageCard = memo(function ImageCard({
               另补 group-focus-within：键盘 Tab 到按钮时也要能看见浮层。 */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100" />
 
-          <div className="absolute inset-x-0 bottom-0 p-3.5 translate-y-1 opacity-0 transition-all duration-300 motion-safe:group-hover:translate-y-0 group-hover:opacity-100 motion-safe:group-focus-within:translate-y-0 group-focus-within:opacity-100 pointer-coarse:translate-y-0 pointer-coarse:opacity-100">
+          <div className="absolute inset-x-0 bottom-0 p-3.5 translate-y-1 transition-[opacity,transform] duration-300 opacity-0 motion-safe:group-hover:translate-y-0 group-hover:opacity-100 motion-safe:group-focus-within:translate-y-0 group-focus-within:opacity-100 pointer-coarse:translate-y-0 pointer-coarse:opacity-100">
             <div className="flex items-end justify-between gap-2">
               <div className="min-w-0 flex-1">
                 {/* h3 而不是 h4：这个标题在文档里早于页面的 h1「图片管理」出现
@@ -799,6 +816,10 @@ export default function GalleryPage() {
   const refreshGallery = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['images'] });
     queryClient.invalidateQueries({ queryKey: ['stats'], refetchType: 'all' });
+    // 首页 hero 随机图与批量导入的去重快照都缓存着旧数据：删图后 hero 可能指向
+    // 已不存在的地址，导入预览也会漏判。增删改后一并作废。
+    queryClient.invalidateQueries({ queryKey: ['hero-image'] });
+    queryClient.invalidateQueries({ queryKey: ['all-image-urls'] });
   }, [queryClient]);
 
   const prefetchGalleryPage = useCallback(
