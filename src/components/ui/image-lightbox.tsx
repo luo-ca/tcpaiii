@@ -130,11 +130,12 @@ export function ImageLightbox({
           </span>
         )}
 
-        {/* 翻到末尾、下一页还在路上：给个明确的加载态，别让对话框空着 */}
+        {/* 翻到末尾、下一页还在路上：给个明确的加载态，别让对话框空着。
+            与图片舞台同尺寸：翻页占位态与实际图之间弹窗不再缩一下再撑开 */}
         {isPendingNext && (
           <div
             role="status"
-            className="flex min-h-[38vh] min-w-[min(74vw,320px)] flex-col items-center justify-center gap-3 text-center"
+            className="flex h-[min(70vh,560px)] w-[min(92vw,880px)] flex-col items-center justify-center gap-3 text-center"
           >
             <Loader2 className="h-7 w-7 animate-spin text-white/70" aria-hidden="true" />
             <p className="text-sm text-white/80">正在加载下一张…</p>
@@ -143,13 +144,15 @@ export function ImageLightbox({
 
         {image && (
           <figure className="flex flex-col items-center gap-3">
-            {/* 原图较大，加载中先给一个占位框；失败则给明确兜底而不是留白 */}
-            <div className="relative flex min-h-[38vh] min-w-[min(74vw,320px)] items-center justify-center">
+            {/* 原图较大，加载中先给一个占位框；失败则给明确兜底而不是留白。
+                舞台尺寸按视口锚定成常量：原先用 min-h/min-w 占位，原图（最高 78vh）
+                绘出的瞬间容器被撑开，箭头、计数、说明整排跟着跳位。 */}
+            <div className="relative flex h-[min(70vh,560px)] w-[min(92vw,880px)] items-center justify-center">
               {status === 'loading' && (
                 <Loader2 className="absolute h-7 w-7 animate-spin text-white/70" aria-hidden />
               )}
               {status === 'error' ? (
-                <div className="flex min-h-[38vh] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-ink bg-white px-8 py-10 text-center shadow-[4px_4px_0_0_var(--color-ink)]">
+                <div className="flex h-full max-w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-ink bg-white px-8 py-10 text-center shadow-[4px_4px_0_0_var(--color-ink)]">
                   <ImageOff className="h-8 w-8 text-muted-foreground" aria-hidden />
                   <p className="text-sm text-foreground">原图加载失败</p>
                   <a
@@ -169,7 +172,7 @@ export function ImageLightbox({
                   alt={image.title || '二次元图片'}
                   onLoad={() => setStatus('loaded')}
                   onError={() => setStatus('error')}
-                  className={`max-h-[78vh] w-auto max-w-full rounded-2xl border-2 border-white/20 object-contain transition-opacity duration-300 ${
+                  className={`max-h-full max-w-full rounded-2xl border-2 border-white/20 object-contain transition-opacity duration-300 ${
                     status === 'loaded' ? 'opacity-100' : 'opacity-0'
                   }`}
                 />

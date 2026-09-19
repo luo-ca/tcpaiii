@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
+import { toast } from 'sonner';
 import { prefersReducedMotion } from './helpers';
 
 /**
@@ -73,6 +74,15 @@ function getViewTransition(nextPathname: string): StartViewTransition | null {
 }
 
 if (isBrowser) {
+  // 软 404 收口：SPA fallback 让任意错拼路径都返回 200 + 首页内容，
+  // 地址栏与内容分裂、canonical 又指回首页会把这个假象固化。
+  // 直接把地址改写回真实落地页，DOM / 地址栏 / canonical 三者回到一致。
+  const rawPath = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (!(ROUTES as readonly string[]).includes(rawPath)) {
+    window.history.replaceState(null, '', '/');
+    // 等 Toaster 挂载订阅后再播报，模块求值期直发会被 sonner 丢掉
+    window.setTimeout(() => toast.warning(`页面「${rawPath}」不存在，已回到首页`), 300);
+  }
   snapshot = readLocation();
   window.addEventListener('popstate', emit);
 }
