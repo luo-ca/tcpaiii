@@ -109,6 +109,31 @@ export async function getApiErrorMessage(response: Response, fallback: string): 
  * - Validates JSON content-type
  * - Extracts meaningful error messages
  */
+/**
+ * 给任意形态的请求目标补上 EdgeOne 预览参数。
+ *
+ * 与 withNoCacheQuery 的 `_t` 无关 —— 预览链接（?eo_token=…）上**每一个** API
+ * 请求都必须带这组参数，少了它请求会打到线上部署：预览页读到的是生产数据，
+ * 管理员一次「添加图片」直接写进生产库。原先只有「GET + 破缓」这条路径顺带补过
+ * （buildApiPath 在 withNoCacheQuery 里），stats / 分页 list / 全部写请求都在漏。
+ */
+function appendPreviewParams(input: RequestInfo | URL): RequestInfo | URL {
+  if (typeof input === 'string') return buildApiPath(input);
+
+  if (input instanceof URL) {
+    return appendCurrentPreviewParams(new URL(input.toString()));
+  }
+
+  if (input instanceof Request) {
+    const nextUrl = appendCurrentPreviewParams(new URL(input.url));
+    // 参数已在（或不该加）时原样返回，省掉一次 Request body 搬运
+    if (nextUrl.toString() === input.url) return input;
+    return new Request(nextUrl.toString(), input);
+  }
+
+  return input;
+}
+
 export async function apiRequest<T>(
   input: RequestInfo | URL,
   init: RequestInit | undefined,
@@ -116,7 +141,9 @@ export async function apiRequest<T>(
   opts?: { bustCache?: boolean },
 ): Promise<T> {
   const bustCache = opts?.bustCache ?? true;
-  const response = await fetch(bustCache ? withNoCacheQuery(input, init) : input, {
+  // 预览参数是硬契约，先无条件补齐；`_t` 破缓仍只管 GET
+  const target = appendPreviewParams(input);
+  const response = await fetch(bustCache ? withNoCacheQuery(target, init) : target, {
     ...init,
     // bustCache 关闭时交给服务端 Cache-Control 说话（后端已给
     // stats/分页 list 发短边缘缓存）；强推 no-store 会让那套契约形同虚设
