@@ -6,7 +6,7 @@ import { decodeRouteSegment } from '../lib/validation';
 import { getKvHealth, resetImagesCache } from '../lib/kv';
 import { resetStatsCache, getRecentStatsDateKeys, getStatsDateKey } from '../lib/stats';
 import { handleAdminVerify, resetAdminThrottle, verifyAdminRequest } from '../lib/auth';
-import { handleBatchCreateImages, handleCreateImage, handleDeleteImage, handleListImages, handleRandomImage, handleUpdateImage, } from '../lib/images';
+import { handleBatchCreateImages, handleBatchUpdateImageTags, handleCreateImage, handleDeleteImage, handleListImages, handleRandomImage, handleUpdateImage, } from '../lib/images';
 import { handleStats } from '../lib/stats';
 // ── Simple in-memory rate limiter for /api/random ────────────
 const RATE_LIMIT_WINDOW_MS = 1000;
@@ -84,6 +84,16 @@ const handler = {
                     if (authError)
                         return authError;
                     return await handleBatchCreateImages(request, runtimeEnv);
+                }
+                return json({ error: 'Method Not Allowed' }, 405);
+            }
+            // POST /api/batch-update —— 批量增删标签（单事务，见 handleBatchUpdateImageTags）
+            if (pathname === '/api/batch-update') {
+                if (request.method === 'POST') {
+                    const authError = await verifyAdminRequest(request, runtimeEnv);
+                    if (authError)
+                        return authError;
+                    return await handleBatchUpdateImageTags(request, runtimeEnv);
                 }
                 return json({ error: 'Method Not Allowed' }, 405);
             }

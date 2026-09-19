@@ -28,11 +28,14 @@ import {
   Image,
   Loader2,
   Tag,
+  Tags,
   Link,
   ChevronLeft,
   ChevronRight,
   Search,
   KeyRound,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -56,6 +59,7 @@ import {
   updateImage,
   deleteImage,
   batchCreateImages,
+  batchUpdateImageTags,
 } from '@/lib/api';
 import {
   getErrorMessage,
@@ -630,6 +634,115 @@ function EditImageDialog({
 }
 
 // ============================================================
+// Batch Update Tags Dialog
+// ============================================================
+
+function BatchUpdateTagsDialog({
+  ids,
+  adminToken,
+  onSuccess,
+  onRequireToken,
+  children,
+}: {
+  ids: string[];
+  adminToken: string;
+  onSuccess: () => void;
+  onRequireToken: () => Promise<boolean>;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [addInput, setAddInput] = useState('');
+  const [removeInput, setRemoveInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // 每次打开都清空输入：上一轮没提交的残留标签不该悄悄作用到新的选择上
+  useEffect(() => {
+    if (open) {
+      setAddInput('');
+      setRemoveInput('');
+    }
+  }, [open]);
+
+  const addTags = parseTagsInput(addInput);
+  const removeTags = parseTagsInput(removeInput);
+  const hasChange = addTags.length > 0 || removeTags.length > 0;
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!hasChange) {
+      toast.error('请至少填写一个要添加或要移除的标签');
+      return;
+    }
+    void (async () => {
+      if (!(await onRequireToken())) return;
+      setLoading(true);
+      mutation.mutate(undefined, { onSettled: () => setLoading(false) });
+    })();
+  };
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      batchUpdateImageTags({ ids, addTags, removeTags }, adminToken),
+    onSuccess: (data) => {
+      if (data.success > 0) {
+        toast.success(`已更新 ${data.success} 张图片的标签`);
+        setOpen(false);
+      }
+      if (data.failed > 0) {
+        toast.error(`${data.failed} 张图片未命中（可能刚被删除）`);
+      }
+      if (data.success > 0) onSuccess();
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err, '批量修改标签失败'));
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="glass-strong rounded-2xl sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Tags className="h-5 w-5 text-brand-500" aria-hidden="true" />
+            批量修改标签 · {ids.length} 张
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="batch-add-tags">要添加的标签（逗号分隔，可选）</Label>
+            <Input
+              id="batch-add-tags"
+              className="rounded-lg"
+              placeholder="精选, 首页"
+              value={addInput}
+              onChange={(event) => setAddInput(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="batch-remove-tags">要移除的标签（逗号分隔，可选）</Label>
+            <Input
+              id="batch-remove-tags"
+              className="rounded-lg"
+              placeholder="待整理"
+              value={removeInput}
+              onChange={(event) => setRemoveInput(event.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              移除不区分大小写；每张图最多保留 {MAX_TAGS_PER_IMAGE} 个标签，超出部分不会入库
+            </p>
+          </div>
+          <Button type="submit" variant="sticker" className="w-full rounded-xl" disabled={loading || !hasChange}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+            应用到 {ids.length} 张
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================================
 // Image Card
 // ============================================================
 
@@ -645,6 +758,9 @@ const ImageCard = memo(function ImageCard({
   onRefresh,
   onRequireToken,
   isDeleting,
+  selectable,
+  selected,
+  onToggleSelect,
 }: {
   img: ImageRecord;
   index: number;
@@ -654,13 +770,18 @@ const ImageCard = memo(function ImageCard({
   onRefresh: () => void;
   onRequireToken: () => Promise<boolean>;
   isDeleting: boolean;
+  selectable: boolean;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
 }) {
   const eager = index < 6;
   const { containerRef, activeSrc, state, onLoad, onError } = useLazyImage(img.url, eager);
 
   return (
     <Card
-      className="glass-card group animate-fade-in overflow-hidden rounded-2xl"
+      className={`glass-card group animate-fade-in overflow-hidden rounded-2xl ${
+        selected ? 'ring-2 ring-brand-500' : ''
+      }`}
       style={{ animationDelay: `${Math.min(index, 12) * 0.04}s` }}
     >
       <CardContent className="p-0">
@@ -674,6 +795,23 @@ const ImageCard = memo(function ImageCard({
               <Image className="w-8 h-8 opacity-40" aria-hidden="true" />
               <span className="text-xs">加载失败</span>
             </div>
+          )}
+
+          {/* 选择模式下的左上角复选框：pointer-coarse 下浮层常显会挡住它，
+              所以单独占一个高层级、不随 hover 隐藏 */}
+          {selectable && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleSelect(img.id);
+              }}
+              className="absolute left-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-lg border-2 border-ink bg-white/95 shadow-[2px_2px_0_0_var(--color-ink)] transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2"
+              aria-pressed={selected}
+              aria-label={selected ? `取消选择：${img.title || '未命名图片'}` : `选择：${img.title || '未命名图片'}`}
+            >
+              {selected ? <CheckSquare className="h-4 w-4 text-brand-500" aria-hidden="true" /> : <Square className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+            </button>
           )}
 
           {activeSrc && (
@@ -792,6 +930,10 @@ export default function GalleryPage() {
   const [pageJumpInput, setPageJumpInput] = useState('1');
   const [adminToken, setAdminToken] = useState('');
   const [adminAuthStatus, setAdminAuthStatus] = useState<AdminAuthStatus>('empty');
+  // 批量标签的选择模式：勾选跨页保留（ids 与当前筛选无关），
+  // 但筛选/翻页条件变化时清空，避免用户对着另一批图提交上一批的选择
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   // 密钥校验的请求序号：编辑/清除输入或再次点校验都会 +1，
   // 过期响应回来时序号对不上就作废，不把状态误写成「已验证」
   const tokenCheckSeqRef = useRef(0);
@@ -857,6 +999,12 @@ export default function GalleryPage() {
     setPage(1);
   }, [pageSize, searchQuery, selectedTag]);
 
+  // 翻页/换每页数/改筛选后，网格换了一批图：静默保留旧勾选极易「以为选的是
+  // 这批、实际提交的是上批」，条件一变就清空选择
+  useEffect(() => {
+    setSelectedIds((current) => (current.size === 0 ? current : new Set()));
+  }, [page, pageSize, searchQuery, selectedTag]);
+
   useEffect(() => {
     if (imagesQuery.data && page > imagesQuery.data.totalPages) {
       setPage(imagesQuery.data.totalPages);
@@ -898,6 +1046,20 @@ export default function GalleryPage() {
 
   const handleCopyUrl = useCallback((url: string) => {
     void copyText(url, '图片地址已复制');
+  }, []);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
   }, []);
 
   const goToPage = useCallback(
@@ -1204,6 +1366,69 @@ export default function GalleryPage() {
         </CardContent>
       </Card>
 
+      {/* 批量标签工具条：非选择模式只有一个入口按钮，选择模式展开为操作条 */}
+      {filteredTotal > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {!selectMode ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl text-xs"
+              onClick={() => setSelectMode(true)}
+            >
+              <Tags className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+              批量改标签
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-xl text-xs"
+                onClick={() => {
+                  // 「本页全选/取消」只在当前可见的图之间切换，勾选到一半时点击是清空本页
+                  const pageIds = images.map((item) => item.id);
+                  const allChecked = pageIds.every((id) => selectedIds.has(id));
+                  setSelectedIds((current) => {
+                    const next = new Set(current);
+                    for (const id of pageIds) {
+                      if (allChecked) next.delete(id);
+                      else next.add(id);
+                    }
+                    return next;
+                  });
+                }}
+              >
+                {images.length > 0 && images.every((item) => selectedIds.has(item.id))
+                  ? '取消本页'
+                  : '本页全选'}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                已选 <span className="font-bold text-foreground">{selectedIds.size}</span> 张
+              </span>
+              <BatchUpdateTagsDialog
+                ids={[...selectedIds]}
+                adminToken={adminToken.trim()}
+                onSuccess={refreshGallery}
+                onRequireToken={requireAdminToken}
+              >
+                <Button
+                  variant="sticker"
+                  size="sm"
+                  className="h-8 rounded-xl text-xs"
+                  disabled={selectedIds.size === 0}
+                >
+                  应用到 {selectedIds.size} 张
+                </Button>
+              </BatchUpdateTagsDialog>
+              <Button variant="ghost" size="sm" className="h-8 rounded-xl text-xs" onClick={exitSelectMode}>
+                完成
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
       {totalImages === 0 && (
         <EmptyState
           icon={Camera}
@@ -1249,6 +1474,9 @@ export default function GalleryPage() {
             onRefresh={refreshGallery}
             onRequireToken={requireAdminToken}
             isDeleting={deleteMutation.isPending && deleteMutation.variables === img.id}
+            selectable={selectMode}
+            selected={selectedIds.has(img.id)}
+            onToggleSelect={toggleSelect}
           />
         ))}
       </div>

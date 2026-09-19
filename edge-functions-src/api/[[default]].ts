@@ -10,6 +10,7 @@ import { resetStatsCache, getRecentStatsDateKeys, getStatsDateKey } from '../lib
 import { handleAdminVerify, resetAdminThrottle, verifyAdminRequest } from '../lib/auth';
 import {
     handleBatchCreateImages,
+    handleBatchUpdateImageTags,
     handleCreateImage,
     handleDeleteImage,
     handleListImages,
@@ -106,6 +107,17 @@ const handler = {
                     if (authError)
                         return authError;
                     return await handleBatchCreateImages(request, runtimeEnv);
+                }
+                return json({ error: 'Method Not Allowed' }, 405);
+            }
+
+            // POST /api/batch-update —— 批量增删标签（单事务，见 handleBatchUpdateImageTags）
+            if (pathname === '/api/batch-update') {
+                if (request.method === 'POST') {
+                    const authError = await verifyAdminRequest(request, runtimeEnv);
+                    if (authError)
+                        return authError;
+                    return await handleBatchUpdateImageTags(request, runtimeEnv);
                 }
                 return json({ error: 'Method Not Allowed' }, 405);
             }

@@ -897,6 +897,126 @@ describe("functions api", () => {
     });
   });
 
+  it("applies add/remove tags across many images in one batch-update", async () => {
+    const created = await Promise.all([
+      request("/api/create", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ url: "https://cdn.example.test/bu-a.jpg", tags: ["旧"] }),
+      }),
+      request("/api/create", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ url: "https://cdn.example.test/bu-b.jpg", tags: ["旧"] }),
+      }),
+      request("/api/create", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ url: "https://cdn.example.test/bu-c.jpg", tags: ["保留"] }),
+      }),
+    ]);
+    const ids = await Promise.all(created.map(async (response) => (await json(response)).id as string));
+
+    const response = await request("/api/batch-update", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ ids: ids.slice(0, 2), addTags: ["新标签"], removeTags: ["旧"] }),
+    });
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({ total: 2, success: 2, failed: 0 });
+
+    const stored = await request("/api/list");
+    const images = (await stored.json()) as Array<{ id: string; tags: string[] }>;
+    const byId = new Map(images.map((image) => [image.id, image.tags]));
+    expect(byId.get(ids[0])).toEqual(["新标签"]);
+    expect(byId.get(ids[1])).toEqual(["新标签"]);
+    expect(byId.get(ids[2])).toEqual(["保留"]);
+
+    // meta 标签索引必须由 saveAllImages 一并重建：旧标签全库消失、新标签登场
+    const stats = await json(await request("/api/stats"));
+    expect(stats.tags).toContain("新标签");
+    expect(stats.tags).toContain("保留");
+    expect(stats.tags).not.toContain("旧");
+  });
+
+  it("removes tags case-insensitively and stays idempotent on repeated ids", async () => {
+    const created = await json(
+      await request("/api/create", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ url: "https://cdn.example.test/bu-case.jpg", tags: ["ACG"] }),
+      }),
+    );
+    const id = created.id as string;
+
+    // 检索全站大小写不敏感，移除若区分大小写就删不掉存储里的「ACG」；
+    // 同一 id 出现两次也应幂等（第二次在已合并结果上再合并，落库仍是单条）
+    const response = await request("/api/batch-update", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ ids: [id, id], removeTags: ["acg"] }),
+    });
+    expect(response.status).toBe(200);
+    const body = await json(response);
+    expect(body).toMatchObject({ total: 2, success: 2, failed: 0 });
+
+    const stored = await request("/api/list");
+    const images = (await stored.json()) as Array<{ id: string; tags: string[] }>;
+    expect(images.find((image) => image.id === id)?.tags).toEqual([]);
+  });
+
+  it("does not rewrite the gallery when no requested image matched", async () => {
+    const created = await json(
+      await request("/api/create", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ url: "https://cdn.example.test/bu-intact.jpg", tags: ["keep"] }),
+      }),
+    );
+
+    const response = await request("/api/batch-update", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ ids: ["img-does-not-exist", "非法 id!"], addTags: ["x"] }),
+    });
+    expect(response.status).toBe(200);
+    const body = await json(response);
+    expect(body).toMatchObject({ total: 2, success: 0, failed: 2 });
+
+    const stored = await request("/api/list");
+    const images = (await stored.json()) as Array<{ id: string; tags: string[] }>;
+    expect(images).toHaveLength(1);
+    expect(images[0].tags).toEqual(["keep"]);
+    expect((await json(await request("/api/stats"))).tags).toEqual(["keep"]);
+  });
+
+  it("validates batch-update payloads and requires admin auth", async () => {
+    await expect(
+      request("/api/batch-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: ["img-1"], addTags: ["a"] }),
+      }),
+    ).resolves.toMatchObject({ status: 401 });
+
+    const invalid = [
+      { body: {}, error: "ids array is required and must not be empty" },
+      { body: { ids: [] }, error: "ids array is required and must not be empty" },
+      { body: { ids: ["img-1"] }, error: "addTags or removeTags must contain at least one tag" },
+      { body: { ids: ["img-1"], addTags: "a" }, error: "addTags/removeTags must be arrays of strings" },
+      { body: { ids: Array.from({ length: 501 }, (_, i) => `img-${i}`), addTags: ["a"] }, error: "Maximum 500 images per batch request" },
+    ];
+    for (const { body, error } of invalid) {
+      const response = await request("/api/batch-update", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(400);
+      await expect(json(response)).resolves.toMatchObject({ error });
+    }
+  });
+
   it("redirects random image requests by default", async () => {
     await request("/api/create", {
       method: "POST",

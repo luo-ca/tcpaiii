@@ -189,6 +189,70 @@ export async function handleBatchCreateImages(request, runtimeEnv) {
         }, 201);
     });
 }
+// ── POST /api/batch-update ───────────────────────────────────
+export async function handleBatchUpdateImageTags(request, runtimeEnv) {
+    const body = await readJsonObject(request);
+    if (!body) {
+        return json({ error: 'Request body must be a valid JSON object' }, 400);
+    }
+    if (!Array.isArray(body.ids) || body.ids.length === 0) {
+        return json({ error: 'ids array is required and must not be empty' }, 400);
+    }
+    if (body.ids.length > MAX_BATCH_SIZE) {
+        return json({ error: `Maximum ${MAX_BATCH_SIZE} images per batch request` }, 400);
+    }
+    // 两个列表都走 normalizeTags 的入库契约（trim/截断/去重/封顶 20）；
+    // null = 传了但不是字符串数组
+    const addTags = body.addTags === undefined ? [] : normalizeTags(body.addTags);
+    const removeTags = body.removeTags === undefined ? [] : normalizeTags(body.removeTags);
+    if (!addTags || !removeTags) {
+        return json({ error: 'addTags/removeTags must be arrays of strings' }, 400);
+    }
+    if (addTags.length === 0 && removeTags.length === 0) {
+        return json({ error: 'addTags or removeTags must contain at least one tag' }, 400);
+    }
+    // 提升为 const：Array.isArray 的收窄跨不进闭包（与 batch-create 同因）
+    const batchIds = body.ids;
+    return withGalleryTransaction(async () => {
+        const imagesState = await getImagesState(runtimeEnv);
+        const images = imagesState.images.slice();
+        const indexById = new Map(images.map((img, imgIndex) => [img.id, imgIndex]));
+        // 移除按小写比对：标签检索（list/random 索引）全站都是大小写不敏感的，
+        // 只有存的时候按原样 —— 移除若区分大小写就删不掉「ACG」里的「acg」
+        const lowerRemove = new Set(removeTags.map(tag => tag.toLowerCase()));
+        const results = [];
+        let successCount = 0;
+        for (const rawId of batchIds) {
+            if (typeof rawId !== 'string' || !isValidImageId(rawId)) {
+                results.push({ success: false, id: typeof rawId === 'string' ? rawId : '', error: 'Invalid image id' });
+                continue;
+            }
+            const position = indexById.get(rawId);
+            if (position === undefined) {
+                results.push({ success: false, id: rawId, error: 'Image not found' });
+                continue;
+            }
+            const current = images[position];
+            // 加回仍过一遍 normalizeTags：与 create/update「提交什么就存什么」同契约；
+            // 重复 id 天然幂等（第二次在已合并结果上再合并，结果不变）
+            const kept = current.tags.filter(tag => !lowerRemove.has(tag.toLowerCase()));
+            const merged = normalizeTags([...kept, ...addTags]) ?? [];
+            images[position] = { ...current, tags: merged };
+            successCount += 1;
+            results.push({ success: true, id: rawId, tags: merged });
+        }
+        // 一条都没改到（全部无效/不存在）就不落库，省掉一次徒劳的 meta 重写
+        if (successCount > 0) {
+            await saveAllImages(images, runtimeEnv);
+        }
+        return json({
+            total: batchIds.length,
+            success: successCount,
+            failed: batchIds.length - successCount,
+            results,
+        });
+    });
+}
 // ── POST /api/create ─────────────────────────────────────────
 export async function handleCreateImage(request, runtimeEnv) {
     const body = await readJsonObject(request);

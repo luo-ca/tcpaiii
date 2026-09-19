@@ -152,3 +152,23 @@ export async function batchCreateImages(
     '批量添加图片失败',
   );
 }
+
+/**
+ * 批量增删标签：单事务（后端 withGalleryTransaction），比逐张 PUT 少 N-1 次
+ * 全库读改写；重复 id 幂等、removeTags 大小写不敏感（与全站检索契约一致）。
+ */
+export async function batchUpdateImageTags(
+  data: { ids: string[]; addTags?: string[]; removeTags?: string[] },
+  adminToken: string,
+): Promise<{
+  total: number;
+  success: number;
+  failed: number;
+  results: Array<{ success: boolean; id: string; tags?: string[]; error?: string }>;
+}> {
+  return apiRequest(
+    '/api/batch-update',
+    { method: 'POST', headers: getAdminHeaders(adminToken), body: JSON.stringify(data) },
+    '批量修改标签失败',
+  );
+}
