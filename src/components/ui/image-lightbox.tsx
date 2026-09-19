@@ -219,27 +219,27 @@ export function ImageLightbox({
           </figure>
         )}
 
-        {/* 左右切换 */}
-        {hasPrev && (
-          <button
-            type="button"
-            onClick={() => onNavigate(-1)}
-            aria-label="上一张"
-            className="sticker-chip absolute left-2 top-1/2 -translate-y-1/2 rounded-full p-2.5 sm:left-4"
-          >
-            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-          </button>
-        )}
-        {hasNext && (
-          <button
-            type="button"
-            onClick={() => onNavigate(1)}
-            aria-label="下一张"
-            className="sticker-chip absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2.5 sm:right-4"
-          >
-            <ChevronRight className="h-5 w-5" aria-hidden="true" />
-          </button>
-        )}
+        {/* 左右切换。刻意常渲染、到头时置灰，而不是条件卸载：
+            键盘用户正停在按钮上按方向键翻页时，卸载会让焦点被浏览器
+            甩回 body，下一击直接失联。disabled 则焦点原地不动。 */}
+        <button
+          type="button"
+          onClick={() => onNavigate(-1)}
+          disabled={!hasPrev}
+          aria-label="上一张"
+          className="sticker-chip absolute left-2 top-1/2 -translate-y-1/2 rounded-full p-2.5 disabled:pointer-events-none disabled:opacity-40 sm:left-4"
+        >
+          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigate(1)}
+          disabled={!hasNext}
+          aria-label="下一张"
+          className="sticker-chip absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2.5 disabled:pointer-events-none disabled:opacity-40 sm:right-4"
+        >
+          <ChevronRight className="h-5 w-5" aria-hidden="true" />
+        </button>
       </DialogContent>
     </Dialog>
   );
