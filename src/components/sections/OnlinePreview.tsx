@@ -352,7 +352,8 @@ function OnlinePreviewImpl(
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-2.5 text-sm">
                 <Button
-                  className="gradient-button rounded-xl h-10 text-white"
+                  variant="sticker"
+                  className="h-10 rounded-xl"
                   onClick={() => shuffleImage(selectedTag)}
                   disabled={imageLoading}
                 >

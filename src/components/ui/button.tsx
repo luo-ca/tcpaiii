@@ -18,6 +18,9 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-brand-600 underline-offset-4 hover:underline",
+        // 贴纸主行动按钮：墨线描边/硬投影/掀起手感由 index.css 的 .gradient-button
+        // 独占（P36 单点化，此前 8 处字面量复制）。调用处只补尺寸与圆角。
+        sticker: "gradient-button text-white",
       },
       size: {
         // 小/大号按钮比默认档少一档圆角（10px vs 12px）。

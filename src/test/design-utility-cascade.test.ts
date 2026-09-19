@@ -176,12 +176,24 @@ describe("设计系统类不得被同属性 Tailwind 工具类架空", () => {
     expect(kana!.text).not.toMatch(TEXT_COLOR);
   });
 
-  it("渐变按钮的边框由自身 2px 墨线承担，admin 提交按钮不再挂 border-0", () => {
-    const grads = classLiterals("src/features/admin-page.tsx").filter((c) =>
+  it("贴纸主按钮收敛到 sticker 变体单点，调用处不再挂 gradient-button", () => {
+    // P36 起 8 处「gradient-button … text-white」副本归入 buttonVariants.sticker，
+    // 与 TagChip（category-button）同一先例：字面量只允许出现在单点定义里，
+    // 且单点串自身不得带被独占属性冲突的工具类（border-*/shadow-*/transition-*）。
+    const grads = classLiterals("src/components/ui/button.tsx").filter((c) =>
       /\bgradient-button\b/.test(c.text)
     );
-    expect(grads.length).toBeGreaterThanOrEqual(4);
-    for (const g of grads) expect(g.text).not.toMatch(/\bborder-/);
+    expect(grads.length).toBe(1);
+    for (const g of grads) expect(g.text).not.toMatch(/\bborder-|\bshadow-|\btransition-/);
+    for (const rel of [
+      "src/features/admin-page.tsx",
+      "src/components/sections/DocsTeaser.tsx",
+      "src/components/sections/HeroSection.tsx",
+      "src/components/sections/ImageSubmission.tsx",
+      "src/components/sections/OnlinePreview.tsx",
+    ]) {
+      expect(classLiterals(rel).filter((c) => /\bgradient-button\b/.test(c.text))).toEqual([]);
+    }
   });
 
   it("分类标签 chip 收敛到 TagChip 单点，且不再挂 transition-*", () => {

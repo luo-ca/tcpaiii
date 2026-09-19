@@ -259,7 +259,7 @@ function AddImageDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gradient-button gap-2 rounded-xl text-white">
+        <Button variant="sticker" className="gap-2 rounded-xl">
           <Plus className="w-4 h-4" aria-hidden="true" />
           添加图片
         </Button>
@@ -332,7 +332,7 @@ function AddImageDialog({
                 onChange={(e) => setTagsInput(e.target.value)}
               />
             </div>
-            <Button type="submit" className="gradient-button w-full rounded-xl text-white" disabled={loading}>
+            <Button type="submit" variant="sticker" className="w-full rounded-xl" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
               添加
             </Button>
@@ -469,7 +469,8 @@ function AddImageDialog({
 
             <Button
               type="submit"
-              className="gradient-button w-full rounded-xl text-white"
+              variant="sticker"
+              className="w-full rounded-xl"
               disabled={loading || existingUrlsQuery.isLoading || batchPreview.validNew.length === 0}
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-2" aria-hidden="true" />}
@@ -591,7 +592,7 @@ function EditImageDialog({
               onChange={(e) => setTagsInput(e.target.value)}
             />
           </div>
-          <Button type="submit" className="gradient-button w-full rounded-xl text-white" disabled={loading}>
+          <Button type="submit" variant="sticker" className="w-full rounded-xl" disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : null}
             保存
           </Button>

@@ -50,7 +50,8 @@ export function ImageSubmission() {
             <div className="text-center">
               <Button
                 size="sm"
-                className="gradient-button h-9 rounded-xl text-xs text-white"
+                variant="sticker"
+                className="h-9 rounded-xl text-xs"
                 asChild
               >
                 <a href="https://www.paiii.cn/bbs/9" target="_blank" rel="noreferrer">

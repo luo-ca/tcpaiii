@@ -127,7 +127,8 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               </div>
               <div className="p-1.5 pr-2">
                 <Button
-                  className="gradient-button h-9 rounded-xl px-5 text-sm font-medium text-white"
+                  variant="sticker"
+                  className="h-9 rounded-xl px-5"
                   onClick={handleSubmit}
                 >
                   随机获取

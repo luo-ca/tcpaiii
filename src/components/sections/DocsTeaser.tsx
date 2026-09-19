@@ -1,5 +1,6 @@
 import { ArrowRight, BookOpen, Code2, ShieldCheck, Sparkles } from 'lucide-react';
 import { NavLink } from '@/components/ui/nav-link';
+import { buttonVariants } from '@/components/ui/button';
 
 const HIGHLIGHTS = [
   { icon: Code2, label: '分类参数', desc: '按标签拿指定题材' },
@@ -52,7 +53,11 @@ export function DocsTeaser() {
 
             <NavLink
               to="/docs"
-              className="gradient-button inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-xl px-5 py-3 text-sm font-medium text-white lg:self-auto"
+              className={buttonVariants({
+                variant: 'sticker',
+                className:
+                  'h-auto shrink-0 self-start gap-1.5 rounded-xl px-5 py-3 lg:self-auto',
+              })}
             >
               查看完整 API 文档
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
