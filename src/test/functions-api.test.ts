@@ -426,6 +426,51 @@ describe("functions api", () => {
     expect(storedMeta.tags).toEqual([...new Set(storedAll.flatMap((image) => image.tags))].sort());
   });
 
+  it("keeps stats consistent under concurrent random requests (no lost updates)", async () => {
+    // 与上面 images 的并发写测试同族：updateRequestStats 是「读快照 → 本地自增
+    // → 写回」，读写之间让出控制权就会丢更新。/api/random 是热路径，并发必发生。
+    vi.stubGlobal("EdgeKV", undefined);
+    const namespace = edgeOneKv("stats-race-stats");
+    // 真实 KV 的读发生在请求发出那一刻、响应稍后才回来：这里同步捕获快照、
+    // 延迟 30ms 才解析。串行化缺失时，5 个并发 getStats 在首个 saveStats 落库前
+    // 全部捕获同一份旧快照，各自 +1 互相覆盖 → 累计只剩 1，丢失 4 次累加。
+    const racingStatsKv: TestKv = {
+      get(key) {
+        const snapshot = namespace.get(key);
+        return new Promise<string | undefined>((resolve) => {
+          setTimeout(() => resolve(snapshot), 30);
+        });
+      },
+      put(key, value) {
+        return namespace.put(key, value);
+      },
+    };
+    const env = {
+      ADMIN_TOKEN,
+      images_kv: edgeOneKv("stats-race-images"),
+      stats_kv: racingStatsKv,
+    };
+
+    const create = await requestWithEnv("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/stats-race.jpg", tags: ["stats-race"] }),
+    }, env);
+    expect(create.status).toBe(201);
+
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        requestWithEnv("/api/random?tag=stats-race&format=json", undefined, env),
+      ),
+    );
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+
+    const stats = await requestWithEnv("/api/stats", undefined, env);
+    const body = await json(stats);
+    expect(body.totalRequests).toBe(5);
+    expect((body.dailyRequests as Record<string, number>)[getStatsDateKey()]).toBe(5);
+  });
+
   it("rejects image URLs beyond the 2048-char storage cap", async () => {
     const longUrl = `https://cdn.example.test/${"z".repeat(2100)}.jpg`;
 
