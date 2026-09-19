@@ -17,10 +17,13 @@ import { describe, expect, it } from "vitest";
  * 契约：activeSrc 的推导必须把 eager 一并算进去。
  */
 
-const SOURCE = readFileSync(
-  resolve(process.cwd(), "src/features/admin-page.tsx"),
-  "utf8",
-);
+const SOURCE = [
+  "src/features/admin-page.tsx",
+  "src/features/admin/image-card.tsx",
+  "src/features/admin/use-lazy-image.ts",
+]
+  .map((rel) => readFileSync(resolve(process.cwd(), rel), "utf8"))
+  .join("\n");
 
 describe("后台懒加载：eager 卡片不得被 state 卡住", () => {
   it("全站只有一处 activeSrc 推导，且把 eager 算了进去", () => {

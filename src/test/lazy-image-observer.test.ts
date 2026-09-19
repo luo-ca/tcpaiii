@@ -21,10 +21,13 @@ import { describe, expect, it } from "vitest";
  * 守卫式更新，不得出现把任意非 idle 态拉回 loading 的无条件 setState('loading')。
  */
 
-const SOURCE = readFileSync(
-  resolve(process.cwd(), "src/features/admin-page.tsx"),
-  "utf8",
-);
+const SOURCE = [
+  "src/features/admin-page.tsx",
+  "src/features/admin/image-card.tsx",
+  "src/features/admin/use-lazy-image.ts",
+]
+  .map((rel) => readFileSync(resolve(process.cwd(), rel), "utf8"))
+  .join("\n");
 
 describe("后台懒加载：observer 不得复活已终结的卡片状态", () => {
   it("observer 回调里没有把 state 无条件打回 loading 的写法", () => {

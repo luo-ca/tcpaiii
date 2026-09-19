@@ -187,6 +187,10 @@ describe("设计系统类不得被同属性 Tailwind 工具类架空", () => {
     for (const g of grads) expect(g.text).not.toMatch(/\bborder-|\bshadow-|\btransition-/);
     for (const rel of [
       "src/features/admin-page.tsx",
+      "src/features/admin/add-image-dialog.tsx",
+      "src/features/admin/edit-image-dialog.tsx",
+      "src/features/admin/batch-update-tags-dialog.tsx",
+      "src/features/admin/image-card.tsx",
       "src/components/sections/DocsTeaser.tsx",
       "src/components/sections/HeroSection.tsx",
       "src/components/sections/ImageSubmission.tsx",
