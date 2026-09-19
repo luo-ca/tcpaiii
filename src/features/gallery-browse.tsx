@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { MasonryTile, SKELETON_RATIOS } from '@/components/ui/masonry-tile';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
 import type { PaginatedImages, Stats } from '@/lib/types';
-import { fetchImagesPage, fetchStats } from '@/lib/api';
+import { fetchImagesPage, statsQueryOptions } from '@/lib/api';
 import { getErrorMessage } from '@/lib/helpers';
 import { readGalleryQuery, writeGalleryQuery } from '@/lib/url';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -54,12 +54,7 @@ export default function GalleryBrowse() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  const { data: stats } = useQuery<Stats>({
-    queryKey: ['stats'],
-    queryFn: fetchStats,
-    refetchInterval: 15_000,
-    staleTime: 15_000,
-  });
+  const { data: stats } = useQuery<Stats>(statsQueryOptions());
 
   const imagesQuery = useInfiniteQuery<PaginatedImages>({
     queryKey: ['gallery-browse', { tag: selectedTag, search: searchQuery }],

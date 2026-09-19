@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { RandomRequest, Stats } from '@/lib/types';
-import { fetchRandomImage, fetchStats } from '@/lib/api';
+import { fetchRandomImage, statsQueryOptions } from '@/lib/api';
 import { getErrorMessage } from '@/lib/helpers';
 import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 import { buildAppUrl } from '@/lib/url';
@@ -47,12 +47,7 @@ function OnlinePreviewImpl(
     `/api/random${selectedTag ? `?tag=${encodeURIComponent(selectedTag)}` : ''}`,
   );
 
-  const { data: stats } = useQuery<Stats>({
-    queryKey: ['stats'],
-    queryFn: fetchStats,
-    refetchInterval: 15_000,
-    staleTime: 15_000,
-  });
+  const { data: stats } = useQuery<Stats>(statsQueryOptions());
 
   const shuffleImage = useCallback(
     async (tag?: string) => {

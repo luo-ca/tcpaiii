@@ -39,7 +39,7 @@ import type { ImageRecord, Stats, PaginatedImages, AdminAuthStatus, LazyImageSta
 import { MAX_BATCH_IMAGE_COUNT, GALLERY_PAGE_SIZE, GALLERY_PAGE_SIZE_OPTIONS } from '@/lib/constants';
 import {
   fetchImagesPage,
-  fetchStats,
+  statsQueryOptions,
   fetchExistingImageUrlSet,
   verifyAdminToken,
   createImage,
@@ -177,6 +177,12 @@ function AddImageDialog({
     if (!(await onRequireToken())) return;
 
     const cleanUrls = batchPreview.validNew;
+    // 去重预检失败时 validNew 其实混着库里已有地址，
+    // 「只导入全新 N 张」的承诺不成立，必须拦住而不是静默重复导入
+    if (existingUrlsQuery.isError) {
+      toast.error('库内地址去重预检失败，暂时无法判断哪些是全新地址，请先点「重试」再导入');
+      return;
+    }
     if (batchPreview.invalid.length > 0) {
       toast.error(`有 ${batchPreview.invalid.length} 行不是有效的 http(s) 地址，请先删掉标红的行`);
       return;
@@ -346,6 +352,18 @@ function AddImageDialog({
                 粘贴后自动归一化并预检，单次最多 {MAX_BATCH_IMAGE_COUNT} 张
                 {existingUrlsQuery.isLoading ? '（正在读取库内地址…）' : ''}
               </p>
+              {existingUrlsQuery.isError && (
+                <p className="text-xs font-medium text-destructive">
+                  库内地址读取失败：暂时无法判断哪些是全新地址，导入会被拦下。
+                  <button
+                    type="button"
+                    onClick={() => void existingUrlsQuery.refetch()}
+                    className="ml-1 underline underline-offset-2"
+                  >
+                    重试
+                  </button>
+                </p>
+              )}
             </div>
 
             {batchUrls.trim() && (
@@ -486,7 +504,10 @@ function EditImageDialog({
       setTitle(image.title);
       setTagsInput(image.tags.join(', '));
     }
-  }, [open, image]);
+    // 只认「打开弹窗 / 换目标图片」两个事件：依赖整个 image 对象的话，
+    // 后台刷新会给同一张图新对象身份，把用户正在输入的标题/标签凭空覆写掉
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, image.id]);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -734,6 +755,9 @@ export default function GalleryPage() {
   const [pageJumpInput, setPageJumpInput] = useState('1');
   const [adminToken, setAdminToken] = useState('');
   const [adminAuthStatus, setAdminAuthStatus] = useState<AdminAuthStatus>('empty');
+  // 密钥校验的请求序号：编辑/清除输入或再次点校验都会 +1，
+  // 过期响应回来时序号对不上就作废，不把状态误写成「已验证」
+  const tokenCheckSeqRef = useRef(0);
   const hasAdminToken = adminToken.trim().length > 0;
   const hasVerifiedAdminToken = hasAdminToken && adminAuthStatus === 'valid';
 
@@ -751,12 +775,7 @@ export default function GalleryPage() {
     placeholderData: (previousData) => previousData,
   });
 
-  const { data: stats } = useQuery<Stats>({
-    queryKey: ['stats'],
-    queryFn: fetchStats,
-    refetchInterval: 15_000,
-    staleTime: 15_000,
-  });
+  const { data: stats } = useQuery<Stats>(statsQueryOptions());
 
   const images = imagesQuery.data?.items ?? [];
   const totalImages = stats?.totalImages ?? imagesQuery.data?.total ?? 0;
@@ -862,11 +881,15 @@ export default function GalleryPage() {
   const handleAdminTokenChange = (value: string) => {
     setAdminToken(value);
     setAdminAuthStatus(value.trim() ? 'unverified' : 'empty');
+    // 让在途的校验作废：否则旧密钥的响应回来后会把状态改回「已验证」，
+    // 后续写操作会拿着未验证的新密钥直接打接口吃 401
+    tokenCheckSeqRef.current += 1;
   };
 
   const clearAdminToken = () => {
     setAdminToken('');
     setAdminAuthStatus('empty');
+    tokenCheckSeqRef.current += 1;
     toast.success('管理密钥已清除');
   };
 
@@ -878,13 +901,17 @@ export default function GalleryPage() {
       return false;
     }
 
+    const seq = ++tokenCheckSeqRef.current;
+    const isStale = () => seq !== tokenCheckSeqRef.current;
     setAdminAuthStatus('checking');
     try {
       await verifyAdminToken(token);
+      if (isStale()) return false;
       setAdminAuthStatus('valid');
       toast.success('管理密钥校验通过');
       return true;
     } catch (err) {
+      if (isStale()) return false;
       const message = getErrorMessage(err, '管理密钥校验失败');
       if (message.includes('not configured')) {
         setAdminAuthStatus('unconfigured');

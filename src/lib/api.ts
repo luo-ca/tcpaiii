@@ -51,6 +51,21 @@ export async function fetchStats(): Promise<Stats> {
   return apiRequest<Stats>('/api/stats', undefined, '获取统计数据失败');
 }
 
+/**
+ * ['stats'] 查询配置的单点定义：全站 5 个消费者（Hero/OnlinePreview/RealtimeStats/
+ * gallery-browse/admin）共用同一 key 与节流参数，改轮询间隔只需动这里。
+ */
+const STATS_POLL_MS = 15_000;
+
+export function statsQueryOptions() {
+  return {
+    queryKey: ['stats'] as const,
+    queryFn: fetchStats,
+    refetchInterval: STATS_POLL_MS,
+    staleTime: STATS_POLL_MS,
+  };
+}
+
 // ---- Gallery API ----
 
 export async function fetchImagesPage(params: {

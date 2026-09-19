@@ -3,16 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, Clock, Globe, Layers, BarChart3 } from 'lucide-react';
 import type { Stats } from '@/lib/types';
-import { fetchStats } from '@/lib/api';
+import { statsQueryOptions } from '@/lib/api';
 import { formatShortDate, formatNumber } from '@/lib/helpers';
 
 export function RealtimeStats() {
-  const { data: stats } = useQuery<Stats>({
-    queryKey: ['stats'],
-    queryFn: fetchStats,
-    refetchInterval: 15_000,
-    staleTime: 15_000,
-  });
+  const { data: stats, isError } = useQuery<Stats>(statsQueryOptions());
 
   const dailyEntries = useMemo(
     () =>
@@ -37,7 +32,20 @@ export function RealtimeStats() {
       (stats?.todayRequests ?? 0) > 0 ||
       (stats?.totalImages ?? 0) > 0);
 
-  if (!hasAnyData) return null;
+  if (!hasAnyData) {
+    // 区分「真的没有数据」与「拉取失败」：后者留一条轻提示，
+    // 免得接口 500 时整块凭空消失，和用户看成「统计为 0 / 区块不存在」。
+    if (isError && !stats) {
+      return (
+        <section id="stats" className="relative z-10 px-4 py-10 sm:px-6 lg:py-12">
+          <div className="mx-auto max-w-6xl rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm text-muted-foreground">
+            实时统计暂时读取失败，页面会按 15 秒自动重试。
+          </div>
+        </section>
+      );
+    }
+    return null;
+  }
 
   const statCards = [
     {

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Images } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/ui/nav-link';
 import { MasonryTile, SKELETON_RATIOS } from '@/components/ui/masonry-tile';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
@@ -19,7 +20,7 @@ const PREVIEW_COUNT = 8;
  * 数据来自不写统计的 `/api/list`。
  */
 export function GalleryPreview() {
-  const { data, isLoading } = useQuery<PaginatedImages>({
+  const { data, isLoading, isError, refetch } = useQuery<PaginatedImages>({
     queryKey: ['gallery-preview'],
     queryFn: () => fetchImagesPage({ page: 1, pageSize: PREVIEW_COUNT }),
     staleTime: 5 * 60_000,
@@ -44,8 +45,9 @@ export function GalleryPreview() {
   // 稳定引用：配合 MasonryTile 的 memo，首页无关渲染不逐张重排瓦片
   const openTile = useCallback((index: number) => setLightboxIndex(index), []);
 
-  // 图库为空（或彻底取不到）时整段收起，不留一个空壳区块在首页
-  if (!isLoading && items.length === 0) return null;
+  // 图库确实为空时整段收起；拉取失败不算「空」，保留区块并给出重试，
+  // 免得接口抖动时首页区块凭空消失，与真空库完全同形。
+  if (!isLoading && !isError && items.length === 0) return null;
 
   return (
     <section id="gallery-preview" className="relative z-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
@@ -83,6 +85,18 @@ export function GalleryPreview() {
                 style={{ aspectRatio: String(SKELETON_RATIOS[i % SKELETON_RATIOS.length]) }}
               />
             ))}
+          </div>
+        ) : isError && items.length === 0 ? (
+          <div className="reveal rounded-2xl border border-border bg-white px-4 py-8 text-center">
+            <p className="text-sm text-muted-foreground">图库精选暂时加载失败。</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void refetch()}
+              className="mt-3 rounded-lg text-xs"
+            >
+              重试
+            </Button>
           </div>
         ) : (
           <div className="reveal columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4">

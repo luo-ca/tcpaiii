@@ -16,7 +16,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import type { Stats } from '@/lib/types';
-import { fetchImagesPage, fetchStats } from '@/lib/api';
+import { fetchImagesPage, statsQueryOptions } from '@/lib/api';
 import { formatNumber } from '@/lib/helpers';
 import { buildAppUrl } from '@/lib/url';
 import { useCopyFeedback } from '@/hooks/use-copy-feedback';
@@ -24,12 +24,7 @@ import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: string) => void }) {
   const [tagInput, setTagInput] = useState('');
   const { copied: copiedApi, copy: copyApi } = useCopyFeedback();
-  const { data: stats } = useQuery<Stats>({
-    queryKey: ['stats'],
-    queryFn: fetchStats,
-    refetchInterval: 15_000,
-    staleTime: 15_000,
-  });
+  const { data: stats } = useQuery<Stats>(statsQueryOptions());
   // 首屏主视觉取自图库第一张图。
   // 走的是 /api/list（公开读接口），它不写入调用统计：
   // 既不消耗随机额度，也不会把本站自己的访问算进 /api/stats 的调用数与站点数。
