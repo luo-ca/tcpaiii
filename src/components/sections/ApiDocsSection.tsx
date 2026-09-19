@@ -244,6 +244,23 @@ export function ApiDocsSection() {
                       </pre>
                     </div>
                   </div>
+                  {/* 限流契约：按 dispatcher 的实际实现如实写，脚本撞上 429 时
+                      知道是预期内的节流而不是服务故障 */}
+                  <div className="rounded-xl border border-border bg-secondary px-4 py-3">
+                    <p className="text-xs font-bold text-foreground">速率限制</p>
+                    <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-muted-foreground">
+                      <li>
+                        <code className="rounded bg-white px-1 py-0.5 font-mono text-[11px] text-foreground">/api/random</code>
+                        {' '}每个边缘节点约 100 次/秒；超限返回
+                        <code className="ml-1 rounded bg-white px-1 py-0.5 font-mono text-[11px] text-foreground">429</code>
+                        ，响应头带 <code className="rounded bg-white px-1 py-0.5 font-mono text-[11px] text-foreground">Retry-After: 1</code>，按一秒间隔重试即可。
+                      </li>
+                      <li>
+                        管理接口密钥校验失败按来源 IP 节流：每分钟 20 次，超过后即使换对密钥也会临时返回 429。
+                      </li>
+                      <li>图片直链（302 跳转后的 CDN 取图）不计入以上限制，可放心用作页面热链。</li>
+                    </ul>
+                  </div>
                 </div>
               </CardContent>
             </Card>
