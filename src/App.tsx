@@ -7,6 +7,7 @@ import { prefersReducedMotion } from '@/lib/helpers';
 import { AmbientBackground } from '@/components/layout/AmbientBackground';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { RouteErrorBoundary } from '@/components/layout/RouteErrorBoundary';
 import { BackToTop } from '@/components/ui/back-to-top';
 import { HeroSection } from '@/components/sections/HeroSection';
 import { SKELETON_RATIOS } from '@/components/ui/masonry-tile';
@@ -179,23 +180,27 @@ export default function App() {
       </a>
 
       <main id="main" ref={mainRef} tabIndex={-1} className="focus:outline-none">
-        {route === '/' && <HomePage />}
-        {route === '/gallery' && (
-          <Suspense fallback={<GalleryFallback />}>
-            <GalleryBrowse />
-          </Suspense>
-        )}
-        {route === '/admin' && (
-          <Suspense fallback={<AdminFallback />}>
-            <AdminPage />
-          </Suspense>
-        )}
-        {route === '/docs' && <DocsPage />}
-        {route === '/status' && (
-          <Suspense fallback={<SectionFallback />}>
-            <StatusPage />
-          </Suspense>
-        )}
+        {/* 路由级边界：lazy chunk 404（部署换代）只炸这一块，页头/页脚保留；
+            chunk 错误还会自动刷新一次自愈。resetKey=route 让换页即清错误态。 */}
+        <RouteErrorBoundary resetKey={route}>
+          {route === '/' && <HomePage />}
+          {route === '/gallery' && (
+            <Suspense fallback={<GalleryFallback />}>
+              <GalleryBrowse />
+            </Suspense>
+          )}
+          {route === '/admin' && (
+            <Suspense fallback={<AdminFallback />}>
+              <AdminPage />
+            </Suspense>
+          )}
+          {route === '/docs' && <DocsPage />}
+          {route === '/status' && (
+            <Suspense fallback={<SectionFallback />}>
+              <StatusPage />
+            </Suspense>
+          )}
+        </RouteErrorBoundary>
       </main>
 
       <Footer />
