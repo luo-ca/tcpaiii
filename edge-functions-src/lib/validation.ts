@@ -3,6 +3,7 @@
 import {
     ALLOWED_IMAGE_PROTOCOLS,
     IMAGE_ID_PATTERN,
+    MAX_IMAGE_URL_LENGTH,
     MAX_JSON_BODY_BYTES,
     MAX_TAG_LENGTH,
     MAX_TAGS_PER_IMAGE,
@@ -39,14 +40,16 @@ export function normalizeImageUrl(value: unknown): string | null {
     if (typeof value !== 'string')
         return null;
     const trimmed = value.trim();
-    if (!trimmed)
+    if (!trimmed || trimmed.length > MAX_IMAGE_URL_LENGTH)
         return null;
     try {
         const parsed = new URL(trimmed);
         if (!ALLOWED_IMAGE_PROTOCOLS.has(parsed.protocol) || parsed.username || parsed.password) {
             return null;
         }
-        return parsed.toString();
+        const canonical = parsed.toString();
+        // 百分号转义会让规范化结果比原串更长：两关都要过
+        return canonical.length <= MAX_IMAGE_URL_LENGTH ? canonical : null;
     }
     catch {
         return null;

@@ -7,6 +7,12 @@ export const MAX_TITLE_LENGTH = 120;
 export const MAX_TAG_LENGTH = 40;
 export const MAX_TAGS_PER_IMAGE = 20;
 export const MAX_LIST_FILTER_LENGTH = 100;
+/**
+ * 图片 URL 的硬上限。不封顶的话，单条 250KB（受请求体上限保护）的 URL
+ * 也能永久写进 'all' blob——此后每一次 /api/list / /api/random / /api/stats
+ * 都要搬运并重新解析这坨垃圾。2048 覆盖所有现实中的图片地址。
+ */
+export const MAX_IMAGE_URL_LENGTH = 2048;
 /** 公开读接口（stats / 分页 list）的短边缘缓存：配合前端 bustCache 关闭。 */
 export const READ_CACHE_CONTROL = 'public, s-maxage=10, stale-while-revalidate=30';
 export const MAX_TRACKED_SITES = 500;

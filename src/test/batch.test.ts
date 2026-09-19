@@ -15,6 +15,11 @@ describe("canonicalizeImageUrl", () => {
     expect(canonicalizeImageUrl("not a url")).toBeNull();
     expect(canonicalizeImageUrl("")).toBeNull();
   });
+
+  it("rejects URLs past the backend's 2048-char cap", () => {
+    const longUrl = `https://cdn.example.test/${"x".repeat(2100)}.jpg`;
+    expect(canonicalizeImageUrl(longUrl)).toBeNull();
+  });
 });
 
 describe("parseBatchUrls", () => {
@@ -48,5 +53,12 @@ describe("parseBatchUrls", () => {
     const result = parseBatchUrls("https://cdn.example.test/ok.jpg\njavascript:alert(1)");
     expect(result.validNew).toEqual(["https://cdn.example.test/ok.jpg"]);
     expect(result.invalid).toEqual(["javascript:alert(1)"]);
+  });
+
+  it("classifies oversized URLs as invalid so pre-check matches the backend", () => {
+    const longUrl = `https://cdn.example.test/${"y".repeat(2100)}.jpg`;
+    const result = parseBatchUrls(`https://cdn.example.test/ok.jpg\n${longUrl}`);
+    expect(result.validNew).toEqual(["https://cdn.example.test/ok.jpg"]);
+    expect(result.invalid).toEqual([longUrl]);
   });
 });

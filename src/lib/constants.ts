@@ -32,6 +32,10 @@ export const MAX_BATCH_IMAGE_COUNT = 500;
 export const MAX_TITLE_LENGTH = 120;
 export const MAX_TAG_LENGTH = 40;
 export const MAX_TAGS_PER_IMAGE = 20;
+/** 图片 URL 硬上限（后端 normalizeImageUrl 同规则，超长直接拒）。 */
+export const MAX_IMAGE_URL_LENGTH = 2048;
+/** 搜索词长度上限：后端进全列表扫描前截到 100，输入框同值封顶。 */
+export const MAX_SEARCH_LENGTH = 100;
 export const GALLERY_PAGE_SIZE = 24;
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 

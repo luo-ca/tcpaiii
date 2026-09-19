@@ -39,6 +39,8 @@ import { toast } from 'sonner';
 import type { ImageRecord, Stats, PaginatedImages, AdminAuthStatus, LazyImageState } from '@/lib/types';
 import {
   MAX_BATCH_IMAGE_COUNT,
+  MAX_IMAGE_URL_LENGTH,
+  MAX_SEARCH_LENGTH,
   MAX_TITLE_LENGTH,
   MAX_TAG_LENGTH,
   MAX_TAGS_PER_IMAGE,
@@ -313,6 +315,7 @@ function AddImageDialog({
               <Input
                 id="url"
                 type="url"
+                maxLength={MAX_IMAGE_URL_LENGTH}
                 className="rounded-lg"
                 placeholder="https://example.com/image.jpg"
                 value={url}
@@ -581,6 +584,7 @@ function EditImageDialog({
             <Input
               id="edit-url"
               type="url"
+              maxLength={MAX_IMAGE_URL_LENGTH}
               className="rounded-lg"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
@@ -1152,6 +1156,7 @@ export default function GalleryPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" aria-hidden="true" />
               <Input
                 value={searchTerm}
+                maxLength={MAX_SEARCH_LENGTH}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setPage(1);

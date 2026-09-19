@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { MAX_TAG_LENGTH, MAX_TAGS_PER_IMAGE } from './constants';
+import { MAX_IMAGE_URL_LENGTH, MAX_TAG_LENGTH, MAX_TAGS_PER_IMAGE } from './constants';
 import { copyToClipboard } from './utils';
 
 /**
@@ -60,16 +60,18 @@ export function parseTagsInput(value: string): string[] {
 
 /**
  * Canonicalize an image URL the same way the backend does (`new URL().toString()`).
- * Returns null for non-http(s) URLs, URLs with embedded credentials, or unparsable input.
+ * Returns null for non-http(s) URLs, URLs with embedded credentials, URLs over
+ * the backend's 2048-char cap (输入与规范化结果各查一遍), or unparsable input.
  */
 export function canonicalizeImageUrl(value: string): string | null {
   const trimmed = value.trim();
-  if (!trimmed) return null;
+  if (!trimmed || trimmed.length > MAX_IMAGE_URL_LENGTH) return null;
   try {
     const parsed = new URL(trimmed);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
     if (parsed.username || parsed.password) return null;
-    return parsed.toString();
+    const canonical = parsed.toString();
+    return canonical.length > MAX_IMAGE_URL_LENGTH ? null : canonical;
   } catch {
     return null;
   }

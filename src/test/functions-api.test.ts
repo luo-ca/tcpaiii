@@ -426,6 +426,33 @@ describe("functions api", () => {
     expect(storedMeta.tags).toEqual([...new Set(storedAll.flatMap((image) => image.tags))].sort());
   });
 
+  it("rejects image URLs beyond the 2048-char storage cap", async () => {
+    const longUrl = `https://cdn.example.test/${"z".repeat(2100)}.jpg`;
+
+    const create = await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: longUrl }),
+    });
+    expect(create.status).toBe(400);
+    await expect(json(create)).resolves.toMatchObject({
+      error: "url must be a valid http(s) URL",
+    });
+
+    const batch = await request("/api/batch", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        images: [{ url: longUrl }, { url: "https://cdn.example.test/short.jpg" }],
+      }),
+    });
+    expect(batch.status).toBe(201);
+    const batchBody = await json(batch);
+    const results = batchBody.results as Array<Record<string, unknown>>;
+    expect(results[0]).toMatchObject({ success: false, error: "URL must be a valid http(s) URL" });
+    expect(results[1]).toMatchObject({ success: true });
+  });
+
   it("truncates the echoed tag in random 404 responses", async () => {
     await request("/api/create", {
       method: "POST",

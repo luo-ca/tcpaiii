@@ -7,6 +7,7 @@ import { MasonryTile, SKELETON_RATIOS } from '@/components/ui/masonry-tile';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
 import { TagChip } from '@/components/ui/tag-chip';
 import type { PaginatedImages, Stats } from '@/lib/types';
+import { MAX_SEARCH_LENGTH } from '@/lib/constants';
 import { fetchImagesPage, statsQueryOptions } from '@/lib/api';
 import { getErrorMessage } from '@/lib/helpers';
 import { readGalleryQuery, writeGalleryQuery } from '@/lib/url';
@@ -148,6 +149,7 @@ export default function GalleryBrowse() {
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
+              maxLength={MAX_SEARCH_LENGTH}
               placeholder="搜索标题…"
               aria-label="搜索图片标题"
               className="h-10 rounded-xl pl-9"
