@@ -74,7 +74,6 @@
   --color-muted-foreground: #5c5b54;
   --color-accent: #f0efe9;
   --color-accent-foreground: #15171f;
-  --color-subtle: #f0efe9;
   --color-border: #e2e1d8;
   --color-border-strong: #cfcec3;
   --color-input: #e2e1d8;
@@ -93,23 +92,6 @@
   --color-success: #34c759;
   --color-warning: #ff9f0a;
 
-  /* ── sidebar（保留兼容，本轮不启用侧栏） ───────────────────────────── */
-  --color-sidebar: #f7f8fa;
-  --color-sidebar-foreground: #0b1220;
-  --color-sidebar-primary: #007aff;
-  --color-sidebar-primary-foreground: #ffffff;
-  --color-sidebar-accent: #f1f3f7;
-  --color-sidebar-accent-foreground: #0b1220;
-  --color-sidebar-border: #e4e8ef;
-  --color-sidebar-ring: #007aff;
-
-  /* ── 图表：只用品牌两极 + 中性，不引入新色相 ───────────────────────── */
-  --color-chart-1: #007aff;
-  --color-chart-2: #4da2ff;
-  --color-chart-3: #5856d6;
-  --color-chart-4: #9490ec;
-  --color-chart-5: #8c96a6;
-
   /* ── 圆角：单调递增六档（修复原先 lg > 2xl 的层级倒挂） ────────────── */
   --radius-sm: 8px;
   --radius-md: 10px;
@@ -127,9 +109,9 @@
    * 无模糊、纯实色的偏移阴影，是二次元 / 贴纸视觉的标志性手法，
    * 也是本站在刻意摆脱「AI 落地页柔光」之后新的层次语言。
    * ─────────────────────────────────────────────────────────────────── */
-  --shadow-sm: 0 1px 2px rgba(11, 18, 32, 0.05);
-  --shadow-md: 0 4px 16px rgba(11, 18, 32, 0.07);
-  --shadow-lg: 0 16px 48px rgba(11, 18, 32, 0.1);
+  --shadow-sm: 0 1px 2px rgba(21, 23, 31, 0.05);
+  --shadow-md: 0 4px 16px rgba(21, 23, 31, 0.07);
+  --shadow-lg: 0 16px 48px rgba(21, 23, 31, 0.1);
 
   /* ── 动效 ────────────────────────────────────────────────────────────
    * 只保留真正有调用点的 keyframes：
@@ -582,7 +564,7 @@
     width: 10px;
     height: 10px;
     border-radius: 9999px;
-    box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(21, 23, 31, 0.08);
   }
 
   .browser-dot-red {
@@ -659,17 +641,9 @@
   /* ================================================================
    * 墨线 / 硬投影工具类
    * ------------------------------------------------------------
-   * 全站层次语言三件套。刻意写成普通类（非 Tailwind 工具），
+   * 全站层次语言。刻意写成普通类（非 Tailwind 工具），
    * 与 glass-* 一样集中管理，避免在各组件里重复魔法值。
    * ================================================================ */
-  .ink-border {
-    border: 2px solid var(--color-ink);
-  }
-
-  .ink-shadow-xs {
-    box-shadow: 2px 2px 0 0 var(--color-ink);
-  }
-
   .ink-shadow {
     box-shadow: 4px 4px 0 0 var(--color-ink);
   }

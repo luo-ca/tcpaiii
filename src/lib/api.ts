@@ -20,33 +20,6 @@ export async function fetchRandomImage(tag?: string): Promise<ImageRecord> {
   );
 }
 
-/**
- * Fetch a random image but never throw: on API failure (HTML fallback,
- * network error, empty gallery) return a synthetic record so callers
- * always have something shaped like an ImageRecord.
- *
- * `fallbackUrl` defaults to an empty string, which means 「没有可用图片」.
- * Callers must treat an empty url as "no image" and render their own
- * empty/gradient state — never a broken <img>. 早期版本这里默认填了一个
- * 第三方文生图地址，实测只会返回「图片生成中」的占位图，因此已移除。
- */
-export async function fetchRandomImageWithFallback(
-  tag?: string,
-  fallbackUrl = '',
-): Promise<ImageRecord> {
-  try {
-    return await fetchRandomImage(tag);
-  } catch {
-    return {
-      id: 'fallback',
-      url: fallbackUrl,
-      title: '派次元 API',
-      tags: [],
-      createdAt: new Date(0).toISOString(),
-    };
-  }
-}
-
 export async function fetchStats(): Promise<Stats> {
   return apiRequest<Stats>('/api/stats', undefined, '获取统计数据失败');
 }

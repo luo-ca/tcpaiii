@@ -113,12 +113,16 @@ describe("入口层与设计语言一致", () => {
      * 也是全站最后一处「不在暖纸底语言里」的残留。
      *
      * 注意：断言只针对 rgb() 分量写法，不针对十六进制 —— 因为 index.css 里
-     * `--color-sidebar-*` 与 `.dark` 仍刻意保留同名冷灰作为兼容占位，
-     * 一刀切地禁 hex 会误伤这些有意留存的值。
+     * 的 `.dark` 暗色占位块仍保留同族冷灰字面值（全站锁浅色的未来预留）。
+     * 原 `--color-sidebar-*` 一组同名冷灰已因零引用删除。
+     * 一刀切地禁 hex 会误伤暗色占位块，故维持只禁 rgb() 分量。
      */
     it("不再出现旧冷灰的 rgb 分量写法", () => {
       expect(cssSource).not.toContain("228, 232, 239");
       expect(cssSource).not.toContain("247, 248, 250");
+      // 墨色 #15171f 的同族守卫：阴影与 .browser-dot 曾长期写 rgba(11,18,32,…)
+      // （旧冷灰 #0b1220 的分量形式），P31 已统一到墨色分量 21, 23, 31。
+      expect(cssSource).not.toContain("11, 18, 32");
     });
 
     it("底色改引 --color-border / --color-background", () => {

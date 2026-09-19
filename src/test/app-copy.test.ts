@@ -69,7 +69,8 @@ describe("home page copy", () => {
     expect(heroSource).toContain("fetchImagesPage");
     // Broken images must not leave a broken <img> on first paint.
     expect(heroSource).toContain("handleHeroImageError");
-    // The non-throwing helper stays available for callers that do want a random image.
-    expect(apiSource).toContain("fetchRandomImageWithFallback");
+    // The never-throwing fallback helper had zero callers (every surface
+    // renders its own empty/error state now) — keep it dead for good.
+    expect(apiSource).not.toContain("fetchRandomImageWithFallback");
   });
 });
