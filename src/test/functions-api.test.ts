@@ -927,6 +927,48 @@ describe("functions api", () => {
     });
   });
 
+  it("honors exclude on random requests when other candidates remain", async () => {
+    const first = await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/exclude-a.jpg", tags: ["exclude"] }),
+    });
+    await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/exclude-b.jpg", tags: ["exclude"] }),
+    });
+    const firstId = (await json(first)).id as string;
+
+    // 候选池里有两张图，排除其一后另一张就是唯一解 —— 与 Math.random 无关，结果确定
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const response = await request(`/api/random?tag=exclude&exclude=${firstId}&format=json`);
+      expect(response.status).toBe(200);
+      const body = await json(response);
+      expect(body.id).not.toBe(firstId);
+      expect(body.url).toBe("https://cdn.example.test/exclude-b.jpg");
+    }
+  });
+
+  it("still returns an image when exclude would empty the candidate pool", async () => {
+    const created = await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/exclude-only.jpg", tags: ["only"] }),
+    });
+    const onlyId = (await json(created)).id as string;
+
+    // 图库（或该标签下）只剩一张时，exclude 兜底失效仍返回它 ——
+    // 调用方「跳过上一张」是愿望而不是硬约束，返回 404 会让站点随机当场报错
+    const response = await request(`/api/random?tag=only&exclude=${onlyId}&format=json`);
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({ id: onlyId });
+
+    const redirect = await request(`/api/random?exclude=${onlyId}`);
+    expect(redirect.status).toBe(302);
+    expect(redirect.headers.get("Location")).toBe("https://cdn.example.test/exclude-only.jpg");
+  });
+
   it("increments total and daily stats when random images are requested", async () => {
     await request("/api/create", {
       method: "POST",

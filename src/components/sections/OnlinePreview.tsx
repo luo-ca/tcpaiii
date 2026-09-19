@@ -42,6 +42,8 @@ function OnlinePreviewImpl(
   const prevTokenRef = useRef(request.token);
   const initialLoadRef = useRef(false);
   const requestIdRef = useRef(0);
+  // 当前展示图的 id：「换一张」时作为 exclude 传给后端，同标签还有别的图就绝不撞回它
+  const lastImageIdRef = useRef<string | null>(null);
   const [imageKey, setImageKey] = useState(0);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const randomApiUrl = buildAppUrl(
@@ -57,13 +59,14 @@ function OnlinePreviewImpl(
       setImageLoading(true);
       setPreviewError(null);
       try {
-        const img = await fetchRandomImage(tag);
+        const img = await fetchRandomImage(tag, lastImageIdRef.current ?? undefined);
         if (requestId !== requestIdRef.current) return;
         setImageLoaded(false);
         setImageKey((key) => key + 1);
         setImageUrl(img.url);
         setImageTitle(img.title);
         setImageTags(img.tags);
+        lastImageIdRef.current = img.id;
         queryClient.invalidateQueries({ queryKey: ['stats'] });
       } catch (err) {
         if (requestId !== requestIdRef.current) return;
@@ -249,12 +252,15 @@ function OnlinePreviewImpl(
                       </h3>
                       <div className="flex flex-wrap gap-1">
                         {imageTags.map((tag) => (
-                          <span
+                          <button
                             key={tag}
-                            className="sticker-chip rounded-full px-2 py-0.5 text-xs"
+                            type="button"
+                            onClick={() => handleSelectTag(tag)}
+                            title={`看更多「${tag}」`}
+                            className="sticker-chip rounded-full px-2 py-0.5 text-xs transition-transform motion-safe:hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-1"
                           >
                             {tag}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>

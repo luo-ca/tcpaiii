@@ -18,6 +18,8 @@ export const READ_CACHE_CONTROL = 'public, s-maxage=10, stale-while-revalidate=3
 export const MAX_TRACKED_SITES = 500;
 export const MAX_JSON_BODY_BYTES = 256 * 1024;
 export const IMAGE_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/;
+/** 与 IMAGE_ID_PATTERN 的长度上限同源：任何拿 id 字符串做输入的地方先截到这里 */
+export const MAX_IMAGE_ID_LENGTH = 160;
 export const ALLOWED_IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 export const STATS_TIME_ZONE = 'Asia/Shanghai';
 export const ADMIN_CONFIG_KEY = 'admin_config';

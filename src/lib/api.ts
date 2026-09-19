@@ -8,9 +8,11 @@ import { canonicalizeImageUrl } from './helpers';
 
 // ---- Public API ----
 
-export async function fetchRandomImage(tag?: string): Promise<ImageRecord> {
+export async function fetchRandomImage(tag?: string, exclude?: string): Promise<ImageRecord> {
   const params = new URLSearchParams();
   if (tag) params.set('tag', tag);
+  // 「换一张」时带上上一张的 id，后端在同标签还有别的图时保证不撞回它
+  if (exclude) params.set('exclude', exclude);
   params.set('format', 'json');
   const query = params.toString();
   return apiRequest<ImageRecord>(

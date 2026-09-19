@@ -2,7 +2,7 @@
 import { MAX_BATCH_SIZE } from './types';
 import { corsHeaders, json, noStoreHeaders } from './response';
 import { isJsonObject, isValidImageId, normalizeImageUrl, normalizePositiveInt, normalizeTags, normalizeTitle, readJsonObject, } from './validation';
-import { DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE, MAX_LIST_FILTER_LENGTH, MAX_TAG_LENGTH, READ_CACHE_CONTROL, } from './types';
+import { DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE, MAX_LIST_FILTER_LENGTH, MAX_TAG_LENGTH, MAX_IMAGE_ID_LENGTH, READ_CACHE_CONTROL, } from './types';
 import { getAllImages, getImagesState, saveAllImages } from './kv';
 import { updateRequestStats } from './stats';
 // ── Helpers ──────────────────────────────────────────────────
@@ -32,6 +32,9 @@ export async function handleRandomImage(request, runtimeEnv, executionContext) {
     // 免得超长串变成 byTag.get 前无界的 toLowerCase 分配
     const rawTag = url.searchParams.get('tag') || url.searchParams.get('type');
     const tag = rawTag ? rawTag.slice(0, MAX_TAG_LENGTH) : null;
+    // exclude=<id>：跳过调用方刚拿到的一张（前端「换一张」不再连点撞同图）。
+    // 同 id 上限截断；它是软偏好不是硬约束 —— 见下方兜底
+    const excludeId = url.searchParams.get('exclude')?.slice(0, MAX_IMAGE_ID_LENGTH) || null;
     const format = url.searchParams.get('format');
     const wantsJson = url.searchParams.has('json')
         || format === 'json'
@@ -48,8 +51,12 @@ export async function handleRandomImage(request, runtimeEnv, executionContext) {
         // tag 已在查索引前截到 MAX_TAG_LENGTH，回显直接透传即可
         return json({ error: `No images found with tag: ${tag ?? ''}` }, 404);
     }
-    const randomIndex = Math.floor(Math.random() * candidates.length);
-    const selected = candidates[randomIndex];
+    // 仅剩一张时不排除：宁可返回「上一张」，也不能让「换一张」按钮当场 404
+    const pool = excludeId && candidates.length > 1
+        ? candidates.filter(image => image.id !== excludeId)
+        : candidates;
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    const selected = pool[randomIndex];
     // Stats must never block or break the hot path: failures are swallowed,
     // waitUntil runtimes persist in the background, and runtimes without
     // waitUntil (tests/dev) get a bounded wait so a slow KV can't stall 302.

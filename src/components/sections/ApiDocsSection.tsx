@@ -43,6 +43,7 @@ export function ApiDocsSection() {
   const randomApiUrl = buildAppUrl('/api/random');
   const randomTagApiUrl = buildAppUrl('/api/random?tag=acg');
   const randomJsonApiUrl = buildAppUrl('/api/random?format=json');
+  const randomExcludeApiUrl = buildAppUrl('/api/random?exclude=img-001');
 
   const copyCode = async (text: string) => {
     await copyText(text);
@@ -142,6 +143,19 @@ export function ApiDocsSection() {
                   code={randomTagApiUrl}
                   onCopy={() => copyCode(randomTagApiUrl)}
                   />
+                <div className="mt-4 rounded-xl border border-border bg-secondary px-4 py-3">
+                  <p className="text-xs font-bold text-foreground">exclude=&lt;id&gt; 跳过上一张</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    「换一张」场景带上刚拿到的图片 id，只要该分类还有别的图就不会撞回同一张；
+                    分类里只剩这一张时仍会返回它（不会报错）。搭配 format=json 拿 id，302 模式同样支持。
+                  </p>
+                  <div className="mt-2">
+                    <CodeRow
+                      code={randomExcludeApiUrl}
+                      onCopy={() => copyCode(randomExcludeApiUrl)}
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
