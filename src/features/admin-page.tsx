@@ -102,7 +102,13 @@ function useLazyImage(src: string, eager = false): {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setState('loading');
+          // 只把「还没开始」的 idle 卡推进到 loading。已终结的 loaded / error
+          // 绝不能被复活的 observe 拉回 loading：卡片按 img.id 复用、eager 由位置
+          // 决定，一张已加载的卡从 index<6 挪到 index≥6 时 eager true→false 会让
+          // 本 effect 重新挂 observer，observe() 规范保证首次必回报交叉态 —— 若该卡
+          // 此刻仍在视口内，无条件的推进会把 loaded 打回 loading，
+          // 而 src 没变、浏览器不再重新加载、onLoad 永不复燃 → 永久停在骨架屏。
+          setState((current) => (current === 'idle' ? 'loading' : current));
           observer.disconnect();
         }
       },
