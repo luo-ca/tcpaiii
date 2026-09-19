@@ -471,6 +471,56 @@ describe("functions api", () => {
     expect((body.dailyRequests as Record<string, number>)[getStatsDateKey()]).toBe(5);
   });
 
+  it("keeps gallery writes consistent under concurrent create requests (no lost updates)", async () => {
+    // 与上面 stats 的并发读改写同族：/api/create 是「读全量 → 追加一条 → 写回」，
+    // P38 只把两次 put 排了队，但读与写之间仍让出控制权。多个管理员/多次并发导入
+    // 各自读到同一份旧快照、各自追加后互相覆盖，图库静默丢条目（比 stats 更致命）。
+    vi.stubGlobal("EdgeKV", undefined);
+    const namespace = edgeOneKv("create-race-images");
+    // 真实 KV 的读在请求发出即捕获快照、延迟 30ms 才返回。未把整段 RMW 串行化时，
+    // 5 个并发 create 在首个写落库前全部读到空库快照，各自追加 1 条互相覆盖 →
+    // 最终只剩 1 条，丢失其余 4 条。
+    const racingImagesKv: TestKv = {
+      get(key) {
+        const snapshot = namespace.get(key);
+        return new Promise<string | undefined>((resolve) => {
+          setTimeout(() => resolve(snapshot), 30);
+        });
+      },
+      put(key, value) {
+        return namespace.put(key, value);
+      },
+    };
+    const env = {
+      ADMIN_TOKEN,
+      images_kv: racingImagesKv,
+      stats_kv: edgeOneKv("create-race-stats"),
+    };
+
+    const created = await Promise.all(
+      Array.from({ length: 5 }, (_, index) =>
+        requestWithEnv(
+          "/api/create",
+          {
+            method: "POST",
+            headers: adminHeaders(),
+            body: JSON.stringify({
+              url: `https://cdn.example.test/create-race-${index}.jpg`,
+              title: `Race ${index}`,
+              tags: ["create-race"],
+            }),
+          },
+          env,
+        ),
+      ),
+    );
+    expect(created.every((response) => response.status === 201)).toBe(true);
+
+    const stored = JSON.parse((await namespace.get("all")) ?? "[]") as Array<{ url: string }>;
+    expect(stored).toHaveLength(5);
+    expect(new Set(stored.map((image) => image.url)).size).toBe(5);
+  });
+
   it("rejects image URLs beyond the 2048-char storage cap", async () => {
     const longUrl = `https://cdn.example.test/${"z".repeat(2100)}.jpg`;
 
