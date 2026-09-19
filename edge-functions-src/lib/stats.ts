@@ -9,6 +9,7 @@ import type {
 import {
     KV_CACHE_TTL_MS,
     MAX_TRACKED_SITES,
+    READ_CACHE_CONTROL,
     STATS_TIME_ZONE,
 } from './types';
 
@@ -165,5 +166,5 @@ export async function handleStats(runtimeEnv?: RuntimeEnv) {
         totalSites: Object.keys(stats.sites).length,
         dailyRequests,
         tags: imagesMeta.tags,
-    });
+    }, 200, { cacheControl: READ_CACHE_CONTROL });
 }

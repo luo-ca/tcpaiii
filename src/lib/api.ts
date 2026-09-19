@@ -21,7 +21,9 @@ export async function fetchRandomImage(tag?: string): Promise<ImageRecord> {
 }
 
 export async function fetchStats(): Promise<Stats> {
-  return apiRequest<Stats>('/api/stats', undefined, '获取统计数据失败');
+  // 不带 `_t`、不发 no-store：让边缘的 s-maxage=10 生效，
+  // 全站 15s 一次的轮询就不用每次都回源打 KV
+  return apiRequest<Stats>('/api/stats', undefined, '获取统计数据失败', { bustCache: false });
 }
 
 /**

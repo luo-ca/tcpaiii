@@ -118,7 +118,9 @@ export async function apiRequest<T>(
   const bustCache = opts?.bustCache ?? true;
   const response = await fetch(bustCache ? withNoCacheQuery(input, init) : input, {
     ...init,
-    cache: 'no-store',
+    // bustCache 关闭时交给服务端 Cache-Control 说话（后端已给
+    // stats/分页 list 发短边缘缓存）；强推 no-store 会让那套契约形同虚设
+    cache: bustCache ? 'no-store' : 'default',
   });
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
 

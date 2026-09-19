@@ -2,7 +2,7 @@
 import { MAX_BATCH_SIZE } from './types';
 import { corsHeaders, json, noStoreHeaders } from './response';
 import { isJsonObject, isValidImageId, normalizeImageUrl, normalizePositiveInt, normalizeTags, normalizeTitle, readJsonObject, } from './validation';
-import { DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE, } from './types';
+import { DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE, MAX_LIST_FILTER_LENGTH, MAX_TAG_LENGTH, READ_CACHE_CONTROL, } from './types';
 import { getAllImages, getImagesState, saveAllImages } from './kv';
 import { updateRequestStats } from './stats';
 // ── Helpers ──────────────────────────────────────────────────
@@ -29,7 +29,8 @@ export async function handleRandomImage(request, runtimeEnv, executionContext) {
         candidates = imagesState.index.byTag.get(tag.toLowerCase()) ?? [];
     }
     if (candidates.length === 0) {
-        return json({ error: `No images found with tag: ${tag}` }, 404);
+        // tag 是用户输入：回显前截断，别把 404 变成大字符串反射器
+        return json({ error: `No images found with tag: ${tag?.slice(0, MAX_TAG_LENGTH) ?? ''}` }, 404);
     }
     const randomIndex = Math.floor(Math.random() * candidates.length);
     const selected = candidates[randomIndex];
@@ -72,9 +73,12 @@ export async function handleListImages(request, runtimeEnv) {
     const images = await getAllImages(runtimeEnv);
     const pageParam = url.searchParams.get('page');
     const pageSizeParam = url.searchParams.get('pageSize');
-    const search = url.searchParams.get('search')?.trim().toLowerCase() ?? '';
-    const tag = url.searchParams.get('tag')?.trim() ?? '';
+    // search / tag 是用户输入：截断到合理长度再进全列表线性扫描，
+    // 免得超长串把每次匹配的 toLowerCase+includes 变成正则级开销
+    const search = (url.searchParams.get('search')?.trim().toLowerCase() ?? '').slice(0, MAX_LIST_FILTER_LENGTH);
+    const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, MAX_TAG_LENGTH);
     if (!pageParam && !pageSizeParam && !search && !tag) {
+        // 遗留裸数组：只给导入去重预检用，保持 no-store（要的就是当下的全量）
         return json(images);
     }
     let filtered = images;
@@ -100,7 +104,7 @@ export async function handleListImages(request, runtimeEnv) {
         totalPages,
         hasPrevPage: page > 1,
         hasNextPage: page < totalPages,
-    });
+    }, 200, { cacheControl: READ_CACHE_CONTROL });
 }
 // ── POST /api/batch ──────────────────────────────────────────
 export async function handleBatchCreateImages(request, runtimeEnv) {

@@ -331,14 +331,112 @@ describe("functions api", () => {
     expect(response.status).toBe(404);
   });
 
-  it("marks JSON API responses as non-cacheable", async () => {
-    const response = await request("/api/stats");
+  it("marks admin and error JSON responses as non-cacheable", async () => {
+    const verify = await request("/api/admin/verify", {
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
 
-    expect(response.headers.get("Cache-Control")).toContain("no-store");
-    expect(response.headers.get("CDN-Cache-Control")).toBe("no-store");
-    expect(response.headers.get("Surrogate-Control")).toBe("no-store");
-    expect(response.headers.get("Pragma")).toBe("no-cache");
-    expect(response.headers.get("Expires")).toBe("0");
+    expect(verify.status).toBe(200);
+    expect(verify.headers.get("Cache-Control")).toContain("no-store");
+    expect(verify.headers.get("CDN-Cache-Control")).toBe("no-store");
+    expect(verify.headers.get("Surrogate-Control")).toBe("no-store");
+    expect(verify.headers.get("Pragma")).toBe("no-cache");
+    expect(verify.headers.get("Expires")).toBe("0");
+
+    const notFound = await request("/api/nope");
+    expect(notFound.status).toBe(404);
+    expect(notFound.headers.get("Cache-Control")).toContain("no-store");
+  });
+
+  it("serves stats and paginated lists with a short edge cache, legacy bare list without", async () => {
+    const stats = await request("/api/stats");
+    expect(stats.headers.get("Cache-Control")).toContain("s-maxage=10");
+    expect(stats.headers.get("Cache-Control")).toContain("stale-while-revalidate=30");
+    expect(stats.headers.get("CDN-Cache-Control")).toContain("s-maxage=10");
+    expect(stats.headers.get("Surrogate-Control")).toBeNull();
+
+    const page = await request("/api/list?page=1");
+    expect(page.headers.get("Cache-Control")).toContain("s-maxage=10");
+
+    const legacy = await request("/api/list");
+    expect(legacy.headers.get("Cache-Control")).toContain("no-store");
+  });
+
+  it("throttles repeated admin auth failures per client ip", async () => {
+    for (let index = 0; index < 20; index += 1) {
+      const attempt = await request("/api/admin/verify", {
+        headers: { Authorization: "Bearer wrong-token", "x-forwarded-for": "203.0.113.7" },
+      });
+      expect(attempt.status).toBe(403);
+    }
+
+    const blocked = await request("/api/admin/verify", {
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}`, "x-forwarded-for": "203.0.113.7" },
+    });
+    expect(blocked.status).toBe(429);
+    expect(Number(blocked.headers.get("Retry-After"))).toBeGreaterThanOrEqual(1);
+
+    const otherClient = await request("/api/admin/verify", {
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}`, "x-forwarded-for": "198.51.100.4" },
+    });
+    expect(otherClient.status).toBe(200);
+  });
+
+  it("keeps stored meta aligned with the image list under concurrent writes", async () => {
+    vi.stubGlobal("EdgeKV", undefined);
+    const namespace = edgeOneKv("race-images");
+    // 每个请求给 'all' / 'meta' 配不同的落库时延：未序列化时两把锁的
+    // 完成顺序会交错，最终 'all' 与 'meta' 来自不同快照 → 计数错位
+    const delays: Record<string, [number, number]> = {
+      a: [25, 2],
+      b: [5, 18],
+      c: [20, 4],
+      d: [2, 12],
+    };
+    const slowKv = {
+      get: (key: string) => namespace.get(key),
+      async put(key: string, value: string | ArrayBuffer | ReadableStream) {
+        const text = typeof value === "string" ? value : "";
+        const name = text.match(/race-([a-d])/)?.[1];
+        const delay = name ? (delays[name]?.[key === "all" ? 0 : 1] ?? 1) : 1;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return namespace.put(key, value);
+      },
+    };
+    const env = { images_kv: slowKv, stats_kv: edgeOneKv("race-stats") };
+
+    const results = await Promise.all(
+      ["a", "b", "c", "d"].map((name) =>
+        requestWithEnv("/api/create", {
+          method: "POST",
+          headers: adminHeaders(),
+          body: JSON.stringify({
+            url: `https://cdn.example.test/race-${name}.jpg`,
+            title: `Race ${name}`,
+            tags: [name],
+          }),
+        }, env),
+      ),
+    );
+    expect(results.every((response) => response.status === 201)).toBe(true);
+
+    const storedAll: Array<{ tags: string[] }> = JSON.parse((await namespace.get("all")) ?? "[]");
+    const storedMeta = JSON.parse((await namespace.get("meta")) ?? "{}");
+    expect(storedMeta.totalImages).toBe(storedAll.length);
+    expect(storedMeta.tags).toEqual([...new Set(storedAll.flatMap((image) => image.tags))].sort());
+  });
+
+  it("truncates the echoed tag in random 404 responses", async () => {
+    await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/echo.jpg", tags: ["echo"] }),
+    });
+
+    const response = await request(`/api/random?tag=${"x".repeat(300)}&format=json`);
+    expect(response.status).toBe(404);
+    const body = await json(response);
+    expect(String(body.error).length).toBeLessThanOrEqual("No images found with tag: ".length + 40);
   });
 
   it("marks random redirects as non-cacheable", async () => {

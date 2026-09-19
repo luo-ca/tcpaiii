@@ -7,7 +7,7 @@ import { corsHeaders, json, noStoreHeaders } from '../lib/response';
 import { decodeRouteSegment } from '../lib/validation';
 import { getKvHealth, resetImagesCache } from '../lib/kv';
 import { resetStatsCache, getRecentStatsDateKeys, getStatsDateKey } from '../lib/stats';
-import { handleAdminVerify, verifyAdminRequest } from '../lib/auth';
+import { handleAdminVerify, resetAdminThrottle, verifyAdminRequest } from '../lib/auth';
 import {
     handleBatchCreateImages,
     handleCreateImage,
@@ -41,6 +41,7 @@ function checkRateLimit(): boolean {
 function resetRuntimeCaches() {
     resetImagesCache();
     resetStatsCache();
+    resetAdminThrottle();
 }
 
 // ── Main fetch handler ───────────────────────────────────────
@@ -78,7 +79,7 @@ const handler = {
             if (pathname === '/api/random') {
                 if (request.method === 'GET') {
                     if (!checkRateLimit())
-                        return json({ error: 'Too Many Requests' }, 429);
+                        return json({ error: 'Too Many Requests' }, 429, { headers: { 'Retry-After': '1' } });
                     return await handleRandomImage(request, runtimeEnv, executionContext);
                 }
                 return json({ error: 'Method Not Allowed' }, 405);

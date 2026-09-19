@@ -8,6 +8,7 @@ import { isJsonObject, isSha256Hex, normalizeImageUrl, normalizeTags, normalizeT
 let _legacyKvImages = null;
 let _legacyKvStats = null;
 let _cachedImagesState = null;
+let _saveQueue = Promise.resolve();
 export function resetImagesCache() {
     _cachedImagesState = null;
 }
@@ -234,13 +235,18 @@ export async function getAllImages(runtimeEnv) {
     return (await getImagesState(runtimeEnv)).images;
 }
 export async function saveAllImages(images, runtimeEnv) {
-    const kv = getKvImages(runtimeEnv);
-    const imagesMeta = buildImagesMeta(images);
-    await Promise.all([
-        kv.put('all', JSON.stringify(images)),
-        kv.put(IMAGES_META_KEY, JSON.stringify(imagesMeta)),
-    ]);
-    _cachedImagesState = getCachedImagesState(images);
+    // 写必须排队：'all' 与 'meta' 是两次 put，并发请求的写一旦交错，
+    // 图库数据和 stats 元信息就会永久错位（各自的失败也互不影响）。
+    // 链尾吞掉异常，避免一次失败卡死后续所有写；异常照常回传给本次调用方。
+    const snapshot = images.slice();
+    const task = _saveQueue.then(async () => {
+        const kv = getKvImages(runtimeEnv);
+        await kv.put('all', JSON.stringify(snapshot));
+        await kv.put(IMAGES_META_KEY, JSON.stringify(buildImagesMeta(snapshot)));
+        _cachedImagesState = getCachedImagesState(snapshot);
+    });
+    _saveQueue = task.catch(() => undefined);
+    return task;
 }
 // ── Admin config (stored in stats KV) ────────────────────────
 export async function getAdminConfig(runtimeEnv) {

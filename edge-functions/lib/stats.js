@@ -1,5 +1,5 @@
 // Stats update, query, and date-utility helpers.
-import { KV_CACHE_TTL_MS, MAX_TRACKED_SITES, STATS_TIME_ZONE, } from './types';
+import { KV_CACHE_TTL_MS, MAX_TRACKED_SITES, READ_CACHE_CONTROL, STATS_TIME_ZONE, } from './types';
 import { json } from './response';
 import { getRequestSite, isJsonObject, isValidSiteKey } from './validation';
 import { getImagesMeta, getKvStats, parseStoredJson } from './kv';
@@ -134,5 +134,5 @@ export async function handleStats(runtimeEnv) {
         totalSites: Object.keys(stats.sites).length,
         dailyRequests,
         tags: imagesMeta.tags,
-    });
+    }, 200, { cacheControl: READ_CACHE_CONTROL });
 }
