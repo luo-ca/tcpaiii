@@ -106,17 +106,43 @@ describe("status 相关 API 行为", () => {
     expect(seen[0]).toMatch(/^\/api\/health\?_t=\d+$/);
   });
 
-  it("measureRandomLatency 返回非负整数毫秒", async () => {
-    vi.stubGlobal("fetch", async () => new Response(null, { status: 302 }));
+  it("测速必须以 redirect:'manual' 请求（follow 会跟随 302 进图床触发 CORS/CSP 拦截）", async () => {
+    // 撞图床无 CORS 头 + 本站 CSP connect-src 'self'，线上实测报 Failed to fetch。
+    // 这是 P53 后第一个真实用户反馈修复，把请求参数钉死。
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    vi.stubGlobal("window", {
+      location: { origin: "https://t.example.test", pathname: "/status", search: "", hash: "" },
+    });
+    vi.stubGlobal(
+      "fetch",
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        calls.push({ url: String(input), init });
+        // redirect:manual 下浏览器返回不透明重定向响应（status 恒为 0）
+        return { type: "opaqueredirect", status: 0, ok: false } as Response;
+      },
+    );
+
     const ms = await measureRandomLatency();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].init?.redirect).toBe("manual");
+    expect(calls[0].init?.cache).toBe("no-store");
+    // opaqueredirect（status 0）= 第一跳已正常返回，不得判为失败
     expect(Number.isInteger(ms)).toBe(true);
     expect(ms).toBeGreaterThanOrEqual(0);
   });
 
-  it("测速失败必须照抛 —— 状态页靠异常归类为「测速失败」而非 0ms", async () => {
-    vi.stubGlobal("fetch", async () => {
-      throw new Error("offline");
+  it("异常状态（4xx/5xx）照抛 —— 状态页靠异常归类为「测速失败」而非 0ms", async () => {
+    vi.stubGlobal("window", {
+      location: { origin: "https://t.example.test", pathname: "/status", search: "", hash: "" },
     });
-    await expect(measureRandomLatency()).rejects.toThrow(/offline/);
+    vi.stubGlobal("fetch", async () => new Response("boom", { status: 500 }));
+    await expect(measureRandomLatency()).rejects.toThrow(/500/);
+  });
+
+  it("网络层失败（TypeError: Failed to fetch）继续照抛给调用方", async () => {
+    vi.stubGlobal("fetch", async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    await expect(measureRandomLatency()).rejects.toThrow(/Failed to fetch/);
   });
 });

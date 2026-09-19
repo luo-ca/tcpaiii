@@ -34,20 +34,29 @@ export async function fetchHealth(): Promise<HealthPayload> {
 }
 
 /**
- * 自助测速：走用户真实接入方式（302 到图片直链，不解析 JSON），
- * 返回「发起到收到响应头」的毫秒数。失败照常 throw 交给调用方归类。
- * no-cors 在部分浏览器下拿不到状态但能拿到耗时 —— 所以用 cors 并只读
- * response.ok，后端已放行 CORS（OPTIONS + ACAO:*）。
+ * 自助测速：请求 /api/random，测「发起到收到响应头」的毫秒数。
+ *
+ * redirect 必须 manual —— API 默认 302 到第三方图床，cors 模式跟随重定向会
+ * 撞上图床无 CORS 头 + 本站 CSP connect-src 'self' 拦外域，浏览器直接
+ * `Failed to fetch`（线上状态页实测踩过）。manual 模式在自家首响应处止步：
+ * 302 本身即「服务正常返回」，opaque 重定向响应也照常 resolve。
+ * 真正测的就是用户接入的第一跳；图床快慢不由本 API 背书。
  */
 export async function measureRandomLatency(): Promise<number> {
   const start = performance.now();
   // 走 buildApiPath：预览链接（?eo_token=…）上裸 fetch 会打到生产部署，
   // 测出来的延迟与预览环境无关 —— 与 apiRequest 补预览参数同一契约。
-  await fetch(buildApiPath('/api/random'), {
+  const response = await fetch(buildApiPath('/api/random'), {
     method: 'GET',
-    redirect: 'follow',
+    redirect: 'manual',
     cache: 'no-store',
   });
+  // opaqueredirect 的 status 是 0，但它代表 3xx 已返回；2xx/3xx 都算可达
+  const reachable =
+    response.type === 'opaqueredirect' || (response.status >= 200 && response.status < 400);
+  if (!reachable) {
+    throw new Error(`接口返回异常状态 ${response.status}`);
+  }
   return Math.round(performance.now() - start);
 }
 
