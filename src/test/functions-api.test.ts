@@ -859,6 +859,43 @@ describe("functions api", () => {
     });
   });
 
+  /**
+   * 同一批里重复的 URL 只能入库一次。
+   *
+   * handleBatchCreateImages 在循环里每成功一条就把 url 加进 existingUrls，
+   * 下一条重复时会被这句挡下（success:false / reason: duplicate）。
+   * 这条不变式以前只有「读代码看得出来」，没有测试 —— 一旦有人把
+   * existingUrls.add() 去掉（它看起来像是多余的，因为入参集合已经建好了），
+   * 一次性粘贴两遍同一批地址就会把图库写成双份，而且没有任何测试会失败。
+   */
+  it("同一批内的重复 URL 只入库一次", async () => {
+    const dup = "https://cdn.example.test/in-batch-dup.jpg";
+    const response = await request("/api/batch", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        images: [
+          { url: dup, title: "首次", tags: ["dup"] },
+          { url: dup, title: "第二次", tags: ["dup"] },
+          { url: "https://cdn.example.test/in-batch-uniq.jpg", tags: ["dup"] },
+        ],
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await json(response)) as { total: number; success: number; failed: number };
+    expect(body.total).toBe(3);
+    expect(body.success).toBe(2);
+    expect(body.failed).toBe(1);
+
+    // 列表接口核对：重复的那条只应存在一次
+    const list = (await json(await request("/api/list?page=1&pageSize=100"))) as {
+      items: Array<{ url: string }>;
+    };
+    const stored = list.items.filter((item) => item.url === dup);
+    expect(stored, "同一批里的重复 URL 被写入了多次").toHaveLength(1);
+  });
+
   it("allows larger batch imports up to 500 images", async () => {
     const images = Array.from({ length: 51 }, (_, index) => ({
       url: `https://cdn.example.test/batch-${index}.jpg`,
