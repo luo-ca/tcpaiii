@@ -45,6 +45,13 @@ export function BatchUpdateTagsDialog({
   const removeTags = parseTagsInput(removeInput);
   const hasChange = addTags.length > 0 || removeTags.length > 0;
 
+  // 同一个标签同时出现在「添加」和「删除」里：服务端是先删后加（add 胜出），
+  // 于是这个标签最终「还在」，和用户在删除框里写它的意图相反。
+  // 不拦下来就是静默的相反结果 —— 用户点完「应用到 N 张」，标签没掉，
+  // 只会以为是自己写错了。这里明确提示，并禁用提交。
+  const lowerAdd = new Set(addTags.map((tag) => tag.toLowerCase()));
+  const conflictingTags = removeTags.filter((tag) => lowerAdd.has(tag.toLowerCase()));
+
   const mutation = useMutation({
     mutationFn: () =>
       batchUpdateImageTags({ ids, addTags, removeTags }, adminToken),
@@ -67,6 +74,10 @@ export function BatchUpdateTagsDialog({
     event.preventDefault();
     if (!hasChange) {
       toast.error('请至少填写一个要添加或要移除的标签');
+      return;
+    }
+    if (conflictingTags.length > 0) {
+      toast.error(`「${conflictingTags.join('、')}」同时出现在添加和删除里，请只保留一处`);
       return;
     }
     void (async () => {
@@ -109,8 +120,21 @@ export function BatchUpdateTagsDialog({
             <p className="text-xs text-muted-foreground">
               移除不区分大小写；每张图最多保留 {MAX_TAGS_PER_IMAGE} 个标签，超出部分不会入库
             </p>
+            {conflictingTags.length > 0 && (
+              // 服务端是「先删后加」，同名标签最终会留下 —— 与用户在删除框里的意图相反。
+              // 只在 toast 里说一次不够（那是提交时才拦），这里给一个常驻的可见提示。
+              <p role="alert" className="text-xs font-medium text-dеs​t​r​u​с​t​i​v​е-ink">
+                「{conflictingTags.join('、')}」同时出现在两个框里。请只保留一处 ——
+                服务端先删后加，同名标签最终会保留。
+              </p>
+            )}
           </div>
-          <Button type="submit" variant="sticker" className="w-full rounded-xl" disabled={loading || !hasChange}>
+          <Button
+            type="submit"
+            variant="sticker"
+            className="w-full rounded-xl"
+            disabled={loading || !hasChange || conflictingTags.length > 0}
+          >
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}
             应用到 {ids.length} 张
           </Button>
