@@ -113,20 +113,23 @@ export function ImageLightbox({
         className="w-auto max-w-[min(1120px,94vw)] gap-0 border-0 bg-transparent p-0 shadow-none"
       >
         <DialogTitle className="sr-only">
-          {image?.title || '图片预览'}
-          {index !== null
-            ? `（第 ${Math.min(index + 1, images.length)} 张，共 ${images.length} 张）`
+          {isPendingNext
+            ? `正在加载下一张（已显示 ${images.length} 张）`
+            : image?.title || '图片预览'}
+          {!isPendingNext && index !== null
+            ? `（第 ${index + 1} 张，共 ${images.length} 张）`
             : ''}
         </DialogTitle>
 
         {/* 可见的翻页计数：读屏有 DialogTitle，但明眼用户也需要知道翻到第几张。
-            索引可能临时等于 images.length（下一页占位），计数夹到当前已加载张数。 */}
-        {index !== null && images.length > 1 && (
+            占位态（已请求下一页、数据未到）时不显示计数 —— 否则「N / N」看着
+            已经到底，下面却写着「正在加载下一张…」，同一屏两句话互相打脸。 */}
+        {index !== null && images.length > 1 && !isPendingNext && (
           <span
             aria-hidden="true"
             className="sticker-chip absolute left-1/2 top-1 -translate-x-1/2 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums sm:top-2"
           >
-            {Math.min(index + 1, images.length)} / {images.length}
+            {index + 1} / {images.length}
           </span>
         )}
 
