@@ -76,14 +76,26 @@ describe('edgeone.json', () => {
     });
 
     it('所有规则都符合 EdgeOne 的字段约束', () => {
+      // 约束抄自 edgeone 本地包里真正的校验器
+      // (edgeone-dist/pages/dev/runner-worker.js 的 ESe / wSe / f_)，不是凭印象写的：
+      //   key   : 1..100，仅 [a-zA-Z0-9-]
+      //   value : 1..1000，且平台明确禁止出现中文字符
+      //   source: 1..500，字符集受限，通配符 * 最多一个
       for (const rule of config.headers) {
+        expect(rule.source.length, 'source 不能为空').toBeGreaterThan(0);
+        expect(rule.source.length, 'source 超过 500 字符').toBeLessThanOrEqual(500);
+        expect(rule.source, 'source 含非法字符').not.toMatch(/[^a-zA-Z0-9_\-/:*.~=?#!$&+,;%@ ]/);
+        expect((rule.source.match(/\*/g) ?? []).length, 'source 最多一个 *').toBeLessThanOrEqual(1);
+
         for (const h of rule.headers) {
           expect(h.key, 'header key 只能字母数字与连字符').toMatch(/^[a-zA-Z0-9-]+$/);
-          expect(h.value.length).toBeLessThanOrEqual(1000);
+          expect(h.key.length, 'key 超过 100 字符').toBeLessThanOrEqual(100);
+          expect(h.value.length, 'value 不能为空').toBeGreaterThan(0);
+          expect(h.value.length, 'value 超过 1000 字符').toBeLessThanOrEqual(1000);
+          expect(h.value, 'value 不得含中文字符').not.toMatch(/[\u4e00-\u9fa5]/);
         }
-        expect(rule.source, 'source 含非法字符').not.toMatch(/[^a-zA-Z0-9_\-/:*.~=?#!$&+,;%@ ]/);
       }
-      expect(config.headers.length).toBeLessThanOrEqual(100);
+      expect(config.headers.length, '规则条数上限 100').toBeLessThanOrEqual(100);
     });
   });
 });
