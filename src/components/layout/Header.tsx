@@ -62,7 +62,7 @@ export function Header() {
 
   return (
     <header
-      className={`fixed left-0 right-0 top-0 z-50 transition-[background-color,border-color,box-shadow] duration-300 ${
+      className={`fixed left-0 right-0 top-0 z-50 h-[var(--header-h)] transition-[background-color,border-color,box-shadow] duration-300 ${
         scrolled
           ? 'border-b border-border bg-white shadow-sm'
           : 'border-b border-transparent bg-background'
@@ -146,7 +146,11 @@ export function Header() {
         </nav>
       </div>
 
-      {/* 阅读进度线：绝对定位在顶栏底缘，不改变顶栏高度（--header-h 契约不受影响） */}
+      {/* 阅读进度线：绝对定位在顶栏底缘。
+          顶栏必须显式锁定 h-[var(--header-h)] —— 否则这条 2px 的进度线会从
+          内容盒（64px）下面再撑出 1px，顶栏实际变成 65px，与 --header-h 契约
+          差 1px（所有 pt-[calc(var(--header-h)+N)] 的首屏偏移都按 64px 算）。
+          锁高后进度线叠在顶栏内部，契约成立。 */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 overflow-hidden"

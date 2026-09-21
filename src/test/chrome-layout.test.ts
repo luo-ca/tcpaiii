@@ -55,4 +55,26 @@ describe("顶栏高度契约", () => {
       `顶部行在 ${growAt || "(无断点)"} 长高，但移动导航要到 ${navHiddenAt || "(无断点)"} 才隐藏 —— 两者之间会多出一个 40px 的导航行，--header-h 少算`,
     ).toBeGreaterThanOrEqual(rank[navHiddenAt] ?? -1);
   });
+
+  /**
+   * 第二个、更隐蔽的同类 bug：顶栏**没写高度**时，元素盒由内容撑开，
+   * 而底部的阅读进度线是 `absolute bottom-0 h-0.5`（2px）—— 它会从内容盒
+   * （64px）下面再撑出 1px，顶栏实际渲染 65px，token 却是 64px。
+   *
+   * 这类偏差不靠类名能看出来（类名全都「对」），只有真去量盒子高度才暴露。
+   * 修法是把顶栏显式锁到 `h-[var(--header-h)]`，让进度线叠在顶栏内部。
+   */
+  it("顶栏显式锁定 h-[var(--header-h)]，进度线不再撑高盒子", () => {
+    const headerTag = headerSource.match(/<header[\s\S]*?className=\{`([^`]*)`/);
+    expect(headerTag, "未能定位 <header> 的 className").toBeTruthy();
+    expect(
+      headerTag![1],
+      "顶栏缺少 h-[var(--header-h)]：底部的 2px 进度线会把顶栏撑出 1px，与 token 差 1px",
+    ).toContain("h-[var(--header-h)]");
+
+    // 进度线必须仍是绝对定位（锁高后才不会参与撑高）
+    const bar = headerSource.match(/className="([^"]*bottom-0[^"]*h-0\.5[^"]*)"/)?.[1];
+    expect(bar, "未能定位阅读进度线").toBeTruthy();
+    expect(bar!).toContain("absolute");
+  });
 });
