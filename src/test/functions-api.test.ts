@@ -1216,4 +1216,43 @@ describe("functions api", () => {
     // Bounded wait: slow stats KV must not stall the hot path for seconds.
     expect(elapsedMs).toBeLessThan(3000);
   });
+
+  /**
+   * 反映型输入的 XSS 纵深防御。
+   *
+   * /api/random 在找不到 tag 时会把调用方传入的 tag 原样写进错误文案：
+   *   GET /api/random?tag=<script>alert(1)</script>
+   *   -> {"error":"No images found with tag: <script>alert(1)</script>"}
+   * 回显内容是**未转义**的。
+   *
+   * 靠 application/json 本身不足以自保：老浏览器可能对顶层导航做 MIME 嗅探，
+   * 把这份 JSON 当 HTML 解析，回显的脚本就会执行（JSON hijacking 的同族问题）。
+   * 关键防线是 X-Content-Type-Options: nosniff。
+   *
+   * 线上这份 nosniff 目前只来自 edgeone.json 的 /* 规则；函数自己此前并不设置它。
+   * 一旦那条规则被改窄，这些接口会同时失去这层保护且无人察觉。
+   * 所以函数现在自己声明，本测试钉住「无论走哪个分支都带上」。
+   */
+  describe('API 响应自带 nosniff（不依赖 CDN 规则）', () => {
+    it('回显调用方输入的 404 响应带 nosniff', async () => {
+      const response = await handler.fetch(
+        new Request('https://example.test/api/random?tag=' + encodeURIComponent('<script>alert(1)</script>')),
+      );
+      expect(response.status).toBe(404);
+      expect(response.headers.get('content-type')).toContain('application/json');
+      expect(
+        response.headers.get('x-content-type-options'),
+        '反映型 JSON 缺少 nosniff：老浏览器可能把它当 HTML 解析',
+      ).toBe('nosniff');
+    });
+
+    it('可缓存分支（/api/stats）同样带 nosniff', async () => {
+      const response = await handler.fetch(new Request('https://example.test/api/stats'));
+      expect(response.status).toBe(200);
+      expect(
+        response.headers.get('x-content-type-options'),
+        '可缓存分支漏了 nosniff —— 这类遗漏最难被发现',
+      ).toBe('nosniff');
+    });
+  });
 });
