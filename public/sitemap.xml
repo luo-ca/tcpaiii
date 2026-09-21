@@ -1,22 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  lastmod 由 vite.config.ts 的 sitemap-lastmod 插件在构建时注入真实日期。
+  Google 忽略 priority 与 changefreq，只把 lastmod 当成重抓信号 —— 图库每天
+  都在收录新图，没有它就只能等爬虫凭运气回来。
+  占位符在 dev 下即时替换、构建时替换为构建日期，产物里不会残留。
+  注意：注释里不要出现占位符字面量，否则会被一并替换掉（踩过一次）。
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://t.paiii.cn/</loc>
+    <lastmod>__LASTMOD__</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://t.paiii.cn/docs</loc>
+    <lastmod>__LASTMOD__</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://t.paiii.cn/gallery</loc>
+    <lastmod>__LASTMOD__</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://t.paiii.cn/status</loc>
+    <lastmod>__LASTMOD__</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.6</priority>
   </url>

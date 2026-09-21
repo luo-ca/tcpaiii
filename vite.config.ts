@@ -1,7 +1,43 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import fs from "fs";
+
+/**
+ * sitemap.xml 的 <lastmod> 注入。
+ *
+ * public/ 下的文件会被原样拷进 dist/，所以写死在 XML 里的日期会一眼就是旧的
+ * （搜索引擎看到 lastmod 长期不变，会降低重抓频率）。
+ * 这里在构建结束时把 __LASTMOD__ 换成真实构建日期；dev 下由中间件即时替换，
+ * 保证本地看到的也是合理值而不是占位符。
+ *
+ * 用 YYYY-MM-DD（W3C datetime 的日期精度）而不是完整时间戳：图库是以「天」
+ * 为粒度更新，精确到秒反而会让每次构建都产生一次「内容变了」的假信号。
+ */
+function sitemapLastmod(): Plugin {
+  const stamp = () => new Date().toISOString().slice(0, 10);
+  return {
+    name: "sitemap-lastmod",
+    apply: () => true,
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url || "").split("?")[0];
+        if (url !== "/sitemap.xml") return next();
+        const file = path.resolve(__dirname, "public/sitemap.xml");
+        if (!fs.existsSync(file)) return next();
+        res.setHeader("content-type", "application/xml; charset=utf-8");
+        res.end(fs.readFileSync(file, "utf8").replaceAll("__LASTMOD__", stamp()));
+      });
+    },
+    closeBundle() {
+      const out = path.resolve(__dirname, "dist/sitemap.xml");
+      if (!fs.existsSync(out)) return;
+      const next = fs.readFileSync(out, "utf8").replaceAll("__LASTMOD__", stamp());
+      fs.writeFileSync(out, next);
+    },
+  };
+}
 
 const apiProxyTarget = process.env.API_PROXY_TARGET;
 
@@ -24,7 +60,7 @@ export default defineConfig(({ mode }) => ({
         }
       : {}),
   },
-  plugins: [tailwindcss(), react()],
+  plugins: [tailwindcss(), react(), sitemapLastmod()],
   // 生产构建剔除 console/debugger。必须放顶层 `esbuild`——Vite 不读
   // `build.esbuildOptions`，之前那份写在 build 里等于没生效。
   esbuild:
