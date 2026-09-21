@@ -64,15 +64,18 @@ describe('edgeone.json', () => {
       expect(admin['X-Robots-Tag']).toBe('noindex, nofollow');
     });
 
-    it('规则排在 /* 之前，且不与全站安全头冲突', () => {
-      const idxAdmin = config.headers.findIndex((h) => h.source === '/admin');
-      const idxGlobal = config.headers.findIndex((h) => h.source === '/*');
-      expect(idxAdmin, '缺少 /admin 规则').toBeGreaterThanOrEqual(0);
-      expect(idxAdmin, '/admin 规则应排在 /* 之前').toBeLessThan(idxGlobal);
-      // 全站安全头不能被这条替换掉
+    it('/admin 规则与 /* 安全头并存，互不替换', () => {
+      // 线上实测：EdgeOne 的 header 规则是**合并**而不是覆盖 ——
+      // /assets/* 的响应同时带着自己的 immutable 与 /* 的 CSP/nosniff。
+      // 所以 /admin 既能拿到 X-Robots-Tag，也不会丢掉全站安全头。
+      // （这条断言的意义是「别把 /* 上的安全头搬走」；顺序本身不是正确性前提。）
       const global = headerMapFor('/*');
       expect(global['X-Content-Type-Options']).toBe('nosniff');
       expect(global['Content-Security-Policy']).toContain("default-src 'self'");
+      const admin = headerMapFor('/admin');
+      expect(admin['X-Robots-Tag']).toBe('noindex, nofollow');
+      // /admin 自己不应重复声明安全头（那是 /* 的职责，重复声明迟早漂移）
+      expect(admin['Content-Security-Policy'], '/admin 不应重复声明 CSP').toBeUndefined();
     });
 
     it('所有规则都符合 EdgeOne 的字段约束', () => {
