@@ -40,7 +40,14 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg border-2 border-ink bg-white p-1.5 text-ink shadow-[2px_2px_0_0_var(--color-ink)] transition-transform motion-safe:hover:-translate-x-0.5 motion-safe:hover:-translate-y-0.5 disabled:pointer-events-none">
+      {/* aria-label 与 sr-only 文案双写：读屏的可访问名来自二者其一，
+          但相邻的图标按钮（灯箱的上/下一张）都走 aria-label —— 这里保持一致，
+          也避免将来 sr-only 文案被改动/裁剪时这个按钮变成无名的「X」。
+          图标本身 aria-hidden，不会与 aria-label 重复朗读。 */}
+      <DialogPrimitive.Close
+        aria-label="关闭"
+        className="absolute right-4 top-4 rounded-lg border-2 border-ink bg-white p-1.5 text-ink shadow-[2px_2px_0_0_var(--color-ink)] transition-transform motion-safe:hover:-translate-x-0.5 motion-safe:hover:-translate-y-0.5 disabled:pointer-events-none"
+      >
         <X className="h-4 w-4" aria-hidden="true" />
         <span className="sr-only">关闭</span>
       </DialogPrimitive.Close>
