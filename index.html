@@ -88,9 +88,17 @@
     }
     </script>
 
-    <!-- WAF / 防调试脚本：由 imgs CDN 托管，放 head 末尾尽早执行、又不阻塞上方
-         preconnect 与 meta 解析。带 disable-devtool-auto 走自动初始化。 -->
-    <script disable-devtool-auto src='https://imgs.paiii.cn/waf/gbts.js'></script>
+    <!-- WAF / 防调试脚本：由 imgs CDN 托管，带 disable-devtool-auto 走自动初始化。
+
+         必须 defer，不能同步放在 head：该脚本 17.6 KB 且响应头是 Cache-Control:
+         no-cache（每次都回源重取），同步执行会把 HTML 解析卡在这一个第三方请求上，
+         首屏渲染完全取决于 imgs 域名的响应速度 —— 它慢或挂，整站就白屏。
+
+         defer 对它也是语义上更正确的时机：脚本内部靠
+         `document.querySelector("[disable-devtool-auto]")` 找自己那个标签读配置，
+         defer 保证 HTML 解析完毕、元素必然已存在（同步 head 里反而是碰运气）。
+         已确认脚本不含 document.write / document.currentScript，可安全延迟。 -->
+    <script defer disable-devtool-auto src='https://imgs.paiii.cn/waf/gbts.js'></script>
   </head>
 
   <body>
