@@ -85,6 +85,16 @@ export default function GalleryBrowse() {
   const hasNextPage = Boolean(imagesQuery.hasNextPage);
   const fetchNextPage = imagesQuery.fetchNextPage;
 
+  // 筛选条件（标签/搜索词）一变就收起灯箱。
+  // 理由：`placeholderData: keepPreviousData` 会在切筛选的瞬间把旧一批结果
+  // 继续留在 `images` 里，此时旧索引仍「合法」，灯箱不会自动关。等新数据
+  // 一到，同一个索引就指向了完全不同的另一张图（甚至越界）——用户视角是
+  // 「切了个标签，大图莫名换了一张」。索引的语义只对当前这份结果集成立，
+  // 结果集换了，索引就该作废。
+  useEffect(() => {
+    setLightboxIndex(null);
+  }, [selectedTag, searchQuery]);
+
   // 灯箱索引越界处理。
   // 允许索引停在 `images.length` —— 那是「已请求、但下一页还没到达」的占位，
   // 等 fetchNextPage 回来后数据变长，索引自然落到新图上。只有当越界且确实
