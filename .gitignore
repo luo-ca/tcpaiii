@@ -51,3 +51,6 @@ vite.config.ts.timestamp-*.mjs
 .edgeone/*
 .tef_dist/*
   
+# 本地无头浏览器审计产物（CDP profile、DOM dump、截图）
+.cdp-*/
+/shots/

@@ -60,19 +60,19 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
             {/* 用 NavLink 而不是裸 <a href="#changelog">：页脚是全站共用的，
                 在 /docs 或 /gallery 上点它需要先回到首页再滚到对应区块。 */}
-            <NavLink to="/#changelog" className="hover:text-foreground transition-colors">
+            <NavLink to="/#changelog" className="inline-flex min-h-6 items-center rounded-md px-1 hover:text-foreground transition-colors">
               更新日志
             </NavLink>
-            <NavLink to="/gallery" className="hover:text-foreground transition-colors">
+            <NavLink to="/gallery" className="inline-flex min-h-6 items-center rounded-md px-1 hover:text-foreground transition-colors">
               图库
             </NavLink>
-            <NavLink to="/docs" className="hover:text-foreground transition-colors">
+            <NavLink to="/docs" className="inline-flex min-h-6 items-center rounded-md px-1 hover:text-foreground transition-colors">
               API 文档
             </NavLink>
             {/* 管理后台入口：低调放在页脚，不进顶栏、不进 sitemap，页面本身带 noindex */}
             <NavLink
               to="/admin"
-              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex min-h-6 items-center gap-1 rounded-md px-1 text-muted-foreground hover:text-foreground transition-colors"
             >
               <KeyRound className="w-2.5 h-2.5" aria-hidden />
               管理
@@ -81,7 +81,7 @@ export function Footer() {
               href="https://paiii.cn"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors inline-flex items-center gap-1"
+              className="inline-flex min-h-6 items-center gap-1 rounded-md px-1 hover:text-foreground transition-colors"
             >
               派立方社区
               <ExternalLink className="w-2.5 h-2.5" aria-hidden />
@@ -90,7 +90,7 @@ export function Footer() {
               href={appUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors inline-flex items-center gap-1"
+              className="inline-flex min-h-6 items-center gap-1 rounded-md px-1 hover:text-foreground transition-colors"
             >
               {APP_NAME}
               <ExternalLink className="w-2.5 h-2.5" aria-hidden />
@@ -99,7 +99,7 @@ export function Footer() {
               href="https://beian.miit.gov.cn/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
+              className="inline-flex min-h-6 items-center rounded-md px-1 hover:text-foreground transition-colors"
             >
               蜀ICP备2022012020号-4
             </a>
@@ -109,3 +109,5 @@ export function Footer() {
     </footer>
   );
 }
+
+
