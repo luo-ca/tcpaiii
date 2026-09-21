@@ -206,7 +206,11 @@ export default function GalleryPage() {
       return;
     }
 
-    goToPage(nextPage);
+    // 越界输入必须把夹取后的结果回写输入框：goToPage 内部会夹到 [1,totalPages]，
+    // 但输入框若停在用户敲的「999」，界面就自相矛盾（框里 999、实际在第 3 页）
+    const clamped = clampNumber(nextPage, 1, totalPages);
+    setPageJumpInput(String(clamped));
+    goToPage(clamped);
   };
 
   const clearFilters = () => {

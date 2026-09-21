@@ -6,6 +6,7 @@ import {
   CircleCheck,
   CircleX,
   Clock,
+  Copy,
   Gauge,
   RefreshCw,
   Server,
@@ -16,7 +17,7 @@ import { toast } from 'sonner';
 
 import type { HealthPayload } from '@/lib/types';
 import { fetchHealth, measureRandomLatency } from '@/lib/api';
-import { getErrorMessage } from '@/lib/helpers';
+import { copyText, getErrorMessage } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -72,6 +73,21 @@ const BANNER_TEXT: Record<Exclude<Overall['kind'], 'loading'>, { title: string; 
   degraded: { title: '部分降级', note: '接口在跑，但存储绑定不完整，读写可能受影响。' },
   down: { title: '服务不可用', note: '健康检查请求失败：可能网络中断或服务未部署。' },
 };
+
+/** 构建版本常是 buildId 这类长串，卡片里只露前 8 位，完整值留在摘要里。 */
+function shortBuildId(buildId: string): string {
+  return buildId.length > 12 ? `${buildId.slice(0, 8)}…` : buildId;
+}
+
+/** 降级时给出具体缺哪个绑定，而不是笼统的「存储绑定不完整」。 */
+function degradedNote(health: HealthPayload): string {
+  const missing: string[] = [];
+  if (!health.kv.imagesBound) missing.push('图库 (images)');
+  if (!health.kv.statsBound) missing.push('统计 (stats)');
+  return missing.length > 0
+    ? `接口在跑，但 ${missing.join(' 与 ')} 未绑定，读写可能受影响。`
+    : '接口在跑，但返回的健康标记异常。';
+}
 
 /**
  * 单个检查项：一行「图标 + 名称 + 状态」。状态色只作用在值上，容器保持中性墨线，
@@ -162,6 +178,28 @@ export default function StatusPage() {
   const BannerIcon = banner?.icon;
   const copy = overall.kind === 'loading' ? null : BANNER_TEXT[overall.kind];
 
+  /** 反馈问题用的一行摘要：总状态 + 关键字面值 + 可选延迟，够对方判断环境。 */
+  const handleCopySummary = useCallback(() => {
+    if (overall.kind === 'loading') return;
+    const lines: string[] = [
+      `派次元 API 状态：${BANNER_TEXT[overall.kind].title}`,
+    ];
+    if (overall.kind === 'down') {
+      lines.push('健康检查：不可达（/api/health 请求失败）');
+    } else {
+      lines.push(`健康检查：响应正常`);
+      lines.push(`运行时：${overall.health.runtime}`);
+      lines.push(`构建版本：${overall.health.buildId}`);
+      lines.push(
+        `KV 绑定：图库 ${overall.health.kv.imagesBound ? '已绑定' : '未绑定'} / 统计 ${overall.health.kv.statsBound ? '已绑定' : '未绑定'}`,
+      );
+      lines.push(`接口时间：${overall.health.timestamp}`);
+    }
+    if (latency !== null) lines.push(`调用延迟：${latency} ms`);
+    lines.push(`页面：${window.location.origin}`);
+    void copyText(lines.join('\n'), '状态摘要已复制');
+  }, [latency, overall]);
+
   return (
     <div className="relative z-10 mx-auto max-w-4xl px-4 pb-24 pt-[calc(var(--header-h)+32px)] sm:px-6 sm:pb-28">
       {/* Page Header */}
@@ -193,21 +231,35 @@ export default function StatusPage() {
           {BannerIcon && <BannerIcon className="h-7 w-7 shrink-0" aria-hidden="true" />}
           <div className="min-w-0">
             <p className="text-lg font-bold leading-tight">{copy?.title}</p>
-            <p className="text-sm opacity-80">{copy?.note}</p>
+            <p className="text-sm opacity-80">
+              {overall.kind === 'degraded' ? degradedNote(overall.health) : copy?.note}
+            </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-auto h-8 shrink-0 rounded-xl bg-white/70 text-xs"
-            onClick={() => void healthQuery.refetch()}
-            disabled={healthQuery.isFetching}
-          >
-            <RefreshCw
-              className={`mr-1.5 h-3.5 w-3.5 ${healthQuery.isFetching ? 'animate-spin' : ''}`}
-              aria-hidden="true"
-            />
-            重新检查
-          </Button>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {/* 反馈问题时一键带上环境信息，省掉「你那边什么版本/什么绑定」的来回 */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl bg-white/70 text-xs"
+              onClick={handleCopySummary}
+            >
+              <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+              复制摘要
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl bg-white/70 text-xs"
+              onClick={() => void healthQuery.refetch()}
+              disabled={healthQuery.isFetching}
+            >
+              <RefreshCw
+                className={`mr-1.5 h-3.5 w-3.5 ${healthQuery.isFetching ? 'animate-spin' : ''}`}
+                aria-hidden="true"
+              />
+              重新检查
+            </Button>
+          </div>
         </div>
       )}
 
@@ -227,7 +279,12 @@ export default function StatusPage() {
               <>
                 <CheckRow icon={Activity} label="健康检查" tone="ok" value="响应正常" />
                 <CheckRow icon={Server} label="运行时" tone="idle" value={overall.health.runtime} />
-                <CheckRow icon={Clock} label="构建版本" tone="idle" value={overall.health.buildId} />
+                <CheckRow
+                  icon={Clock}
+                  label="构建版本"
+                  tone="idle"
+                  value={shortBuildId(overall.health.buildId)}
+                />
               </>
             )}
           </CardContent>
@@ -263,7 +320,7 @@ export default function StatusPage() {
               <div className="min-w-0">
                 <h2 className="text-sm font-bold text-foreground">调用延迟自测</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  走你实际接入的方式请求一次 /api/random（含 302 跳转），测端到端响应头耗时。
+                  请求一次 /api/random，测边缘函数的首跳响应耗时（不跟随 302 跳转）。
                 </p>
               </div>
               <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs" onClick={() => void runLatencyTest()} disabled={latencyBusy}>

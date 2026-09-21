@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useQuery, keepPreviousData } from '@tanstack/react-query';
-import { Images, Loader2, Search, SearchX, Tag, X } from 'lucide-react';
+import { Images, Link2, Loader2, Search, SearchX, Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MasonryTile, SKELETON_RATIOS } from '@/components/ui/masonry-tile';
@@ -9,7 +9,7 @@ import { TagChip } from '@/components/ui/tag-chip';
 import type { PaginatedImages, Stats } from '@/lib/types';
 import { MAX_SEARCH_LENGTH } from '@/lib/constants';
 import { fetchImagesPage, statsQueryOptions } from '@/lib/api';
-import { getErrorMessage } from '@/lib/helpers';
+import { copyText, getErrorMessage } from '@/lib/helpers';
 import { readGalleryQuery, writeGalleryQuery } from '@/lib/url';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ErrorState } from '@/components/states/ErrorState';
@@ -119,6 +119,12 @@ export default function GalleryBrowse() {
     setSearchTerm('');
   };
 
+  // 筛选状态本就写进了地址栏（readGalleryQuery/writeGalleryQuery），
+  // 但用户不知道这条链接可以分享。直接把当前完整地址复制走。
+  const handleCopyShareLink = useCallback(() => {
+    void copyText(window.location.href, '筛选链接已复制，发给别人打开即是这个结果');
+  }, []);
+
   // 稳定引用：配合 MasonryTile 的 memo，搜索输入等无关渲染不会逐张重排瓦片
   const openTile = useCallback((index: number) => setLightboxIndex(index), []);
 
@@ -157,14 +163,24 @@ export default function GalleryBrowse() {
           </div>
           {/* 筛选生效时才出现：原先只能滚到空结果页里清筛选，筛选条件在地址栏里也看不见 */}
           {hasFilter && (
-            <Button
-              variant="ghost"
-              onClick={clearFilters}
-              className="h-10 shrink-0 rounded-xl px-3 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              清空筛选
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                onClick={handleCopyShareLink}
+                className="h-10 shrink-0 rounded-xl px-3 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Link2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                复制链接
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={clearFilters}
+                className="h-10 shrink-0 rounded-xl px-3 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                清空筛选
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -240,6 +256,16 @@ export default function GalleryBrowse() {
           </div>
 
           <div className="mt-8 flex flex-col items-center gap-3">
+            {/* 加载更多是纯视觉结果：读屏用户点完按钮，DOM 只是「多了几张瓦片」，
+                没有任何提示说明加载是否完成。用常驻 live region 播报状态变化
+                （按钮文案/到底提示本身不播报，因为焦点还在按钮上、不会重读）。 */}
+            <p className="sr-only" role="status" aria-live="polite">
+              {imagesQuery.isFetchingNextPage
+                ? '正在加载更多图片'
+                : imagesQuery.hasNextPage
+                  ? `已加载 ${images.length} 张，还有更多`
+                  : `已全部加载，共 ${images.length} 张`}
+            </p>
             {imagesQuery.hasNextPage ? (
               <Button
                 variant="outline"
