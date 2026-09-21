@@ -56,15 +56,25 @@ export function Changelog() {
         <p>展示站点与接口说明的调整记录（持续更新）</p>
       </div>
 
-      <div className="max-w-3xl mx-auto space-y-5">
+      {/* 时间轴改成「外层定位 + 绝对定位竖线」，而不是让每条的竖线自己 flex-1 撑满。
+          原先的写法每条各自画一段线，段与段之间留着 space-y-5(20px) + 圆点 mt-2(8px)
+          = 28px 的空档 —— 实测 sepBottom=4216 而下一个圆点 top=4244，
+          虚线在每条之间都断 28px，整条时间轴看起来是碎的。
+          现在竖线由外层容器统一铺满（top-2 bottom-2），整条只画一次
+          （条目多于一条时才需要）。与圆点同层，不再受单条卡片高度影响。 */}
+      <div className="relative max-w-3xl mx-auto">
+        {updates.length > 1 && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-2 left-[6px] top-2 w-px border-l-2 border-dashed border-ink/20"
+          />
+        )}
+        <div className="space-y-5">
         {updates.map((update, i) => (
           <div key={i} className="reveal flex gap-5">
-            {/* Timeline indicator */}
-            <div className="flex flex-col items-center shrink-0">
+            {/* 圆点：外层竖线已在同一 x 上，这里只负责节点本身 */}
+            <div className="flex shrink-0 flex-col items-center">
               <div className="mt-2 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-ink bg-brand-500 ring-4 ring-background" />
-              {i < updates.length - 1 && (
-                <div className="mt-2 flex-1 border-l-2 border-dashed border-ink/20" />
-              )}
             </div>
 
             <Card className="glass-card flex-1 rounded-2xl">
@@ -96,6 +106,7 @@ export function Changelog() {
             </Card>
           </div>
         ))}
+        </div>
       </div>
     </section>
   );
