@@ -65,11 +65,17 @@ export function RealtimeStats() {
         : '暂无数据',
     },
     {
-      label: '接入站点',
+      // 措辞必须与真正被统计的东西一致。totalSites 来自 getRequestSite()：
+      // 只认带 Origin / Referer 的**浏览器**请求，取 referrer 主机名去重，
+      // 且 sites 表最多记 MAX_TRACKED_SITES(500) 条 —— 服务端/代理调用方
+      // 根本不会被计入。所以它不是「使用本 API 的网站总数」，
+      // 说成「接入站点/使用本 API 的网站」会高估：一旦超过 500 个来源，
+      // 这个数字就不再增长，而文案还宣称是总数。
+      label: '来源站点',
       value: formatNumber(stats?.totalSites ?? 0),
       icon: Globe,
       tile: 'bg-brand-500',
-      sub: '使用本 API 的网站',
+      sub: '带来源头的浏览器请求',
     },
     {
       label: '图片总数',
