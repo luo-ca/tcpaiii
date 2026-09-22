@@ -43,6 +43,22 @@ describe("源码不得混入不可见/同形字符", () => {
     .concat(walk(resolve(process.cwd(), "edge-functions-src")))
     .filter((file) => resolve(file) !== SELF);
 
+  /**
+   * 除了源码，还要盯住**真正发出去的东西**：
+   *   · index.html / edgeone.json —— 入口与部署配置
+   *   · public/*                —— 会被原样拷进 dist 的静态文件
+   *   · edge-functions/*        —— 编译产物，直接跑在边缘
+   * 这些是用户/爬虫实际拿到手的字节。源码干净但产物脏，等于白扫。
+   */
+  const shipped = [
+    "index.html",
+    "edgeone.json",
+    resolve(process.cwd(), "public/sitemap.xml"),
+    resolve(process.cwd(), "public/robots.txt"),
+    ...walk(resolve(process.cwd(), "edge-functions")),
+    ...walk(resolve(process.cwd(), "public")),
+  ].map((f) => resolve(f));
+
   it("src 与 edge-functions-src 下没有零宽字符或西里尔字母", () => {
     const offenders: string[] = [];
     for (const file of files) {
@@ -57,5 +73,23 @@ describe("源码不得混入不可见/同形字符", () => {
       offenders,
       "含零宽字符/西里尔同形字 —— 通常是复制了终端显示结果，肉眼不可见但会破坏类名匹配",
     ).toEqual([]);
+  });
+
+  it("入口文件与部署产物同样干净", () => {
+    const offenders: string[] = [];
+    for (const file of shipped) {
+      let text: string;
+      try {
+        text = readFileSync(file, "utf8");
+      } catch {
+        continue; // 产物可能还没构建
+      }
+      text.split("\n").forEach((line, index) => {
+        if (ZERO_WIDTH.test(line) || CYRILLIC.test(line)) {
+          offenders.push(`${file.replace(/\\/g, "/")}:${index + 1}`);
+        }
+      });
+    }
+    expect(offenders, "发布产物含不可见/同形字符").toEqual([]);
   });
 });
