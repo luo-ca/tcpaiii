@@ -99,12 +99,43 @@ export async function fetchImagesPage(params: {
 
   // List queries are idempotent and paginated: skip the `_t` cache-buster so
   // edge/CDN caching can work. Freshness is handled by react-query instead.
-  return apiRequest<PaginatedImages>(
+  const body = await apiRequest<PaginatedImages | ImageRecord[]>(
     `/api/list?${query.toString()}`,
     undefined,
     '获取图片列表失败',
     { bustCache: false },
   );
+
+  // 归一化响应形状。契约上分页请求返回 { items, ... }，但 /api/list 还有
+  // 「无参数时返回旧版裸数组」这条历史分支（同文件的 fetchExistingImageUrlSet
+  // 就同时兼容两种形状）。图库页却直接 .flatMap(page => page.items)：
+  // 一旦拿到不是 { items: [...] } 的东西（裸数组、items 缺失或非数组），
+  // flatMap 会产出 undefined 项 —— 它不抛错，而是产出 [undefined]：
+  // images.length 不为 0，isEmpty 判不出来，于是照常渲染网格，
+  // MasonryTile 读 image.url 时崩，整页落到错误边界而不是干净的空态。
+  // 在边界处收口，调用方不必各写一套防御。
+  if (Array.isArray(body)) {
+    return {
+      items: body,
+      page: params.page,
+      pageSize: params.pageSize,
+      total: body.length,
+      totalPages: 1,
+      hasPrevPage: false,
+      hasNextPage: false,
+    };
+  }
+
+  const items = Array.isArray(body?.items) ? body.items : [];
+  return {
+    items,
+    page: typeof body?.page === 'number' ? body.page : params.page,
+    pageSize: typeof body?.pageSize === 'number' ? body.pageSize : params.pageSize,
+    total: typeof body?.total === 'number' ? body.total : items.length,
+    totalPages: typeof body?.totalPages === 'number' ? body.totalPages : 1,
+    hasPrevPage: Boolean(body?.hasPrevPage),
+    hasNextPage: Boolean(body?.hasNextPage),
+  };
 }
 
 /**
