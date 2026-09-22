@@ -206,6 +206,45 @@ export async function deleteImage(id: string, adminToken: string): Promise<void>
   );
 }
 
+/**
+ * 批量接口的结果归一化。
+ *
+ * 调用方（add-image-dialog / batch-update-tags-dialog）直接读
+ *   result.success / result.failed / result.results.filter(...)
+ * 而原来的 Promise<{...}> 只是**类型注解**，运行时并不校验：
+ * apiRequest 返回什么就是什么。一旦响应体缺 results（或它不是数组），
+ * .filter 会抛 'Cannot read properties of undefined (reading filter)'，
+ * 被 catch 之后经 getErrorMessage 原样弹给管理员 —— 一句与真实情况
+ * 无关的英文 TypeError，而不是「服务端返回异常，请重试」。
+ *
+ * 这里在边界收口：形状不对就抛一条人能看懂的错误。
+ */
+function normalizeBatchResult<T extends { success: boolean }>(
+  body: unknown,
+  fallbackMessage: string,
+): { total: number; success: number; failed: number; results: T[] } {
+  const raw = (body ?? {}) as {
+    total?: unknown;
+    success?: unknown;
+    failed?: unknown;
+    results?: unknown;
+  };
+  // 真正无法使用的情形：results 不是数组。这时调用方的 .filter 必炸，
+  // 与其让它抛一句英文 TypeError，不如在这里给出明确的失败信息。
+  if (!Array.isArray(raw.results)) {
+    throw new Error(`${fallbackMessage}：服务端返回的结果格式异常`);
+  }
+  const results = raw.results as T[];
+  const num = (value: unknown, fallback: number) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+  const success = num(raw.success, results.filter((item) => item?.success).length);
+  return {
+    total: num(raw.total, results.length),
+    success,
+    failed: num(raw.failed, Math.max(0, results.length - success)),
+    results,
+  };
+}
 export async function batchCreateImages(
   images: Array<{ url: string; title: string; tags: string[] }>,
   adminToken: string,
@@ -215,11 +254,12 @@ export async function batchCreateImages(
   failed: number;
   results: Array<{ success: boolean; url: string; id?: string; error?: string }>;
 }> {
-  return apiRequest(
+  const body = await apiRequest<unknown>(
     '/api/batch',
     { method: 'POST', headers: getAdminHeaders(adminToken), body: JSON.stringify({ images }) },
     '批量添加图片失败',
   );
+  return normalizeBatchResult(body, '批量添加图片失败');
 }
 
 /**
@@ -235,9 +275,10 @@ export async function batchUpdateImageTags(
   failed: number;
   results: Array<{ success: boolean; id: string; tags?: string[]; error?: string }>;
 }> {
-  return apiRequest(
+  const body = await apiRequest<unknown>(
     '/api/batch-update',
     { method: 'POST', headers: getAdminHeaders(adminToken), body: JSON.stringify(data) },
     '批量修改标签失败',
   );
+  return normalizeBatchResult(body, '批量修改标签失败');
 }
