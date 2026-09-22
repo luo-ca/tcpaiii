@@ -740,6 +740,32 @@ describe("functions api", () => {
     });
   });
 
+  it("重复 id 的损坏数据不会让 /api/random 变成持续 500", async () => {
+    // 正常路径下 id 由 crypto.randomUUID 生成，不会重复。
+    // 但存储被手工改过 / 数据损坏时可能出现重复 id：此时若 exclude 恰好
+    // 覆盖全部候选，pool 会过滤成空数组，pool[NaN] 是 undefined，
+    // 紧接着的 selected.id 抛异常 -> 该 tag 永久 500。
+    // 存储属于信任边界之外，这里必须自己兜住。
+    const dup = {
+      id: "img-duplicate",
+      url: "https://cdn.example.test/dup.jpg",
+      title: "重复 id",
+      tags: ["broken"],
+      createdAt: "2026-01-01T00:00:00.000Z",
+    };
+    store.images.set("all", JSON.stringify([dup, { ...dup }]));
+
+    // 不排除任何 id：正常返回
+    const okRes = await request("/api/random?tag=broken&format=json");
+    expect(okRes.status).toBe(200);
+
+    // 排除掉这个（重复的）id：过滤后为空，必须回退而不是 500
+    const res = await request("/api/random?tag=broken&format=json&exclude=img-duplicate");
+    expect(res.status, "空池未兜底：selected 为 undefined 会抛异常").toBe(200);
+    const body = (await json(res)) as { id: string };
+    expect(body.id).toBe("img-duplicate");
+  });
+
   it("serves stats from stored metadata without reading the full image list", async () => {
     store.images.set("meta", JSON.stringify({
       totalImages: 3,
