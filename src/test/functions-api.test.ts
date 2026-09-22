@@ -10,6 +10,8 @@ type TestKv = {
 };
 
 const store: Store = {};
+/** 记录每次 KV put 的目标，用于断言「有没有发生写」 */
+const putLog: string[] = [];
 const ADMIN_TOKEN = "test-admin-token";
 
 class MockEdgeKV {
@@ -29,6 +31,7 @@ class MockEdgeKV {
       throw new Error("MockEdgeKV only supports string values");
     }
 
+    putLog.push(`${this.namespace}:${key}`);
     store[this.namespace].set(key, value);
     return Promise.resolve();
   }
@@ -90,6 +93,7 @@ describe("functions api", () => {
     // 用例在**单独运行**时会炸在 undefined.set 上（全量跑却因为前面的用例
     // 恰好建过该命名空间而通过）—— 这种「只有并发/全量跑才对」的测试
     // 既没法单独调试，失败信息也指向错的地方。
+    putLog.length = 0;
     store.images ??= new Map();
     store.stats ??= new Map();
     for (const namespace of Object.keys(store)) {
@@ -929,6 +933,30 @@ describe("functions api", () => {
     const stored = list.items.filter((item) => item.url === dup);
     expect(stored, "同一批里的重复 URL 被写入了多次").toHaveLength(1);
   });
+
+  it("全部失败的批量导入不写库（不做无谓的全量重写）", async () => {
+    // handleBatchCreateImages 原先无条件 await saveAllImages(...)，
+    // 而 saveAllImages 每次都是两次 KV put（all + meta）并重建整份 meta。
+    // 全是非法 URL 时一条都不会入 images，却照样重写整个图库。
+    // 对照 handleBatchUpdateImageTags —— 那边有 `if (successCount > 0)` 守卫。
+    //
+    // 注意：不能靠比较 store.images.get('all') 的前后「值」来判断有没有写 ——
+    // 全失败时 payload 恰好不变（都是空的），两次 JSON.stringify 得到的是
+    // 内容相同的字符串，toBe 照样通过，会给出「没写」的假结论。
+    // 必须直接数 KV 的 put 次数。
+    const response = await request("/api/batch", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        images: ["not-a-url", "ftp://bad.example/x", "  "].map((url) => ({ url })),
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    await expect(json(response)).resolves.toMatchObject({ total: 3, success: 0, failed: 3 });
+    expect(putLog, "全部失败却仍然写了 KV").toEqual([]);
+  });
+
 
   it("allows larger batch imports up to 500 images", async () => {
     const images = Array.from({ length: 51 }, (_, index) => ({

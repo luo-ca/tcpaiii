@@ -192,8 +192,14 @@ export async function handleBatchCreateImages(request, runtimeEnv) {
             existingUrls.add(trimmedUrl);
             results.push({ success: true, url: trimmedUrl, id: newImage.id });
         }
-        await saveAllImages(images, runtimeEnv);
         const successCount = results.filter(r => r.success).length;
+        // 一条都没进去就别写：saveAllImages 每次是两次 KV put（all + meta）
+        // 并重建整份 meta。全部失败时 images 原样未变，写下去纯属重写整个
+        // 图库 —— 与 handleBatchUpdateImageTags 的 successCount > 0 守卫
+        // 保持同一形状。
+        if (successCount > 0) {
+            await saveAllImages(images, runtimeEnv);
+        }
         return json({
             total: batchItems.length,
             success: successCount,
