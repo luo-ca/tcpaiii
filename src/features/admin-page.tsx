@@ -313,6 +313,17 @@ export default function GalleryPage() {
   if (imagesQuery.isError) {
     return (
       <div className="relative z-10 max-w-6xl mx-auto px-4 pt-[calc(var(--header-h)+32px)] pb-28 sm:px-6">
+        {/* 出错了也要保留页头。原先这里直接 return 一张错误卡，
+            把「管理后台 / 图片管理」连同页面身份一起丢掉 ——
+            用户看到一张孤零零的报错卡，不知道自己在哪一页。
+            图库页（gallery-browse）的错误态就保留了 h1，这里对齐。 */}
+        <div className="mb-7">
+          <p className="section-eyebrow">
+            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+            管理后台
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">图片管理</h1>
+        </div>
         <ErrorState
           title="图库加载失败"
           message={getErrorMessage(imagesQuery.error, '请稍后重试')}
