@@ -84,6 +84,14 @@ async function json(response: Response) {
 
 describe("functions api", () => {
   beforeEach(() => {
+    // 保证 images / stats 两个命名空间一定存在。
+    // 只清空 Object.keys(store) 是不够的：store 初始是 {}，命名空间由
+    // MockEdgeKV 构造时才惰性创建，于是「直接往 store.images 里塞数据」的
+    // 用例在**单独运行**时会炸在 undefined.set 上（全量跑却因为前面的用例
+    // 恰好建过该命名空间而通过）—— 这种「只有并发/全量跑才对」的测试
+    // 既没法单独调试，失败信息也指向错的地方。
+    store.images ??= new Map();
+    store.stats ??= new Map();
     for (const namespace of Object.keys(store)) {
       store[namespace].clear();
     }
