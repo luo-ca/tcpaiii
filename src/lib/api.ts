@@ -85,7 +85,33 @@ export async function measureRandomLatency(): Promise<number> {
 export async function fetchStats(): Promise<Stats> {
   // 不带 `_t`、不发 no-store：让边缘的 s-maxage=10 生效，
   // 全站 15s 一次的轮询就不用每次都回源打 KV
-  return apiRequest<Stats>('/api/stats', undefined, '获取统计数据失败', { bustCache: false });
+  const body = await apiRequest<Partial<Stats>>(
+    '/api/stats',
+    undefined,
+    '获取统计数据失败',
+    { bustCache: false },
+  );
+
+  // 归一化：/api/stats 有 5 个消费者（Hero / OnlinePreview / RealtimeStats /
+  // gallery-browse / admin），都直接读 tags 与几个计数字段。
+  // 其中 stats?.tags?.map(...) 只挡得住 null/undefined，挡不住类型不对：
+  // tags 若是字符串，?.map 会抛 'stats?.tags?.map is not a function'；
+  // stats?.tags ?? [] 同样会把字符串原样放行（长度是字符数，map 时才炸）。
+  // 后端目前有 sanitizeImagesMeta 兜底，但前端与这个接口的契约一直没校验；
+  // 在边界收口，5 个消费者就不必各自防御。
+  const tags = Array.isArray(body?.tags) ? body.tags : [];
+  const daily = (body?.dailyRequests ?? {}) as Record<string, number>;
+  const num = (value: unknown, fallback = 0) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+  return {
+    totalRequests: num(body?.totalRequests),
+    todayRequests: num(body?.todayRequests),
+    totalImages: num(body?.totalImages),
+    totalSites: num(body?.totalSites),
+    lastRequestAt: typeof body?.lastRequestAt === 'string' ? body.lastRequestAt : null,
+    tags,
+    dailyRequests: daily,
+  };
 }
 
 /**
