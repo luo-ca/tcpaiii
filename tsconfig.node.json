@@ -5,6 +5,13 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "allowJs": true,
+    /*
+     * 只写 allowJs 是把 .mjs **纳入程序**，但不会对它做类型检查 ——
+     * 实测：在 check-api.mjs 里引用一个不存在的变量，tsc 依然一声不吭。
+     * 要真正检查必须开 checkJs。这里只覆盖 scripts（见 include），
+     * 不会波及其他 JS。
+     */
+    "checkJs": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -19,5 +26,11 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts"]
+  /*
+   * scripts/*.mjs 也要纳入类型/语法检查。
+   * check-api.mjs 是**部署之后**人工跑的 API 冒烟检查（npm run check:api），
+   * 原先不在任何 tsconfig 的 include 里 —— 一旦改坏（语法错、引用不存在的
+   * 变量），要等到部署完、真去跑验收时才炸，那是最不该出错的时刻。
+   */
+  "include": ["vite.config.ts", "scripts/**/*.mjs"]
 }

@@ -1,9 +1,15 @@
 const BASE_URL = process.env.API_BASE_URL ?? 'https://t.paiii.cn';
 
+/** @param {string} message */
 function fail(message) {
   throw new Error(message);
 }
 
+/**
+ * @param {Response} response
+ * @param {string} body
+ * @param {string} label
+ */
 function assertJsonResponse(response, body, label) {
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.toLowerCase().includes('application/json')) {
@@ -15,12 +21,20 @@ function assertJsonResponse(response, body, label) {
   }
 }
 
+/**
+ * @param {string} path
+ * @param {RequestInit} [init]
+ */
 async function fetchText(path, init) {
   const response = await fetch(`${BASE_URL}${path}`, init);
   const body = await response.text();
   return { response, body };
 }
 
+/**
+ * @param {string} path
+ * @param {string} label
+ */
 async function expectJson(path, label) {
   const { response, body } = await fetchText(path);
   console.log(`${label}: ${response.status} ${response.headers.get('content-type') ?? ''}`);
@@ -30,6 +44,10 @@ async function expectJson(path, label) {
   return JSON.parse(body);
 }
 
+/**
+ * @param {string} path
+ * @param {string} label
+ */
 async function expectRedirect(path, label) {
   const response = await fetch(`${BASE_URL}${path}`, { redirect: 'manual' });
   const location = response.headers.get('location');
