@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Search,
   KeyRound,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -59,6 +61,9 @@ export default function GalleryPage() {
   const [pageJumpInput, setPageJumpInput] = useState('1');
   const [adminToken, setAdminToken] = useState('');
   const [adminAuthStatus, setAdminAuthStatus] = useState<AdminAuthStatus>('empty');
+  // 管理密钥默认遮蔽：它是长串、又没有第二次机会肉眼核对（校验要打一次网络）。
+  // 给一个显隐开关，输错时能立刻看出来，不必靠「校验」往返一次才知道自己敲错了。
+  const [showAdminToken, setShowAdminToken] = useState(false);
   // 批量标签的选择模式：勾选跨页保留（ids 与当前筛选无关），
   // 但筛选/翻页条件变化时清空，避免用户对着另一批图提交上一批的选择
   const [selectMode, setSelectMode] = useState(false);
@@ -352,15 +357,31 @@ export default function GalleryPage() {
                 </div>
                 管理密钥
               </Label>
-              <Input
-                id="admin-token"
-                type="password"
-                value={adminToken}
-                onChange={(event) => handleAdminTokenChange(event.target.value)}
-                placeholder="输入管理密钥后才能添加、编辑、删除"
-                className="rounded-lg"
-                autoComplete="off"
-              />
+              <div className="relative">
+                <Input
+                  id="admin-token"
+                  type={showAdminToken ? 'text' : 'password'}
+                  value={adminToken}
+                  onChange={(event) => handleAdminTokenChange(event.target.value)}
+                  placeholder="输入管理密钥后才能添加、编辑、删除"
+                  className="rounded-lg pr-10"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminToken((v) => !v)}
+                  aria-label={showAdminToken ? '隐藏管理密钥' : '显示管理密钥'}
+                  aria-pressed={showAdminToken}
+                  title={showAdminToken ? '隐藏管理密钥' : '显示管理密钥'}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  {showAdminToken ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge
