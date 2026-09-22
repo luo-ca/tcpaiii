@@ -123,7 +123,7 @@ export function BatchUpdateTagsDialog({
             {conflictingTags.length > 0 && (
               // 服务端是「先删后加」，同名标签最终会留下 —— 与用户在删除框里的意图相反。
               // 只在 toast 里说一次不够（那是提交时才拦），这里给一个常驻的可见提示。
-              <p role="alert" className="text-xs font-medium text-dеs​t​r​u​с​t​i​v​е-ink">
+              <p role="alert" className="text-xs font-medium text-destructive-ink">
                 「{conflictingTags.join('、')}」同时出现在两个框里。请只保留一处 ——
                 服务端先删后加，同名标签最终会保留。
               </p>
