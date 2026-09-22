@@ -1,0 +1,28 @@
+#!/bin/sh
+# 提交前门禁：类型检查 + 测试。
+#
+# 为什么需要它：本仓库既没有 CI（无 .github/workflows），也没有 husky ——
+# package.json 里的 lint / typecheck / test 全靠**有人记得手动跑**。
+# 实测后果：`tsc` 报了两个月都没人看见（因为 build 用 vite/esbuild 只转译、
+# eslint 未开 type-aware、vitest 也只转译），两个类型错误就这样一直躺在仓库里。
+#
+# 这里只跑「快且能挡住真问题」的两项：
+#   · typecheck —— 秒级，专挡上面那类没人看得见的类型错误
+#   · test      —— 全量用例，2~4 秒
+# lint 与 build 更慢，留给显式调用 npm run check。
+#
+# 需要跳过时（例如赶时间）：SKIP_PRECOMMIT=1 git commit ...
+set -e
+
+if [ "${SKIP_PRECOMMIT:-}" = "1" ]; then
+  echo "[pre-commit] SKIP_PRECOMMIT=1，跳过门禁"
+  exit 0
+fi
+
+echo "[pre-commit] typecheck..."
+npm run --silent typecheck
+
+echo "[pre-commit] test..."
+npm run --silent test -- --run
+
+echo "[pre-commit] 通过"
