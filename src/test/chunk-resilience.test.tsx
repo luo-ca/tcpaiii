@@ -33,14 +33,23 @@ function makeChunkError(message = CHUNK_MSG) {
   return new Error(message);
 }
 
-function stubWindow(sessionStorage?: Record<string, string> & { throwOnGet?: boolean }) {
+/**
+ * 伪造 window.sessionStorage。
+ *
+ * 参数类型原先写成 `Record<string, string> & { throwOnGet?: boolean }`：
+ * 那个索引签名要求**每一个**属性的值都是 string，于是 throwOnGet: true
+ * （布尔）永远无法赋给它 —— 交叉类型里的 boolean 被索引签名否掉了。
+ * tsc 一直在报 TS2345，只是 lint / test / build 都不跑 tsc，所以谁也没发现。
+ * 改成显式列出 seed（预置键值）与 throwOnGet（模拟沙箱抛错）两块。
+ */
+function stubWindow(options?: { seed?: Record<string, string>; throwOnGet?: boolean }) {
   const reload = vi.fn();
   const store = new Map<string, string>();
   const fake: Record<string, unknown> = {
     location: { reload },
     sessionStorage: {
       getItem: (key: string) => {
-        if (sessionStorage?.throwOnGet) throw new Error("SecurityError");
+        if (options?.throwOnGet) throw new Error("SecurityError");
         return store.get(key) ?? null;
       },
       setItem: (key: string, value: string) => void store.set(key, String(value)),

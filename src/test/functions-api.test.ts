@@ -1085,6 +1085,9 @@ describe("functions api", () => {
     const stored = await request("/api/list");
     const images = (await stored.json()) as Array<{ id: string; tags: string[] }>;
     expect(images).toHaveLength(1);
+    // 用 create 返回的 id 断言，而不是「images[0]」这种位置假设 ——
+    // 顺带把原先声明了却没使用的 created 用起来（tsc 一直在报 TS6133）。
+    expect(images[0].id).toBe((created as { id: string }).id);
     expect(images[0].tags).toEqual(["keep"]);
     expect((await json(await request("/api/stats"))).tags).toEqual(["keep"]);
   });
