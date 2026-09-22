@@ -30,6 +30,11 @@ function CodeRow({
         size="sm"
         className="h-7 shrink-0 justify-center card-button gap-1"
         onClick={onCopy}
+        // 可见文字一律是「复制」，而这一屏有 6 个这样的按钮：读屏用户
+        // 逐个 Tab 过去只会听到「复制、复制、复制…」，分不清复制的是哪一段。
+        // 用行自身的 label 补一个能区分的可访问名（label 可能没有，
+        // 这时退回用代码片段本身做区分）。
+        aria-label={label ? `复制：${label}` : `复制代码：${code}`}
       >
         <CopyIcon className="w-3 h-3" aria-hidden="true" />
         <span className="text-xs">复制</span>

@@ -1,0 +1,50 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+
+/**
+ * 文档页每一行的「复制」按钮必须有能区分的可访问名。
+ *
+ * 背景：CodeRow 的按钮可见文字一律是「复制」，而这一屏有 6 个这样的按钮。
+ * 读屏用户逐个 Tab 过去只会听到「复制、复制、复制…」，分不清当前聚焦的是
+ * 哪一段（302 地址？HTML 示例？JSON 示例？）。视觉用户靠位置和上下文能分辨，
+ * 读屏用户不能 —— 这是纯无障碍缺陷，视觉上看不出来。
+ *
+ * 修法：按行给 aria-label —— 有 label 就用它，没有则退回用代码片段本身
+ * （文档页的 code 分别是 randomTagApiUrl / randomExcludeApiUrl /
+ * randomJsonApiUrl 等，足以区分）。
+ */
+
+const src = readFileSync(
+  resolve(process.cwd(), "src/components/sections/ApiDocsSection.tsx"),
+  "utf8",
+);
+
+describe("文档页复制按钮 · 可访问名可区分", () => {
+  it("按钮带 aria-label，且用了 label/code 做区分", () => {
+    const i = src.indexOf("aria-label={label ?");
+    expect(i, "缺少按行区分的 aria-label").toBeGreaterThan(0);
+    const around = src.slice(Math.max(0, i - 40), i + 120);
+    expect(around).toContain("label");
+    expect(around, "无 label 的行要退回用 code 区分").toContain("code");
+  });
+
+  it("可见文字仍是「复制」（没有为了无障碍改掉文案）", () => {
+    expect(src).toContain('<span className="text-xs">复制</span>');
+  });
+
+  it("图标 aria-hidden，名字只由 aria-label 提供，避免重复朗读", () => {
+    const i = src.indexOf("aria-label={label ?");
+    const around = src.slice(i, i + 320);
+    expect(around).toContain('aria-hidden="true"');
+  });
+
+  it("多处 CodeRow 时不会退化成同一个名字（静态检查：行数 > 1）", () => {
+    const rows = (src.match(/<CodeRow/g) ?? []).length;
+    expect(rows, "若只剩一行，这条断言就没意义了").toBeGreaterThan(1);
+    // 且确实存在带 label 与不带 label 两种情况 —— aria-label 的两个分支都要覆盖
+    const withLabel = (src.match(/<CodeRow[\s\S]*?label="/g) ?? []).length;
+    expect(withLabel, "应有带 label 的行").toBeGreaterThan(0);
+    expect(withLabel, "也应有不带 label 的行（走 code 分支）").toBeLessThan(rows);
+  });
+});
