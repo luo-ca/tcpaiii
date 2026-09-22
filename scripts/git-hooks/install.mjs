@@ -36,8 +36,10 @@ const srcDir = join(repoRoot, "scripts", "git-hooks");
 const dstDir = gitHooksDir();
 
 if (!existsSync(dstDir)) {
-  console.error(`找不到 hooks 目录：${dstDir}（这里不是 git 仓库？）`);
-  process.exit(1);
+  // prepare 会在 npm install 时自动跑，而 CI / 打包产物里可能没有 .git。
+  // 那种环境下装不了钩子属于正常，不该让整个安装失败。
+  console.log(`跳过：找不到 hooks 目录 ${dstDir}（不是 git 工作区？）`);
+  process.exit(0);
 }
 
 const installed = [];
