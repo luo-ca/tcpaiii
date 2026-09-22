@@ -30,7 +30,29 @@ export async function fetchRandomImage(tag?: string, exclude?: string): Promise<
 export async function fetchHealth(): Promise<HealthPayload> {
   // no-store 破缓：状态页的本职就是「现在、此刻真的可用吗」，
   // 拿 5 分钟前的边缘缓存自证等于没测
-  return apiRequest<HealthPayload>('/api/health', undefined, '健康检查失败');
+  const body = await apiRequest<Partial<HealthPayload>>(
+    '/api/health',
+    undefined,
+    '健康检查失败',
+  );
+
+  // 归一化 kv。状态页在**渲染期**调 deriveOverall()，里面直接读
+  // health.kv.imagesBound —— 一旦响应缺 kv（或 kv 为 null），
+  // 那里会抛 'Cannot read properties of undefined (reading imagesBound)'，
+  // 整页崩掉。状态页恰恰是「服务挂了时用户来看」的页面，
+  // 它自己崩掉是最糟的结果。缺字段时按「未绑定」处理，
+  // 页面会显示降级/不可用，而不是白屏。
+  const kv = (body?.kv ?? {}) as HealthPayload['kv'];
+  return {
+    ok: Boolean(body?.ok),
+    runtime: body?.runtime ?? 'unknown',
+    buildId: body?.buildId ?? '',
+    timestamp: body?.timestamp ?? new Date().toISOString(),
+    kv: {
+      imagesBound: Boolean(kv?.imagesBound),
+      statsBound: Boolean(kv?.statsBound),
+    },
+  };
 }
 
 /**
