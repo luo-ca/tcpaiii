@@ -5,6 +5,7 @@ import { TrendingUp, Clock, Globe, Layers, BarChart3 } from 'lucide-react';
 import type { Stats } from '@/lib/types';
 import { statsQueryOptions } from '@/lib/api';
 import { formatShortDate, formatNumber } from '@/lib/helpers';
+import { STATS_TIME_ZONE } from '@/lib/constants';
 
 export function RealtimeStats() {
   const { data: stats, isError } = useQuery<Stats>(statsQueryOptions());
@@ -60,8 +61,16 @@ export function RealtimeStats() {
       value: formatNumber(stats?.todayRequests ?? 0),
       icon: Clock,
       tile: 'bg-iris-500',
+      // 这一格挂在「今日调用」下面，而「今日」是服务端按 Asia/Shanghai
+      // 分桶的（getStatsDateKey 用 STATS_TIME_ZONE）。若这里用浏览器本地时区
+      // 渲染，UTC 以西的访客会看到「今日调用 61 · 2026/9/21」——
+      // 日期与它所属的「今日」自相矛盾。实测 America/Los_Angeles 与
+      // Pacific/Honolulu 都会倒退回前一天。
+      // 所以显式钉到同一个时区，让这一格始终是「这个桶对应的那天」。
       sub: stats?.lastRequestAt
-        ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN')
+        ? new Date(stats.lastRequestAt).toLocaleDateString('zh-CN', {
+            timeZone: STATS_TIME_ZONE,
+          })
         : '暂无数据',
     },
     {

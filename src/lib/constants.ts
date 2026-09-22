@@ -36,6 +36,14 @@ export const MAX_TAGS_PER_IMAGE = 20;
 export const MAX_IMAGE_URL_LENGTH = 2048;
 /** 搜索词长度上限：后端进全列表扫描前截到 100，输入框同值封顶。 */
 export const MAX_SEARCH_LENGTH = 100;
+
+/**
+ * 统计口径时区。必须与后端 edge-functions-src/lib/types.ts 的
+ * STATS_TIME_ZONE 保持一致 —— 服务端按它给 dailyRequests 分桶，
+ * 前端任何「把某天显示给人看」的地方也要按它渲染，否则会出现
+ * 「今日调用 61 · 2026/9/21」这种日期与标签互相打架的显示。
+ */
+export const STATS_TIME_ZONE = 'Asia/Shanghai';
 export const GALLERY_PAGE_SIZE = 24;
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 
