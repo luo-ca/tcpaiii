@@ -168,8 +168,21 @@ export default function GalleryBrowse() {
               maxLength={MAX_SEARCH_LENGTH}
               placeholder="搜索标题…"
               aria-label="搜索图片标题"
-              className="h-10 rounded-xl pl-9"
+              className={`h-10 rounded-xl pl-9 ${searchTerm ? 'pr-9' : ''}`}
             />
+            {/* 只清搜索词的按钮。原先想清掉搜索词，要么手动退格，要么点「清空筛选」——
+                后者会把标签也一起清掉，等于要用户放弃另一半筛选条件。 */}
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                aria-label="清除搜索词"
+                title="清除搜索词"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            )}
           </div>
           {/* 筛选生效时才出现：原先只能滚到空结果页里清筛选，筛选条件在地址栏里也看不见 */}
           {hasFilter && (
