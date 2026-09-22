@@ -16,7 +16,7 @@ import {
   MAX_TAGS_PER_IMAGE,
 } from '@/lib/constants';
 import { fetchExistingImageUrlSet, createImage, batchCreateImages } from '@/lib/api';
-import { getErrorMessage, parseTagsInput, parseBatchUrls } from '@/lib/helpers';
+import { getErrorMessage, parseTagsInput, parseBatchUrls, canonicalizeImageUrl } from '@/lib/helpers';
 
 // ============================================================
 // Add Image Dialog
@@ -126,6 +126,16 @@ export function AddImageDialog({
         adminToken,
       );
       setProgress({ current: result.success, total: cleanUrls.length });
+      // 成功的那几条要从输入框里去掉。部分失败时弹窗会留在原地（见下），
+      // 而 textarea 里仍是原封不动的一整批 —— 用户顺手再点一次「导入」，
+      // 刚加成功的那些会被后端判为 'URL already exists'，
+      // 于是一屏红字报错，报的却全是已经成功的工作。
+      const succeededUrls = new Set(
+        result.results
+          .filter((item) => item.success)
+          .map((item) => canonicalizeImageUrl(item.url))
+          .filter((url): url is string => Boolean(url)),
+      );
       const failures = result.results
         .filter((item) => !item.success)
         .map((item) => ({ url: item.url, error: item.error }));
@@ -137,6 +147,24 @@ export function AddImageDialog({
         );
         if (result.failed === 0) {
           setOpen(false);
+        } else if (succeededUrls.size > 0) {
+          // 只留下没成功的那几行，用户可以直接改完再点一次。
+          // 两边都走 canonicalizeImageUrl 再比：服务端回显的是规范化后的
+          // URL（new URL().toString()），而 textarea 里是用户原样粘贴的那一行 ——
+          // 大小写主机名、裸域名补的尾斜杠、百分号转义都会让两者字面不同。
+          // 直接拿 trimmed 原文去 Set.has 会漏删这些行，用户再点一次导入
+          // 仍然会撞上一片 'URL already exists'。
+          setBatchUrls((current) =>
+            current
+              .split(/\r?\n/)
+              .filter((line) => {
+                const trimmed = line.trim();
+                if (!trimmed) return false;
+                const canonical = canonicalizeImageUrl(trimmed);
+                return !(canonical && succeededUrls.has(canonical));
+              })
+              .join('\n'),
+          );
         }
         onSuccess();
       } else {
