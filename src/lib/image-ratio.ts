@@ -35,8 +35,28 @@ function hydrate() {
     for (const [url, ratio] of Object.entries(parsed as Record<string, unknown>)) {
       if (typeof ratio === 'number' && isSaneRatio(ratio)) ratios.set(url, ratio);
     }
+    // 读到超量历史数据时同样收紧，内存口径始终不超过 MAX_ENTRIES
+    trimRatios();
   } catch {
     // localStorage 被禁用 / 内容损坏：不影响功能，只是拿不到占位比例
+  }
+}
+
+/**
+ * 把内存里的比例裁剪到 MAX_ENTRIES 条，保留最近的（Map 的插入序即时间序）。
+ *
+ * 必须有这一步：MAX_ENTRIES 原先只作用在「写进 localStorage 的那一份」上，
+ * 内存 Map 从不裁剪 —— 而同一条注释却写着「避免无限增长」。
+ * 结果是磁盘 500 条、内存一路涨到「本次会话见过的图片总数」。
+ * 长时间浏览（图库线上已 261 张且持续增长）时两者口径不一致。
+ */
+function trimRatios() {
+  if (ratios.size <= MAX_ENTRIES) return;
+  const excess = ratios.size - MAX_ENTRIES;
+  let removed = 0;
+  for (const key of ratios.keys()) {
+    ratios.delete(key);
+    if (++removed >= excess) break;
   }
 }
 
@@ -45,10 +65,8 @@ function schedulePersist() {
   persistTimer = setTimeout(() => {
     persistTimer = null;
     try {
-      // 只保留最近 MAX_ENTRIES 条，避免无限增长
-      const entries = Array.from(ratios.entries());
-      const trimmed = entries.length > MAX_ENTRIES ? entries.slice(entries.length - MAX_ENTRIES) : entries;
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(trimmed)));
+      trimRatios();
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(ratios)));
     } catch {
       // 隐私模式 / 配额满：静默放弃持久化
     }
