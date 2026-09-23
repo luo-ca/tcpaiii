@@ -215,6 +215,15 @@ export default function StatusPage() {
       </div>
 
       {/* Overall banner */}
+      {/* 状态横幅要能换行堆叠 —— 否则窄屏文字宽度会被挤到 0px。
+          原先它是恒定单行 flex：图标 + 文本 + 右侧两个按钮（复制摘要 /
+          重新检查，各 106px）都按 shrink-0 / nowrap 排在同一行，中间那段
+          min-w-0 的文本块被挤到没地方。实测 280~340px 视口下文字宽度是
+          0px，标题与说明各自被压成竖排单字、横幅整块撑到 326px 高
+          （≈4 行按钮的高度），手机上看状态页第一屏几乎全是这条被压扁的横幅。
+          flex-col + sm:flex-row：窄屏图标/文案一行、按钮换行到下一行；
+          ≥640px 恢复原来的单行横排。修后实测同样视口文字宽 164~168px、
+          横幅高降到 123px，标题与说明都完整可读。 */}
       {overall.kind === 'loading' ? (
         <Card className="glass-strong mb-5 rounded-2xl">
           <CardContent className="p-6">
@@ -226,16 +235,18 @@ export default function StatusPage() {
         <div
           role="status"
           aria-live="polite"
-          className={`mb-5 flex items-center gap-3 rounded-2xl border-2 px-5 py-4 shadow-[4px_4px_0_0_var(--color-ink)] ${banner?.cls}`}
+          className={`mb-5 flex flex-col gap-3 rounded-2xl border-2 px-5 py-4 sm:flex-row sm:items-center shadow-[4px_4px_0_0_var(--color-ink)] ${banner?.cls}`}
         >
-          {BannerIcon && <BannerIcon className="h-7 w-7 shrink-0" aria-hidden="true" />}
-          <div className="min-w-0">
-            <p className="text-lg font-bold leading-tight">{copy?.title}</p>
-            <p className="text-sm opacity-80">
-              {overall.kind === 'degraded' ? degradedNote(overall.health) : copy?.note}
-            </p>
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            {BannerIcon && <BannerIcon className="h-7 w-7 shrink-0" aria-hidden="true" />}
+            <div className="min-w-0">
+              <p className="text-lg font-bold leading-tight">{copy?.title}</p>
+              <p className="text-sm opacity-80">
+                {overall.kind === 'degraded' ? degradedNote(overall.health) : copy?.note}
+              </p>
+            </div>
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:ml-auto">
             {/* 反馈问题时一键带上环境信息，省掉「你那边什么版本/什么绑定」的来回 */}
             <Button
               variant="outline"
