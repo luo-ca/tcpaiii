@@ -243,8 +243,19 @@ function OnlinePreviewImpl(
                 />
               )}
 
+                {/* 标题底色必须锚在「内容盒」上，而不是「图片底部的渐变」上。
+                    原先这里是一条 from-black/80 via-black/45 to-transparent 的渐变，
+                    锚点却是这个内容盒自身 —— 而标题又锚在内容盒的**顶部**：
+                    实测标题正好落在渐变的几乎透明处（移动端 relPos 0.22 ≈ 20% 黑、
+                    桌面端 0.33 ≈ 29% 黑），白字压在 20% 黑上只有 1.57:1，
+                    远低于 WCAG AA 对 16px 正文要求的 4.5（用纯白图 + 真实构建产物
+                    在无头 Chrome 截图后逐像素解码测得）。而且图片最多可挂 20 个标签，
+                    标签换行会把内容盒撑高、标题进一步移向透明端 —— 渐变方案对内容
+                    高度天然脆弱。改成内容盒自身带 70% 深色底（与 masonry-tile /
+                    image-card 的遮罩同档），并用 before: 伪元素在盒子上方补一条柔化渐变消除硬边：
+                    无论标签多少行，标题背后恒为 70% 黑，最坏（纯白图）也有 7.4:1。 */}
               {hasImage && (
-                <div className="absolute inset-x-0 bottom-0 z-10 p-4 bg-gradient-to-t from-black/80 via-black/45 to-transparent">
+                <div className="absolute inset-x-0 bottom-0 z-10 bg-black/70 p-4 before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-16 before:bg-gradient-to-t before:from-black/70 before:to-transparent before:content-['']">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <h3 className="mb-1.5 truncate text-base font-semibold text-white">
