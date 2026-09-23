@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Images } from 'lucide-react';
+import { ArrowRight, Images, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/ui/nav-link';
 import { MasonryTile, SKELETON_RATIOS } from '@/components/ui/masonry-tile';
@@ -20,7 +20,7 @@ const PREVIEW_COUNT = 8;
  * 数据来自不写统计的 `/api/list`。
  */
 export function GalleryPreview() {
-  const { data, isLoading, isError, refetch } = useQuery<PaginatedImages>({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery<PaginatedImages>({
     queryKey: ['gallery-preview'],
     queryFn: () => fetchImagesPage({ page: 1, pageSize: PREVIEW_COUNT }),
     staleTime: 5 * 60_000,
@@ -93,9 +93,15 @@ export function GalleryPreview() {
               variant="outline"
               size="sm"
               onClick={() => void refetch()}
+              disabled={isFetching}
               className="mt-3 rounded-lg text-xs"
             >
-              重试
+              {isFetching ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              {isFetching ? '重试中…' : '重试'}
             </Button>
           </div>
         ) : (

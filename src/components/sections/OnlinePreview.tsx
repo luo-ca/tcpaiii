@@ -67,7 +67,14 @@ function OnlinePreviewImpl(
         setImageTitle(img.title);
         setImageTags(img.tags);
         lastImageIdRef.current = img.id;
-        queryClient.invalidateQueries({ queryKey: ['stats'] });
+        // 只标脏、不立刻重取。这次调用确实会让「累计/今日调用」变一次，但
+        // 默认的 invalidateQueries 会**当场再打一次 /api/stats** —— 实测连点 5 次
+        // 「换一张」共产生 6 次 /api/random + 8 次 /api/stats（每次换图白搭一次
+        // 统计请求；首屏那次还会与页面刚发出的首次 stats 撞在一起打两发）。
+        // stats 自己有 15s 轮询、且边缘 s-maxage=10，晚十几秒拿到新计数完全可接受，
+        // 不值得为「按钮点完立刻 +1」付一次网络往返。refetchType: none 保留作废
+        // 语义（下次挂载/轮询必然取新值），只去掉这次多余的即时请求。
+        queryClient.invalidateQueries({ queryKey: ['stats'], refetchType: 'none' });
       } catch (err) {
         if (requestId !== requestIdRef.current) return;
         const message = getErrorMessage(err, '获取随机图片失败');
