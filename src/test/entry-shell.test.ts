@@ -96,8 +96,18 @@ describe("入口层与设计语言一致", () => {
       expect(reduceBlock).toContain(".skeleton-shimmer");
       // Radix 弹层（对话框/下拉/灯箱）的 animate-in/out 工具类也必须在闸内，
       // 否则减动效偏好下删图确认框照样飞入。
-      expect(reduceBlock).toContain(".animate-in");
-      expect(reduceBlock).toContain(".animate-out");
+      //
+      // 必须断言「按 class 子串匹配」的写法：Radix 元素上的类名实际是变体形式
+      // （data-[state=open]:animate-in、data-[state=closed]:animate-out），
+      // 裸 .animate-in / .animate-out 选不到它们。这里原先只断言字面量存在，
+      // 于是那条死规则（裸类名）也能让测试通过 —— 实测减弱动效下弹层的
+      // animationName 仍是 enter。断言子串选择器才能钉住真行为。
+      expect(reduceBlock).toContain('[class*="animate-in"]');
+      expect(reduceBlock).toContain('[class*="animate-out"]');
+      // 裸类名规则不得复活（注释里提到它没问题，只拦真正的选择器行）
+      const reduceLines = reduceBlock.split(/\r?\n/).map((l) => l.trim());
+      expect(reduceLines).not.toContain(".animate-in,");
+      expect(reduceLines).not.toContain(".animate-out {");
       for (const dead of [
         ".animate-slide-up",
         ".animate-shimmer",

@@ -791,9 +791,16 @@
 
     /* Radix 弹层（灯箱 / 删除确认 / 下拉）的入场出场走 tailwindcss-animate 的
        animate-in/out + slide-in-from-* / zoom-in-95 工具类，上面逐条关自定义
-       类的写法盖不到它们。Radix 关闭即卸载、不依赖出场动画回调，可直接掐掉。 */
-    .animate-in,
-    .animate-out {
+       类的写法盖不到它们。Radix 关闭即卸载、不依赖出场动画回调，可直接掐掉。
+
+       选择器必须按 class 子串匹配，不能写成裸 .animate-in / .animate-out：
+       Radix 元素上的类名实际是**变体形式**（data-[state=open]:animate-in、
+       data-[state=closed]:animate-out，产物选择器形如
+       .data-\[state\=open\]\:animate-in[data-state=open]），
+       裸类名永远匹配不到 —— 这条规则原先就是这么写的，等于一条死规则：
+       实测减弱动效偏好下弹层的 animationName 仍是 enter，照样飞入。 */
+    [class*="animate-in"],
+    [class*="animate-out"] {
       animation: none !important;
     }
 
