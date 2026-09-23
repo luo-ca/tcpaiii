@@ -70,7 +70,7 @@ export function AddImageDialog({
 
   const singleMutation = useMutation({
     mutationFn: () =>
-      createImage({ url: url.trim(), title: title.trim() || '未命名图片', tags: parseTagsInput(tagsInput) }, adminToken),
+      createImage({ url: canonicalizeImageUrl(url) ?? url.trim(), title: title.trim() || '未命名图片', tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => {
       toast.success('图片添加成功');
       setOpen(false);
@@ -187,6 +187,17 @@ export function AddImageDialog({
         toast.error('请填写图片地址');
         return;
       }
+
+      // 与批量模式同一把尺子：canonicalizeImageUrl 会拒掉非 http(s)、带凭据、
+      // 超长或无法解析的地址。只靠 input 的 type="url" 挡不住 —— 实测
+      // ftp://host/a.jpg 与 javascript:alert(1) 都能通过原生校验被打到服务端，
+      // 而服务端会回英文 url must be a valid http(s) URL，管理员看到的是英文报错。
+      const canonical = canonicalizeImageUrl(url);
+      if (!canonical) {
+        toast.error('图片地址必须是有效的 http(s) URL');
+        return;
+      }
+
       setLoading(true);
       singleMutation.mutate(undefined, { onSettled: () => setLoading(false) });
     })();
