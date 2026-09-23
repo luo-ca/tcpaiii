@@ -39,6 +39,42 @@ export function ImageLightbox({
   hasMore?: boolean;
 }) {
   const { copied, copy } = useCopyFeedback();
+
+  // 记录「打开灯箱前的焦点元素」。
+  //
+  // 灯箱用的是受控 Dialog（open={index !== null}），**没有 DialogTrigger** ——
+  // Radix 归还焦点时只知道 trigger，取不到就退回 document.body。实测：键盘用户
+  // 在瓦片上按 Enter 打开、关闭后焦点落到 body，Tab 得从整页开头重新走一遍，
+  // 正在浏览的那一列位置就丢了。（对照：后台的 AddImageDialog 用了 DialogTrigger，
+  // 关闭后焦点正确回到「添加图片」按钮 —— 问题只出在灯箱这条路径。）
+  //
+  // 在渲染期记录而不是 useEffect：Radix 搬移焦点也在 commit 之后，渲染期一定更早。
+  // 排除 body 与已处于弹层内的元素（嵌套/复用渲染时不要记错目标）。
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const wasOpenRef = useRef(false);
+  const isOpen = index !== null;
+  if (isOpen !== wasOpenRef.current) {
+    wasOpenRef.current = isOpen;
+    if (isOpen && typeof document !== 'undefined') {
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLElement &&
+        active !== document.body &&
+        !active.closest('[role="dialog"]')
+      ) {
+        restoreFocusRef.current = active;
+      }
+    }
+  }
+
+  // 关闭后把焦点还给打开它的那个瓦片；目标已从 DOM 移除（翻页/筛选换批）时
+  // 不阻止默认行为，交回 Radix 处理。
+  const handleCloseAutoFocus = (event: Event) => {
+    const target = restoreFocusRef.current;
+    if (!target || !document.contains(target)) return;
+    event.preventDefault();
+    target.focus();
+  };
   const image = index === null ? null : images[index];
   // 索引可以临时等于 images.length：那是「已请求下一页、数据还在路上」的占位态。
   const isPendingNext = index !== null && !image;
@@ -103,6 +139,7 @@ export function ImageLightbox({
   return (
     <Dialog open={index !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
+        onCloseAutoFocus={handleCloseAutoFocus}
         onKeyDown={handleKeyDown}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
