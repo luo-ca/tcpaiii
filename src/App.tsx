@@ -32,13 +32,82 @@ const GalleryBrowse = lazy(() => import('@/features/gallery-browse'));
 const AdminPage = lazy(() => import('@/features/admin-page'));
 const StatusPage = lazy(() => import('@/features/status-page'));
 
-function SectionFallback() {
+/**
+ * 首页「实时统计」的懒加载骨架。
+ *
+ * 这是首页最后一块懒加载内容。原先它挂 SectionFallback（约 256px），
+ * 而真实区块是「页头 + 统计卡网格 + 趋势图」：实测桌面 907px、手机 977px，
+ * 落地时页脚从 5112px 跳到 5936px（下移 824px），把用户正在看的内容整段推走。
+ * 按真实结构铺骨架后，落地前后高度接近。
+ */
+function RealtimeStatsFallback() {
   return (
-    <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 py-16">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 rounded-2xl skeleton-shimmer" />
-        ))}
+    <section className="relative z-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8 space-y-2">
+          <div className="h-3 w-20 rounded-lg skeleton-shimmer" />
+          <div className="h-8 w-40 rounded-lg skeleton-shimmer" />
+          <div className="h-4 w-64 rounded-lg skeleton-shimmer" />
+        </div>
+        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-[132px] rounded-2xl skeleton-shimmer" />
+          ))}
+        </div>
+        <div className="h-[322px] rounded-2xl skeleton-shimmer" />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * /status 的懒加载骨架。
+ *
+ * 原先 /status 与 /docs 共用 SectionFallback（4 张卡的等比例网格）。
+ * 但状态页的真实形状是「页头 + 状态横幅 + 3 张卡（sm 起 2 列、最后一张跨列）」，
+ * 骨架只有 256px 高，真实内容 778px —— 实测懒加载落地时页脚从 272px 跳到 794px，
+ * 首屏 CLS 0.1657，已经越过 Core Web Vitals 的 0.10 阈值。
+ * 换成与真实结构同形的骨架后，落地前后高度基本一致。
+ */
+function StatusFallback() {
+  return (
+    <div className="relative z-10 mx-auto max-w-4xl px-4 pb-24 pt-[calc(var(--header-h)+32px)] sm:px-6 sm:pb-28">
+      <div className="mb-7 space-y-2">
+        <div className="h-3 w-20 rounded-lg skeleton-shimmer" />
+        <div className="h-8 w-32 rounded-lg skeleton-shimmer" />
+        <div className="h-4 w-72 rounded-lg skeleton-shimmer" />
+      </div>
+      <div className="mb-5 h-[76px] rounded-2xl skeleton-shimmer" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="h-[168px] rounded-2xl skeleton-shimmer" />
+        <div className="h-[168px] rounded-2xl skeleton-shimmer" />
+        <div className="h-[124px] rounded-2xl skeleton-shimmer sm:col-span-2" />
+      </div>
+      <div className="mt-4 h-4 w-64 mx-auto rounded-lg skeleton-shimmer" />
+    </div>
+  );
+}
+
+/**
+ * /docs 的懒加载骨架。
+ *
+ * 真实形状是「页头 + 分段长内容」，而不是一排等高卡片。
+ * 原先共用 SectionFallback（约 256px）会让页脚在落地时下移 500px 以上 ——
+ * 实测 /docs 首屏 CLS 0.0801。这里用「页头 + 三个分段块」近似，
+ * 让落地时的位移收敛到很小。
+ */
+function DocsFallback() {
+  return (
+    <div className="relative z-10 mx-auto max-w-6xl px-4 pb-24 pt-[calc(var(--header-h)+32px)] sm:px-6">
+      <div className="mb-8 space-y-2">
+        <div className="h-3 w-20 rounded-lg skeleton-shimmer" />
+        <div className="h-8 w-40 rounded-lg skeleton-shimmer" />
+        <div className="h-4 w-80 rounded-lg skeleton-shimmer" />
+      </div>
+      <div className="space-y-6">
+        <div className="h-[420px] rounded-2xl skeleton-shimmer" />
+        <div className="h-[280px] rounded-2xl skeleton-shimmer" />
+        <div className="h-[200px] rounded-2xl skeleton-shimmer" />
       </div>
     </div>
   );
@@ -124,7 +193,7 @@ function HomePage() {
       <HeroSection onRequestRandom={handleRequestRandom} />
       <OnlinePreview ref={previewRef} request={randomRequest} />
       <GalleryPreview />
-      <Suspense fallback={<SectionFallback />}>
+      <Suspense fallback={<RealtimeStatsFallback />}>
         <RealtimeStats />
       </Suspense>
       <WhyChoose />
@@ -138,10 +207,10 @@ function HomePage() {
 function DocsPage() {
   return (
     <section className="pb-14 pt-[calc(var(--header-h)+16px)] sm:pb-20">
-      <Suspense fallback={<SectionFallback />}>
+      <Suspense fallback={<DocsFallback />}>
         <ApiDocsSection />
       </Suspense>
-      <Suspense fallback={<SectionFallback />}>
+      <Suspense fallback={<DocsFallback />}>
         <SecurityFeatures />
       </Suspense>
     </section>
@@ -198,7 +267,7 @@ export default function App() {
           )}
           {route === '/docs' && <DocsPage />}
           {route === '/status' && (
-            <Suspense fallback={<SectionFallback />}>
+            <Suspense fallback={<StatusFallback />}>
               <StatusPage />
             </Suspense>
           )}

@@ -25,7 +25,7 @@ import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: string) => void }) {
   const [tagInput, setTagInput] = useState('');
   const { copied: copiedApi, copy: copyApi } = useCopyFeedback();
-  const { data: stats } = useQuery<Stats>(statsQueryOptions());
+  const { data: stats, isPending: statsPending } = useQuery<Stats>(statsQueryOptions());
   // 首屏主视觉取自图库第一张图。
   // 走的是 /api/list（公开读接口），它不写入调用统计：
   // 既不消耗随机额度，也不会把本站自己的访问算进 /api/stats 的调用数与站点数。
@@ -53,9 +53,25 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
     { label: '累计调用', value: `${formatNumber(stats?.totalRequests ?? 0)}`, unit: '次', icon: Globe },
   ];
 
-  // 没有任何数据时不摆一排「0 张 / 0 次」出来 —— 那看起来像坏了，而不是空
-  const showStatBadges =
+  // 有真实数据才显示具体数字 —— 空库/零调用时不摆一排「0 张 / 0 次」，
+  // 那看起来像坏了，而不是空。
+  const hasStatData =
     Boolean(stats) && ((stats?.totalImages ?? 0) > 0 || (stats?.totalRequests ?? 0) > 0);
+
+  // 统计行在加载中也要占住位置。
+  //
+  // 原先它是 `{hasStatData && ...}`：stats 一到才挂载，于是 Hero 左栏高度
+  // 从 421px 突增到 535px（+114px），把「在线预览」及以下整段内容推下去。
+  // 用 PerformanceObserver 逐条读 layout-shift 实测：首页首屏 CLS 0.0446，
+  // 唯一来源就是这一栏（位移节点报的就是 .text-center.lg:text-left）；
+  // 同一时刻 /gallery 的 CLS 为 0。也就是说这不是「图片没尺寸」那种固有代价，
+  // 而是可以避免的一次挂载抖动。
+  //
+  // 改成「加载中渲染同构骨架」：chip 数量/图标/文案/内边距全部一致，
+  // 只把数值位换成宽度足以覆盖真实值的骨架块，因此行数与高度在数据到达
+  // 前后不变 —— 数据到了只是把骨架换成数字，不再引起整块位移。
+  // 失败时不渲染（与原先一致）：stats 拿不到就不摆空壳。
+  const showStatRow = statsPending || hasStatData;
 
   const handleHeroImageError = () => {
     // 主视觉加载失败时收起图片，仅保留品牌渐变，避免出现裂图。
@@ -163,7 +179,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
           </div>
 
           {/* Stats Row */}
-          {showStatBadges && (
+          {showStatRow && (
             <div
               className="hero-enter mt-7 flex flex-wrap items-center justify-center gap-2.5 lg:justify-start"
               style={{ animationDelay: '240ms' }}
@@ -175,11 +191,20 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                 >
                   <item.icon className="h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true" />
                   <span className="text-muted-foreground">{item.label}</span>
-                  <span className="font-bold tabular-nums text-foreground">
-                    {item.value}
-                    <span className="ml-0.5 text-[0.85em] font-medium text-muted-foreground">
-                      {item.unit}
-                    </span>
+                  <span className="inline-flex items-center justify-end font-bold tabular-nums text-foreground">
+                    {hasStatData ? (
+                      <>
+                        {item.value}
+                        <span className="ml-0.5 text-[0.85em] font-medium text-muted-foreground">
+                          {item.unit}
+                        </span>
+                      </>
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="skeleton-shimmer inline-block h-[1em] w-[3.6em] rounded align-middle"
+                      />
+                    )}
                   </span>
                 </div>
               ))}
