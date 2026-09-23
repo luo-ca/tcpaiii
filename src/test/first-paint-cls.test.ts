@@ -69,13 +69,21 @@ describe("首屏 CLS · 懒加载骨架与真实形状匹配", () => {
     ).toBe(0);
   });
 
-  it("StatusFallback 近似真实结构：页头 + 横幅 + 三卡（末卡跨列）", () => {
+  it("StatusFallback 近似真实结构：固定页头 + 横幅 + 三卡（末卡跨列 + sm 拉伸）", () => {
     const i = app.indexOf("function StatusFallback()");
+    expect(i, "缺少 StatusFallback").toBeGreaterThan(-1);
     const block = app.slice(i, app.indexOf("function DocsFallback()"));
-    expect(block, "缺页头骨架").toMatch(/h-3 w-20/);
-    expect(block, "缺横幅骨架").toMatch(/h-\[76px\]/);
+    // 页头必须是「固定高度块」而不是三行细骨架：实测三行只有 76px，
+    // 比真实页头（125/113px）矮 37~49px，落地时会「长高」。
+    expect(block, "页头未用固定高度对齐真实高度").toMatch(/h-\[125px\].*sm:h-\[113px\]/);
+    expect(block, "缺横幅骨架").toMatch(/h-\[123px\].*sm:h-\[79px\]/);
     expect(block, "缺 2 列卡片网格").toContain("sm:grid-cols-2");
-    expect(block, "缺末张跨列卡（与真实布局一致）").toContain("sm:col-span-2");
+    expect(block, "缺末张跨列卡").toContain("sm:col-span-2");
+    // ≥sm 两列时 grid 会把同行两卡拉等高，骨架固定高度需显式抵消
+    expect(
+      block,
+      "第二卡未写 sm:h-[166px]：≥sm 会被真实态的 grid 拉伸拉高，产生位移",
+    ).toMatch(/h-\[132px\].*sm:h-\[166px\]/);
   });
 
   it("DocsFallback 近似真实结构：页头 + 多个分段块", () => {

@@ -72,18 +72,26 @@ function RealtimeStatsFallback() {
 function StatusFallback() {
   return (
     <div className="relative z-10 mx-auto max-w-4xl px-4 pb-24 pt-[calc(var(--header-h)+32px)] sm:px-6 sm:pb-28">
-      <div className="mb-7 space-y-2">
-        <div className="h-3 w-20 rounded-lg skeleton-shimmer" />
-        <div className="h-8 w-32 rounded-lg skeleton-shimmer" />
-        <div className="h-4 w-72 rounded-lg skeleton-shimmer" />
-      </div>
-      <div className="mb-5 h-[76px] rounded-2xl skeleton-shimmer" />
+      {/*
+        页头用固定高度对齐真实页头（实测窄屏 125px、≥sm 113px）。
+        此前逐行铺了 h-3/h-8/h-4 三条骨架，加起来只有 76px，
+        比真实页头矮 37~49px —— 懒加载落地时这一块会「长高」，
+        是 /status 残留 CLS 的主要来源。
+      */}
+      <div className="mb-7 h-[125px] rounded-2xl skeleton-shimmer sm:h-[113px]" />
+      {/* 横幅：窄屏竖排 123px，≥sm 横排 79px（与真实横幅同断点） */}
+      <div className="mb-5 h-[123px] rounded-2xl skeleton-shimmer sm:h-[79px]" />
+      {/*
+        卡高按「断点 + grid 拉伸」两件事定：窄屏单列各自撑高（166/132/196）；
+        ≥sm 两列后 CSS grid 的 align-items: stretch 会把同行两卡拉到等高，
+        第二卡因此从 132 变 166。骨架是固定高度、不参与拉伸，需显式写 sm:h-[166px]。
+      */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="h-[168px] rounded-2xl skeleton-shimmer" />
-        <div className="h-[168px] rounded-2xl skeleton-shimmer" />
-        <div className="h-[124px] rounded-2xl skeleton-shimmer sm:col-span-2" />
+        <div className="h-[166px] rounded-2xl skeleton-shimmer" />
+        <div className="h-[132px] rounded-2xl skeleton-shimmer sm:h-[166px]" />
+        <div className="h-[196px] rounded-2xl skeleton-shimmer sm:col-span-2 sm:h-[116px]" />
       </div>
-      <div className="mt-4 h-4 w-64 mx-auto rounded-lg skeleton-shimmer" />
+      <div className="mx-auto mt-4 h-4 w-64 rounded-lg skeleton-shimmer" />
     </div>
   );
 }

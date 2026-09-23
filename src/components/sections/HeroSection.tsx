@@ -47,10 +47,10 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
   const apiUrl = buildAppUrl('/api/random');
 
   const statBadges = [
-    { label: '图库图片', value: `${formatNumber(stats?.totalImages ?? 0)}`, unit: '张', icon: ImageIcon },
-    { label: '标签分类', value: `${formatNumber(stats?.tags?.length ?? 0)}`, unit: '个', icon: Tag },
-    { label: '今日调用', value: `${formatNumber(stats?.todayRequests ?? 0)}`, unit: '次', icon: TrendingUp },
-    { label: '累计调用', value: `${formatNumber(stats?.totalRequests ?? 0)}`, unit: '次', icon: Globe },
+    { label: '图库图片', value: `${formatNumber(stats?.totalImages ?? 0)}`, unit: '张', icon: ImageIcon, skeletonW: '2.7em' },
+    { label: '标签分类', value: `${formatNumber(stats?.tags?.length ?? 0)}`, unit: '个', icon: Tag, skeletonW: '1.6em' },
+    { label: '今日调用', value: `${formatNumber(stats?.todayRequests ?? 0)}`, unit: '次', icon: TrendingUp, skeletonW: '2.7em' },
+    { label: '累计调用', value: `${formatNumber(stats?.totalRequests ?? 0)}`, unit: '次', icon: Globe, skeletonW: '4.1em' },
   ];
 
   // 有真实数据才显示具体数字 —— 空库/零调用时不摆一排「0 张 / 0 次」，
@@ -202,7 +202,8 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                     ) : (
                       <span
                         aria-hidden="true"
-                        className="skeleton-shimmer inline-block h-[1em] w-[3.6em] rounded align-middle"
+                        className="skeleton-shimmer inline-block h-[1em] rounded align-middle"
+                        style={{ width: item.skeletonW }}
                       />
                     )}
                   </span>
