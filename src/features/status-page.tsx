@@ -224,13 +224,15 @@ export default function StatusPage() {
           flex-col + sm:flex-row：窄屏图标/文案一行、按钮换行到下一行；
           ≥640px 恢复原来的单行横排。修后实测同样视口文字宽 164~168px、
           横幅高降到 123px，标题与说明都完整可读。 */}
+      {/*
+        加载态横幅的高度必须与真实横幅一致（窄屏 123px、≥sm 79px）。
+        原先这里是「p-6 + 两条 h-8/h-4 骨架」的通用卡，高 104px，
+        而真实横幅 ≥sm 只有 79px —— 数据到达时这一块会缩短 25px，
+        把下面的卡片与页脚一起上提（实测 /status 桌面端残留 CLS 0.0123）。
+        用与真实横幅相同的高度定死，落地时高度不变。
+      */}
       {overall.kind === 'loading' ? (
-        <Card className="glass-strong mb-5 rounded-2xl">
-          <CardContent className="p-6">
-            <div className="h-8 w-48 rounded-lg skeleton-shimmer" />
-            <div className="mt-2 h-4 w-72 rounded-lg skeleton-shimmer" />
-          </CardContent>
-        </Card>
+        <div className="mb-5 h-[123px] rounded-2xl skeleton-shimmer sm:h-[79px]" />
       ) : (
         <div
           role="status"
@@ -305,7 +307,7 @@ export default function StatusPage() {
           <CardContent className="space-y-3.5 p-5">
             <h2 className="text-sm font-bold text-foreground">存储绑定</h2>
             {overall.kind === 'loading' ? (
-              <ServiceSkeleton />
+              <ServiceSkeleton rows={2} />
             ) : (
               <>
                 <CheckRow
@@ -377,7 +379,7 @@ function ServiceSkeleton({ rows = 3 }: { rows?: number }) {
   return (
     <div className="space-y-3.5">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-4 w-full rounded skeleton-shimmer" />
+        <div key={i} className="h-5 w-full rounded skeleton-shimmer" />
       ))}
     </div>
   );

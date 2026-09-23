@@ -102,4 +102,21 @@ describe("首屏 CLS · 懒加载骨架与真实形状匹配", () => {
     expect(block, "缺 4 列断点").toContain("lg:grid-cols-4");
     expect(block, "缺趋势图骨架（真实区块里最高的那块）").toMatch(/h-\[\d{3}px\] rounded-2xl skeleton-shimmer/);
   });
+
+  it("StatusPage 内部的 loading 态与真实高度一致（横幅 + 卡片行数）", () => {
+    const status = readFileSync(resolve(process.cwd(), "src/features/status-page.tsx"), "utf8");
+    // 横幅：加载态必须与真实横幅同高（否则数据到达时这一块会缩短）
+    expect(
+      status,
+      "加载态横幅高度没对齐真实横幅（窄屏 123px / ≥sm 79px）",
+    ).toMatch(/h-\[123px\].*sm:h-\[79px\]/);
+    // 卡片内骨架行高须与真实 CheckRow（text-sm = 20px）一致
+    expect(status, "骨架行高不是 h-5：与真实 CheckRow 的 20px 行高差 4px/行").toContain(
+      "h-5 w-full rounded skeleton-shimmer",
+    );
+    // 「存储绑定」真实只有 2 行，骨架必须同样只渲染 2 行
+    expect(status, "存储绑定卡未传 rows={2}：比真实多一行，落地时会缩短").toContain(
+      "<ServiceSkeleton rows={2} />",
+    );
+  });
 });
