@@ -120,10 +120,14 @@ export const ImageCard = memo(function ImageCard({
           <div className="absolute inset-x-0 bottom-0 p-3.5 translate-y-1 transition-[opacity,transform] duration-300 opacity-0 motion-safe:group-hover:translate-y-0 group-hover:opacity-100 motion-safe:group-focus-within:translate-y-0 group-focus-within:opacity-100 pointer-coarse:translate-y-0 pointer-coarse:opacity-100">
             <div className="flex items-end justify-between gap-2">
               <div className="min-w-0 flex-1">
-                {/* h3 而不是 h4：这个标题在文档里早于页面的 h1「图片管理」出现
-                    （页头在卡片网格之后才渲染），用 h4 会让读屏按标题跳读时出现
-                    「h4 → h1」的乱序。公开图库的瓦片同理不用标题元素（它整个是 button，
-                    标题元素不能嵌在按钮里），这里卡片不是按钮，用 h3 是合法且有价值的。 */}
+                {/* h3 而不是 h4：卡片网格挂在页面 h1「图片管理」之下，用 h3 与页头
+                    形成 h1 → h3 的层级（跳一级不影响读屏跳读，但 h4 会更碎）。
+                    公开图库的瓦片不用标题元素 —— 它整个是 button，标题元素不能嵌在
+                    按钮里；这里卡片不是 button，用 h3 合法且对「按标题浏览图片」有价值。
+
+                    注：原文写的理由是「该 h3 早于 h1 出现（页头在网格之后渲染）」，
+                    但页头早已移到网格之前（现 admin-page.tsx 中 h1 在 ~345 行、
+                    <ImageCard> 在 ~632 行），那个理由不再成立，已按现状改写。 */}
                 <h3 className="text-white font-semibold text-sm truncate leading-snug">{img.title}</h3>
                 <div className="flex gap-1 mt-1.5 flex-wrap">
                   {img.tags.map((tag) => (
