@@ -23,7 +23,7 @@ function renderFallback(error: unknown) {
   rootElement.innerHTML = `
     <main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f8f7f3;color:#15171f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
       <section style="max-width:560px;width:100%;border:2px solid #15171f;border-radius:20px;background:#ffffff;padding:28px;box-shadow:6px 6px 0 0 #15171f;">
-        <p style="margin:0 0 8px;color:#007AFF;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;">PaiCiYuan API</p>
+        <p style="margin:0 0 8px;color:#007AFF;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;">派次元 API</p>
         <h1 style="margin:0 0 12px;font-size:28px;line-height:1.2;">页面加载失败</h1>
         <p style="margin:0 0 18px;color:#5c5b54;line-height:1.7;">页面脚本运行时出现异常，已显示兜底内容以避免白屏。请刷新页面，或稍后重试。</p>
         <pre style="white-space:pre-wrap;word-break:break-word;margin:0 0 18px;border-radius:12px;background:#15171f;color:#e2e1d8;padding:14px;font-size:12px;line-height:1.6;">${message.replace(/[<>&]/g, char => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[char] ?? char))}</pre>
