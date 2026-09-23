@@ -441,8 +441,17 @@ export default function GalleryPage() {
         </CardContent>
       </Card>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      {/* Quick Stats
+          列数按「卡片最小宽度」自动决定，而不是写死三列。
+          原先写死 grid-cols-3：卡片里 w-9 图标 + gap-3 + p-3.5*2 + border-2*2
+          固定吃掉 80px，320px 屏上每张卡只剩 88px、放文字的地方仅 8px，
+          「图片总数 / 本页 / 筛选」的标签与数值都被 ellipsis 静默截断；
+          实测要到 500px 才不裁 —— 也就是几乎所有手机宽度都看不全统计数字。
+          minmax(144px,1fr) 保证文字可用 64px ≥ 最宽内容 58px；auto-fit 让
+          空间够时才三列，否则降两列/一列（实测 320 一列、340~480 两列、
+          ≥500 三列）。宽屏观感与原三列完全一致，见
+          admin-quick-stats-responsive.test.ts 的逐档实测数据。 */}
+      <div className="mb-5 grid grid-cols-[repeat(auto-fit,minmax(144px,1fr))] gap-3">
         {[
           {
             label: '图片总数',

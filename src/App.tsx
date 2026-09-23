@@ -84,7 +84,9 @@ function AdminFallback() {
         <div className="h-10 w-28 rounded-xl skeleton-shimmer" />
       </div>
       <div className="mb-5 h-24 rounded-2xl skeleton-shimmer" />
-      <div className="mb-5 grid grid-cols-3 gap-3">
+      {/* 与 admin-page 的真实统计网格同构（同断点、同轨道宽度）：
+          骨架若不一致，窄屏懒加载落地时会看到一次明显的列数重排。 */}
+      <div className="mb-5 grid grid-cols-[repeat(auto-fit,minmax(144px,1fr))] gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="h-[68px] rounded-2xl skeleton-shimmer" />
         ))}
