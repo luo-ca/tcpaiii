@@ -217,8 +217,14 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                 </div>
               )}
 
-              {/* 底部信息渐隐 + 进入图库提示 */}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/55 to-transparent" />
+              {/* 遮罩透明度按「最坏情况仍达 AA」定档，而不是按好看程度。
+                  这里原先用 from-black/55：在缩略图接近白色时（图库线上大量浅色插画/
+                  壁纸都存在），白字压在 55% 黑上只有 3.45:1，低于 WCAG AA 对 12px
+                  正文要求的 4.5（实测方式：把纯白图 + 真实构建 CSS 跑进无头 Chrome
+                  截图，再逐像素解码取文字带内的众数底色）。
+                  提到 /70 后最坏 5.17:1，并与站内其他图片浮层口径一致
+                  （masonry-tile 与 image-card 都是 /70，OnlinePreview 更重）。 */}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/70 to-transparent" />
               <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-white">精选图库 · 持续更新</span>
                 <span className="sticker-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
