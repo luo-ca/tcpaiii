@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { canonicalizeImageUrl } from "@/lib/helpers";
 
+
 /**
  * 后台「单张添加」必须与批量模式同一把尺子校验 URL（P106）。
  *
@@ -27,6 +28,11 @@ import { canonicalizeImageUrl } from "@/lib/helpers";
 
 const src = readFileSync(
   resolve(process.cwd(), "src/features/admin/add-image-dialog.tsx"),
+  "utf8",
+);
+
+const editSrc = readFileSync(
+  resolve(process.cwd(), "src/features/admin/edit-image-dialog.tsx"),
   "utf8",
 );
 
@@ -62,5 +68,16 @@ describe("单张添加 · URL 前置校验与批量一致", () => {
     expect(canonicalizeImageUrl("https://ok.example.com/a.jpg")).toBe(
       "https://ok.example.com/a.jpg",
     );
+  });
+
+  it("编辑弹窗同样做了 URL 前置校验（同一缺口，一并修掉）", () => {
+    const i = editSrc.indexOf("const handleSubmit");
+    expect(i, "未能定位编辑弹窗的 handleSubmit").toBeGreaterThan(-1);
+    const block = editSrc.slice(i, editSrc.indexOf("return (", i));
+    expect(block, "编辑弹窗未做 URL 校验：ftp: / javascript: 会打到服务端").toContain(
+      "canonicalizeImageUrl(url)",
+    );
+    expect(block, "缺中文提示").toContain("图片地址必须是有效的 http(s) URL");
+    expect(editSrc, "编辑弹窗提交了未规范化地址").toMatch(/url: canonicalizeImageUrl\(url\)/);
   });
 });
