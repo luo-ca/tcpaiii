@@ -1357,4 +1357,75 @@ describe("functions api", () => {
       ).toBe('nosniff');
     });
   });
+describe("KV 基础设施故障（get 直接 reject）", () => {
+    /**
+     * 设计契约：KV 读失败必须**抛错**，由 dispatcher 统一兜底成 500。
+     *
+     * 反模式是「吞掉错误、返回空数组」—— 那会把基础设施故障伪装成业务空态：
+     *   · /api/list 返回 200 + 空 items → 前端显示「图库还是空的」
+     *   · /api/random 返回 404 no images available → 调用方以为图库真没图
+     * 调用方无法区分「服务故障」与「确实没有数据」，排查时会被误导。
+     *
+     * 当前实现（getImagesState 不 catch，直接冒泡）是**有意的**：
+     * 让 dispatcher 的 catch 统一返回 500 Internal Server Error，
+     * 语义上明确「这是服务端故障」。
+     *
+     * 这条测试此前不存在 —— 现有用例覆盖的是「数据损坏」（能读到但内容脏），
+     * 而「KV 本身读不动」这条路径没有任何护栏。
+     */
+    function failingKv(namespace: string) {
+      return {
+        get() {
+          return Promise.reject(new Error(`KV ${namespace} unavailable`));
+        },
+        put() {
+          return Promise.reject(new Error(`KV ${namespace} unavailable`));
+        },
+        delete() {
+          return Promise.reject(new Error(`KV ${namespace} unavailable`));
+        },
+      };
+    }
+
+    it("/api/list 在 KV 读失败时返回 500，而不是伪装成空图库", async () => {
+      const response = await requestWithEnv("/api/list?page=1&pageSize=24", undefined, {
+        images_kv: failingKv("images"),
+        stats_kv: failingKv("stats"),
+      });
+      expect(response.status, "KV 故障被伪装成了成功响应").toBe(500);
+      const body = await json(response);
+      expect(body.error).toBe("Internal Server Error");
+      // 关键：不能返回 200 + 空列表（那会被前端当成「图库是空的」）
+      expect(body, "不该返回空 items 让前端误判为空库").not.toHaveProperty("items");
+    });
+
+    it("/api/random 在 KV 读失败时返回 500，而不是 404 无图", async () => {
+      const response = await requestWithEnv("/api/random", undefined, {
+        images_kv: failingKv("images"),
+        stats_kv: failingKv("stats"),
+      });
+      expect(
+        response.status,
+        "404 会让调用方以为「图库确实没图」，掩盖 KV 故障",
+      ).toBe(500);
+    });
+
+    it("/api/stats 在 KV 读失败时返回 500（不返回全 0 的假统计）", async () => {
+      const response = await requestWithEnv("/api/stats", undefined, {
+        images_kv: failingKv("images"),
+        stats_kv: failingKv("stats"),
+      });
+      expect(response.status, "返回全 0 统计会让用户以为站点没有流量").toBe(500);
+    });
+
+    it("500 响应带 buildId，便于线上定位是哪个版本", async () => {
+      const response = await requestWithEnv("/api/list?page=1", undefined, {
+        images_kv: failingKv("images"),
+        stats_kv: failingKv("stats"),
+      });
+      const body = await json(response);
+      expect(typeof body.buildId, "缺 buildId 会让线上故障无法对版本").toBe("string");
+      expect(String(body.buildId).length).toBeGreaterThan(0);
+    });
+  });
 });
