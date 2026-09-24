@@ -2,7 +2,12 @@
 // URL Utilities
 // ============================================================
 
-import { APP_FALLBACK_DOMAIN, EDGEONE_PREVIEW_QUERY_KEYS } from './constants';
+import {
+  APP_FALLBACK_DOMAIN,
+  EDGEONE_PREVIEW_QUERY_KEYS,
+  MAX_SEARCH_LENGTH,
+  MAX_TAG_LENGTH,
+} from './constants';
 
 export function getAppOrigin(): string {
   if (typeof window === 'undefined') return APP_FALLBACK_DOMAIN;
@@ -53,9 +58,17 @@ export const GALLERY_QUERY_TAG = 'tag';
 
 export function readGalleryQuery(search: string): { search: string; tag: string | null } {
   const params = new URLSearchParams(search);
+  // 长度必须在这里收口，不能只靠输入框的 maxLength —— 那个只挡打字，
+  // 挡不住手工构造或他人分享的超长链接。不收口会让地址栏与请求条件分裂：
+  // 后端 /api/list 会把 search 截到 100、tag 截到 40
+  //（edge-functions-src/lib/types.ts），于是**实际生效的筛选与地址栏里的不是同一个**，
+  // 「复制链接分享」也复现不出用户看到的结果。
+  // 先 trim 再 slice：不把空白算进额度（与输入框 maxLength 的语义一致）。
+  const rawSearch = params.get(GALLERY_QUERY_SEARCH)?.trim() ?? '';
+  const rawTag = params.get(GALLERY_QUERY_TAG)?.trim() ?? '';
   return {
-    search: params.get(GALLERY_QUERY_SEARCH)?.trim() ?? '',
-    tag: params.get(GALLERY_QUERY_TAG)?.trim() || null,
+    search: rawSearch.slice(0, MAX_SEARCH_LENGTH),
+    tag: rawTag ? rawTag.slice(0, MAX_TAG_LENGTH) : null,
   };
 }
 
