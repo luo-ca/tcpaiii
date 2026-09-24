@@ -23,6 +23,12 @@ export const EDGEONE_PREVIEW_QUERY_KEYS = ['eo_token', 'eo_time'] as const;
 export const API_HTML_FALLBACK_MESSAGE =
   '接口返回的是 HTML 而不是 JSON，请检查 Edge 函数是否已正确部署。';
 
+/**
+ * 单次批量图片数上限。**与后端 `MAX_BATCH_SIZE` 是同一个语义**
+ * （`edge-functions-src/lib/types.ts`）—— 两边名字不同，改动时务必成对改。
+ * 不一致的后果是静默分裂：前端放行、服务端 400，用户白勾几百张（P144 的预检也依赖它）。
+ * 一致性由 src/test/constants-parity.test.ts 钉住。
+ */
 export const MAX_BATCH_IMAGE_COUNT = 500;
 /**
  * 标题 / 标签的输入上限，与后端逐字对齐（`edge-functions-src/lib/types.ts`）。
