@@ -373,7 +373,16 @@ function normalizeBatchResult<T extends { success: boolean }>(
   if (!Array.isArray(raw.results)) {
     throw new Error(`${fallbackMessage}：服务端返回的结果格式异常`);
   }
-  const results = raw.results as T[];
+  // 只挡容器类型还不够：调用方逐项读 item.success / item.url / item.error，
+  // 一条 null（或字符串）元素就会抛 'Cannot read properties of null (reading success)'
+  // —— 英文 TypeError 经 getErrorMessage 原样弹给管理员。与 P123 的 tags 元素
+  // 校验同一类口子：容器与元素都要守。success 是调用方按布尔消费的字段，必查。
+  const isBatchItem = (value: unknown): value is T =>
+    Boolean(value) && typeof value === 'object' && typeof (value as { success?: unknown }).success === 'boolean';
+  if (!raw.results.every(isBatchItem)) {
+    throw new Error(`${fallbackMessage}：服务端返回的结果格式异常`);
+  }
+  const results = raw.results;
   const num = (value: unknown, fallback: number) =>
     typeof value === 'number' && Number.isFinite(value) ? value : fallback;
   const success = num(raw.success, results.filter((item) => item?.success).length);
