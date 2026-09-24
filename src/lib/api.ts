@@ -114,7 +114,16 @@ export async function fetchStats(): Promise<Stats> {
   // 后端目前有 sanitizeImagesMeta 兜底，但前端与这个接口的契约一直没校验；
   // 在边界收口，5 个消费者就不必各自防御。
   const tags = Array.isArray(body?.tags) ? body.tags : [];
-  const daily = (body?.dailyRequests ?? {}) as Record<string, number>;
+  // dailyRequests 的 value 也必须逐个校验数字。只用 `?? {}` 挡 null/undefined，
+  // 挡不住「值是字符串」：RealtimeStats 的 `sum + item.requests` 会退化成字符串拼接，
+  // 实测把某天写成 "12" 后，「近 7 天」显示成 1,201,307,685,123 次（正确值 300）。
+  const rawDaily = body?.dailyRequests;
+  const daily: Record<string, number> = {};
+  if (rawDaily && typeof rawDaily === 'object' && !Array.isArray(rawDaily)) {
+    for (const [key, value] of Object.entries(rawDaily as Record<string, unknown>)) {
+      if (typeof value === 'number' && Number.isFinite(value)) daily[key] = value;
+    }
+  }
   const num = (value: unknown, fallback = 0) =>
     typeof value === 'number' && Number.isFinite(value) ? value : fallback;
   return {
