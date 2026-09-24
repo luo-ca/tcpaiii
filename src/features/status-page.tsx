@@ -162,13 +162,11 @@ export default function StatusPage() {
       setLatency(ms);
     } catch (err) {
       setLatency(null);
-      // fetch 网络层失败抛的是浏览器原生英文 TypeError: Failed to fetch ——
-      // 原样 toast 等于没解释，统一换成中文；后端返回的异常状态仍透传原文
-      if (err instanceof TypeError) {
-        toast.error('测速失败：网络请求未能送达接口（连接中断或服务不可达）');
-      } else {
-        toast.error(getErrorMessage(err, '测速请求失败'));
-      }
+      // 网络类原生错误的中文化已收口在 getErrorMessage（P131）：那里只映射
+      // 「已知的网络文案」，其余错误原样透传。原先这里用 `instanceof TypeError`
+      // 一刀切，会把真正的代码 TypeError（例如内部调用的 toLowerCase of undefined）
+      // 也误报成「网络不可达」，掩盖真实故障。
+      toast.error(`测速失败：${getErrorMessage(err, '测速请求失败')}`);
     } finally {
       setLatencyBusy(false);
     }

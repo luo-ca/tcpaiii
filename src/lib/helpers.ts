@@ -17,9 +17,38 @@ export async function copyText(text: string, successMessage = '已复制到剪�
 }
 
 /**
+ * 浏览器原生网络错误的已知文案。
+ *
+ * fetch 在网络层失败（断网 / 接口未部署 / CORS 预检失败 / 预览链接过期）时
+ * 抛的是各浏览器自己的英文 TypeError，不是我们接口的错误体：
+ *   Chrome/Edge : Failed to fetch
+ *   Firefox     : NetworkError when attempting to fetch resource.
+ *   Safari      : Load failed / The Internet connection appears to be offline.
+ * 这些文案会经 getErrorMessage 原样弹给用户（「获取随机图片失败: Failed to fetch」）。
+ * 只映射网络类原文：其余错误一律原样透传，不吞信息。
+ */
+const NETWORK_ERROR_ZH =
+  '网络请求未能送达接口（连接中断或服务不可达），请检查网络后重试';
+
+function isNativeNetworkError(error: unknown): boolean {
+  // 只认 TypeError / DOMException 这类原生网络异常的文案，
+  // 避免把接口返回的同名文本（比如某个业务错误正好写了 Load failed）也改写。
+  if (!(error instanceof TypeError) && !(error instanceof DOMException)) return false;
+  const message = error.message;
+  return (
+    /^failed to fetch$/i.test(message) ||
+    /^networkerror/i.test(message) ||
+    /^load failed$/i.test(message) ||
+    /internet connection appears to be offline/i.test(message)
+  );
+}
+
+/**
  * Extract a user-friendly message from an unknown error.
+ * 原生网络错误统一译成中文，其余原样透传。
  */
 export function getErrorMessage(error: unknown, fallback: string): string {
+  if (isNativeNetworkError(error)) return NETWORK_ERROR_ZH;
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
