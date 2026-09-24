@@ -19,6 +19,13 @@ import { describe, expect, it } from "vitest";
  * （grep 不到、类名匹配失败、diff 里看不见）。
  *
  * 全仓扫过一遍：只有那一处，已修。这条测试防止再犯。
+ *
+ * 【P137 补充】原先只扫**内容**，不扫**路径名**。而路径名被污染后果更重：
+ * 内容里的同形字顶多让某个类名失效；路径名里的会让 `grep hook`、`git mv`、
+ * CI 的路径匹配、构建缓存 key 一起失灵，且同样肉眼看不出来。
+ * 实测确认过 `src/hook/` 只是**终端把它显示成了西里尔字形**，
+ * 磁盘上的真实字节是 `686f6f6b`（ASCII "hook"）—— 但这恰恰说明
+ * 「看起来是坏名字」与「真是坏名字」无法靠肉眼区分，必须让测试去查字节。
  */
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -27,6 +34,27 @@ function walk(dir: string, out: string[] = []): string[] {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) walk(full, out);
     else if (/\.(ts|tsx|js|mjs|json|css|html)$/.test(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+/**
+ * 递归收集所有**路径名**（目录与文件，不只匹配扩展名）。
+ * 与 walk 分开：walk 只挑源码文件，这里要覆盖全部条目 —— 一个被污染的
+ * 目录名或 README 之类都可能躲过 walk 的扩展名过滤。
+ */
+function walkNames(dir: string, out: string[] = []): string[] {
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return out; // 目录不存在（如未构建的产物目录）直接跳过
+  }
+  for (const entry of entries) {
+    if (["node_modules", "dist", ".git", "release"].includes(entry.name)) continue;
+    const full = join(dir, entry.name);
+    out.push(full);
+    if (entry.isDirectory()) walkNames(full, out);
   }
   return out;
 }
@@ -91,5 +119,31 @@ describe("源码不得混入不可见/同形字符", () => {
       });
     }
     expect(offenders, "发布产物含不可见/同形字符").toEqual([]);
+  });
+
+  /**
+   * 路径名同样要查（P137 补）。
+   *
+   * 原先这道护栏只看文件**内容**，路径名是盲区。而路径名被污染更难收拾：
+   * 内容里的一个同形字顶多让某条规则失效，名字里的会让 grep / git mv /
+   * CI 路径匹配 / 构建缓存 key 一起失灵，且同样肉眼看不出来。
+   *
+   * 注意判定用**码点**而不是「是不是 ASCII」：中文文件名（如文档）本身合法，
+   * 真正要拦的是「本意是 ASCII、却混进了西里尔同形字」这类。所以只对
+   * 落在 U+0400–U+04FF（西里尔）与零宽区间的码点报错。
+   */
+  it("文件与目录名里没有零宽字符或西里尔同形字", () => {
+    const offenders: string[] = [];
+    for (const root of ["src", "edge-functions-src", "public", "edge-functions"]) {
+      for (const name of walkNames(resolve(process.cwd(), root))) {
+        if (ZERO_WIDTH.test(name) || CYRILLIC.test(name)) {
+          offenders.push(name.replace(process.cwd(), "").replace(/\\/g, "/"));
+        }
+      }
+    }
+    expect(
+      offenders,
+      "路径名含西里尔同形字/零宽字符 —— 肉眼极难发现，却会破坏 grep、git mv 与 CI 路径匹配",
+    ).toEqual([]);
   });
 });
