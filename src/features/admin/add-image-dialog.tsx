@@ -220,6 +220,9 @@ export function AddImageDialog({
         </DialogHeader>
 
         <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl border-2 border-ink bg-secondary p-1">
+                    {/* 重试也要有进行中反馈：isFetching 期间禁用 + 换文案，否则预检失败时
+                        用户点一下没反应（请求要等往返），容易连点放大请求。
+                        与首页「图库精选」的重试按钮同口径。 */}
           <button
             type="button"
             aria-pressed={mode === 'single'}
@@ -315,12 +318,17 @@ export function AddImageDialog({
               {existingUrlsQuery.isError && (
                 <p className="text-xs font-medium text-destructive">
                   库内地址读取失败：暂时无法判断哪些是全新地址，导入会被拦下。
+                  {/* 重试要有进行中反馈：请求期间禁用并换文案，避免连点放大请求 */}
                   <button
                     type="button"
+                    disabled={existingUrlsQuery.isFetching}
+                    aria-busy={existingUrlsQuery.isFetching}
+                    
+                    
                     onClick={() => void existingUrlsQuery.refetch()}
-                    className="ml-1 underline underline-offset-2"
+                    className="ml-1 underline underline-offset-2 disabled:opacity-60"
                   >
-                    重试
+                    {existingUrlsQuery.isFetching ? '重试中…' : '重试'}
                   </button>
                 </p>
               )}
