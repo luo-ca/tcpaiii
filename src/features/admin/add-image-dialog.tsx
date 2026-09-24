@@ -83,7 +83,23 @@ export function AddImageDialog({
 
   const handleBatchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!(await onRequireToken())) return;
+    // 守卫必须在 await 之前置位（与单张/编辑同因）：onRequireToken 在密钥
+    // 未验证时会打一次 /api/admin/verify，那段往返期间按钮若仍可点，连点会
+    // 让同一批图导入两遍。finally 统一归还，任何提前 return 都不会卡住按钮。
+    setLoading(true);
+    try {
+      if (!(await onRequireToken())) return;
+      await handleBatchSubmitInner(e);
+    } catch (err) {
+      toast.error(getErrorMessage(err, '批量添加失败'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** 批量导入的主体（校验已通过、loading 已置位后进入）。 */
+  const handleBatchSubmitInner = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     const cleanUrls = batchPreview.validNew;
     // 去重预检还没落地时 validNew 同样混着库里已有地址：
@@ -118,63 +134,56 @@ export function AddImageDialog({
     const tags = parseTagsInput(batchTags);
     setProgress({ current: 0, total: cleanUrls.length });
     setBatchFailures([]);
-    setLoading(true);
 
-    try {
-      const result = await batchCreateImages(
-        cleanUrls.map((imageUrl, index) => ({ url: imageUrl, title: `图片 ${index + 1}`, tags })),
-        adminToken,
-      );
-      setProgress({ current: result.success, total: cleanUrls.length });
-      // 成功的那几条要从输入框里去掉。部分失败时弹窗会留在原地（见下），
-      // 而 textarea 里仍是原封不动的一整批 —— 用户顺手再点一次「导入」，
-      // 刚加成功的那些会被后端判为 'URL already exists'，
-      // 于是一屏红字报错，报的却全是已经成功的工作。
-      const succeededUrls = new Set(
-        result.results
-          .filter((item) => item.success)
-          .map((item) => canonicalizeImageUrl(item.url))
-          .filter((url): url is string => Boolean(url)),
-      );
-      const failures = result.results
-        .filter((item) => !item.success)
-        .map((item) => ({ url: item.url, error: item.error }));
-      setBatchFailures(failures);
+    const result = await batchCreateImages(
+      cleanUrls.map((imageUrl, index) => ({ url: imageUrl, title: `图片 ${index + 1}`, tags })),
+      adminToken,
+    );
+    setProgress({ current: result.success, total: cleanUrls.length });
+    // 成功的那几条要从输入框里去掉。部分失败时弹窗会留在原地（见下），
+    // 而 textarea 里仍是原封不动的一整批 —— 用户顺手再点一次「导入」，
+    // 刚加成功的那些会被后端判为 'URL already exists'，
+    // 于是一屏红字报错，报的却全是已经成功的工作。
+    const succeededUrls = new Set(
+      result.results
+        .filter((item) => item.success)
+        .map((item) => canonicalizeImageUrl(item.url))
+        .filter((url): url is string => Boolean(url)),
+    );
+    const failures = result.results
+      .filter((item) => !item.success)
+      .map((item) => ({ url: item.url, error: item.error }));
+    setBatchFailures(failures);
 
-      if (result.success > 0) {
-        toast.success(
-          `批量添加完成：成功 ${result.success} 张${result.failed > 0 ? `，失败 ${result.failed} 张` : ''}`,
+    if (result.success > 0) {
+      toast.success(
+        `批量添加完成：成功 ${result.success} 张${result.failed > 0 ? `，失败 ${result.failed} 张` : ''}`,
+      );
+      if (result.failed === 0) {
+        setOpen(false);
+      } else if (succeededUrls.size > 0) {
+        // 只留下没成功的那几行，用户可以直接改完再点一次。
+        // 两边都走 canonicalizeImageUrl 再比：服务端回显的是规范化后的
+        // URL（new URL().toString()），而 textarea 里是用户原样粘贴的那一行 ——
+        // 大小写主机名、裸域名补的尾斜杠、百分号转义都会让两者字面不同。
+        // 直接拿 trimmed 原文去 Set.has 会漏删这些行，用户再点一次导入
+        // 仍然会撞上一片 'URL already exists'。
+        setBatchUrls((current) =>
+          current
+            .split(/\r?\n/)
+            .filter((line) => {
+              const trimmed = line.trim();
+              if (!trimmed) return false;
+              const canonical = canonicalizeImageUrl(trimmed);
+              return !(canonical && succeededUrls.has(canonical));
+            })
+            .join('\n'),
         );
-        if (result.failed === 0) {
-          setOpen(false);
-        } else if (succeededUrls.size > 0) {
-          // 只留下没成功的那几行，用户可以直接改完再点一次。
-          // 两边都走 canonicalizeImageUrl 再比：服务端回显的是规范化后的
-          // URL（new URL().toString()），而 textarea 里是用户原样粘贴的那一行 ——
-          // 大小写主机名、裸域名补的尾斜杠、百分号转义都会让两者字面不同。
-          // 直接拿 trimmed 原文去 Set.has 会漏删这些行，用户再点一次导入
-          // 仍然会撞上一片 'URL already exists'。
-          setBatchUrls((current) =>
-            current
-              .split(/\r?\n/)
-              .filter((line) => {
-                const trimmed = line.trim();
-                if (!trimmed) return false;
-                const canonical = canonicalizeImageUrl(trimmed);
-                return !(canonical && succeededUrls.has(canonical));
-              })
-              .join('\n'),
-          );
-        }
-        onSuccess();
-      } else {
-        const firstError = result.results.find((item) => !item.success)?.error;
-        toast.error(firstError ? `全部添加失败：${firstError}` : '全部添加失败，请检查 URL 格式');
       }
-    } catch (err) {
-      toast.error(getErrorMessage(err, '批量添加失败'));
-    } finally {
-      setLoading(false);
+      onSuccess();
+    } else {
+      const firstError = result.results.find((item) => !item.success)?.error;
+      toast.error(firstError ? `全部添加失败：${firstError}` : '全部添加失败，请检查 URL 格式');
     }
   };
 

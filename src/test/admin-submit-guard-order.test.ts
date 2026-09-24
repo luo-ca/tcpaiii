@@ -32,6 +32,7 @@ import { describe, expect, it } from "vitest";
 /** 每个待检提交函数：文件 + 函数名 */
 const CASES: Array<{ file: string; fn: string }> = [
   { file: "src/features/admin/add-image-dialog.tsx", fn: "handleSingleSubmit" },
+  { file: "src/features/admin/add-image-dialog.tsx", fn: "handleBatchSubmit" },
   { file: "src/features/admin/edit-image-dialog.tsx", fn: "handleSubmit" },
   { file: "src/features/admin/batch-update-tags-dialog.tsx", fn: "handleSubmit" },
 ];
