@@ -30,6 +30,9 @@ export async function copyText(text: string, successMessage = '已复制到剪�
 const NETWORK_ERROR_ZH =
   '网络请求未能送达接口（连接中断或服务不可达），请检查网络后重试';
 
+/** 请求超时（api-client 的 AbortSignal.timeout）走单独文案：与「送不达」是两回事 */
+const TIMEOUT_ERROR_ZH = '接口响应超时，请稍后重试';
+
 function isNativeNetworkError(error: unknown): boolean {
   // 只认 TypeError / DOMException 这类原生网络异常的文案，
   // 避免把接口返回的同名文本（比如某个业务错误正好写了 Load failed）也改写。
@@ -44,10 +47,31 @@ function isNativeNetworkError(error: unknown): boolean {
 }
 
 /**
+ * 是否为「请求被超时中断」。
+ *
+ * api-client 用 AbortSignal.timeout 给所有请求加 15s 兜底。它触发时抛的
+ * DOMException 与「用户主动取消」是**同一个族**，历史上有测试明确要求
+ * AbortError 不得被译成网络故障（那是主动取消，不该谎报故障）。
+ *
+ * 两者的可靠区分点是 name：
+ *   · AbortSignal.timeout()      → name === 'TimeoutError'（规范规定的专用名）
+ *   · AbortController.abort()    → name === 'AbortError'
+ * 所以只认 TimeoutError，绝不按 message 里的 "aborted"/"timed out" 猜 ——
+ * 那会把用户主动取消也一并误报成超时。
+ *
+ * （兼容考量：个别旧实现只给 'AbortError'。但宁可漏译这一支，也不能把
+ * 主动取消误译 —— 漏译只是文案不完美，误译是给用户错误的因果。）
+ */
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'TimeoutError';
+}
+
+/**
  * Extract a user-friendly message from an unknown error.
  * 原生网络错误统一译成中文，其余原样透传。
  */
 export function getErrorMessage(error: unknown, fallback: string): string {
+  if (isTimeoutError(error)) return TIMEOUT_ERROR_ZH;
   if (isNativeNetworkError(error)) return NETWORK_ERROR_ZH;
   return error instanceof Error && error.message ? error.message : fallback;
 }

@@ -8,6 +8,15 @@ import { appendCurrentPreviewParams, buildApiPath } from './url';
 
 // ---- internal helpers ----
 
+/**
+ * API 请求超时上限。
+ *
+ * 取值权衡：边缘函数正常在数百毫秒内返回，慢的写操作（批量最多 500 张）
+ * 也在数秒级。15s 足够容纳冷启动与批量，又不至于让用户对着骨架屏干等太久 ——
+ * 超时后走错误态，至少用户能看到「失败」并能重试。
+ */
+const API_REQUEST_TIMEOUT_MS = 15_000;
+
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   return typeof value === 'object' && value !== null;
 }
@@ -201,8 +210,28 @@ export async function apiRequest<T>(
   const bustCache = opts?.bustCache ?? true;
   // 预览参数是硬契约，先无条件补齐；`_t` 破缓仍只管 GET
   const target = appendPreviewParams(input);
+
+  /*
+   * 请求超时兜底。
+   *
+   * fetch 本身没有超时：边缘函数挂住（TCP 连着但永不返回）、回源卡死、
+   * 中间层把连接吊在半路时，这个 await 会一直悬着。而调用方的 loading 状态
+   * 全挂在它身上 —— 首页主视觉、状态页复检、图库首屏都会永远停在加载态，
+   * 用户既看不到错也等不到结果。
+   *
+   * 用 AbortSignal.timeout（Node 17.3+ / 现代浏览器均支持）而非手写
+   * setTimeout + clearTimeout：少一个定时器泄漏点。timeout 触发时 fetch
+   * 会抛 AbortError，交由调用方按普通网络错误处理（getErrorMessage 已把
+   * 它译成中文）。
+   *
+   * 调用方自带 signal 时（未来若有取消需求）不覆盖，尊重调用方语义。
+   */
+  const timeoutSignal = AbortSignal.timeout(API_REQUEST_TIMEOUT_MS);
+  const signal = init?.signal ?? timeoutSignal;
+
   const response = await fetch(bustCache ? withNoCacheQuery(target, init) : target, {
     ...init,
+    signal,
     // bustCache 关闭时交给服务端 Cache-Control 说话（后端已给
     // stats/分页 list 发短边缘缓存）；强推 no-store 会让那套契约形同虚设
     cache: bustCache ? 'no-store' : 'default',
