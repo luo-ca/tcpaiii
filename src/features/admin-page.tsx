@@ -180,8 +180,19 @@ export default function GalleryPage() {
       if (!claimDelete(inFlightDeleteRef, id)) return Promise.resolve();
       return deleteImage(id, adminToken.trim()).finally(() => releaseDelete(inFlightDeleteRef, id));
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       toast.success('图片已删除');
+      // 把这批选择里的对应 id 摘掉。不摘的话它会一直算在「已选 N 张」里，
+      // 提交时服务端对已不存在的 id 返回 'Image not found'，
+      // 界面弹「1 张图片未命中（可能刚被删除）」—— 由客户端状态残留
+      // 制造的假失败（图就是用户自己刚删的）。
+      // 按 id 摘而不是整体清空：其它勾选仍然有效，不该因删一张丢掉整批。
+      setSelectedIds((current) => {
+        if (!current.has(id)) return current;
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
       refreshGallery();
     },
     onError: (err) => {
