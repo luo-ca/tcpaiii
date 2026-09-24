@@ -65,11 +65,19 @@ export async function fetchRandomImage(tag?: string, exclude?: string): Promise<
   if (exclude) params.set('exclude', exclude);
   params.set('format', 'json');
   const query = params.toString();
-  return apiRequest<ImageRecord>(
+
+  const body = await apiRequest<unknown>(
     `/api/random${query ? `?${query}` : ''}`,
     undefined,
     '获取随机图片失败',
   );
+
+  // 随机图也要过形状守卫：OnlinePreview 直接读 img.tags 并 .map 渲染，
+  // 脏 tags（如 [{bad:1}]）会让首页整页崩到错误边界（实测确认）。
+  if (!isImageRecord(body)) {
+    throw new Error('接口返回的图片数据格式异常');
+  }
+  return body;
 }
 
 /**
