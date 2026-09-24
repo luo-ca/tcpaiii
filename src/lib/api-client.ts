@@ -210,9 +210,16 @@ export async function apiRequest<T>(
     throw new Error(getNonJsonApiMessage(response, body, fallback));
   }
 
+  // 先读文本再解析，而不是 response.json()：json() 一旦失败就把 body 消费掉了，
+  // 之后拿不到原文、拼不出「接口返回了非 JSON 内容（…）」这类带摘要的中文提示。
+  const rawBody = await readTextSafely(response);
   try {
-    return (await response.json()) as T;
+    return JSON.parse(rawBody) as T;
   } catch {
-    throw new Error(`${fallback}: invalid JSON response`);
+    // content-type 声称是 JSON，但 body 解析不了（边缘函数被截断、回源超时、
+    // KV 读到半截 body）。原先抛的是 `${fallback}: invalid JSON response`，
+    // 英文尾巴会被 getErrorMessage 原样弹到中文界面上。与同文件其它分支
+    // （非 JSON content-type / HTML / 非 2xx）保持同一口径，全中文。
+    throw new Error(getNonJsonApiMessage(response, rawBody, fallback));
   }
 }
