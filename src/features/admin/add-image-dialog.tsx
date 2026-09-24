@@ -413,13 +413,24 @@ export function AddImageDialog({
 
             {loading && progress.total > 0 && (
               <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="flex items-center justify-between text-xs text-muted-foreground"
+                >
                   <span>添加进度</span>
                   <span>
                     {progress.current} / {progress.total}
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full border-2 border-ink bg-muted">
+                <div
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={progress.total}
+                  aria-valuenow={progress.current}
+                  aria-label="批量导入进度"
+                  className="h-2 overflow-hidden rounded-full border-2 border-ink bg-muted"
+                >
                   <div
                     className="h-full rounded-full bg-brand-500 transition-[width] duration-300"
                     style={{ width: `${(progress.current / progress.total) * 100}%` }}
