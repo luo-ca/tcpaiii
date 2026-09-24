@@ -87,7 +87,10 @@ export function GalleryPreview() {
             ))}
           </div>
         ) : isError && items.length === 0 ? (
-          <div className="reveal rounded-2xl border border-border bg-white px-4 py-8 text-center">
+          <div
+            role="alert"
+            className="reveal rounded-2xl border border-border bg-white px-4 py-8 text-center"
+          >
             <p className="text-sm text-muted-foreground">图库精选暂时加载失败。</p>
             <Button
               variant="outline"
