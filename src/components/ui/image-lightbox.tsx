@@ -25,6 +25,10 @@ import { useCopyFeedback } from '@/hooks/use-copy-feedback';
  * 抽到共享模块是为了统一两处的查看体验 —— 首页原先点图是「新标签页打开原图」，
  * 公开图库是就地开灯箱，同一个站点两种行为，用户容易困惑。
  */
+
+/** 原图加载兜底超时：超过它仍未触发 onLoad/onError 就按失败处理 */
+const IMAGE_LOAD_TIMEOUT_MS = 20_000;
+
 export function ImageLightbox({
   images,
   index,
@@ -88,12 +92,30 @@ export function ImageLightbox({
   const image = index === null ? null : images[index];
   // 索引可以临时等于 images.length：那是「已请求下一页、数据还在路上」的占位态。
   const isPendingNext = index !== null && !image;
+  // 取原始值而非 image 对象：它随页码 / 筛选变化换引用，用作 effect 依赖会让
+  // 计时器在无关重渲染中重来；id 才是「换了一张图」的真正信号。
+  const imageId = image?.id ?? null;
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
   // 切换图片（含方向键翻页）时重新回到「加载中」，避免沿用上一张的完成态
   useEffect(() => {
     setStatus('loading');
   }, [image?.id]);
+
+  /**
+   * 原图加载超时兜底。
+   *
+   * status 只由 <img> 的 onLoad / onError 推动。若响应是 200 却不触发这两个
+   * 事件（被中间层静默截断、0 字节、解码挂起），灯箱会永远停在转圈的加载态：
+   * 图片 opacity-0 不可见、下面也没有任何按钮 —— 用户除了关掉弹窗别无出路，
+   * 而错误态本来是有「在新标签页打开」这条退路的。超过 20s 按失败处理，
+   * 把已有那条出路交给用户。
+   */
+  useEffect(() => {
+    if (status !== 'loading' || imageId === null) return;
+    const timer = window.setTimeout(() => setStatus('error'), IMAGE_LOAD_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [status, imageId]);
 
   const hasPrev = index !== null && index > 0;
   // 还有未加载的后继图时，「下一张」也要可用，否则用户到末尾就卡住了
