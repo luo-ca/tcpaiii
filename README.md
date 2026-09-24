@@ -53,6 +53,7 @@ npm run build
 - `GET /api/stats`：返回图片数量、标签列表、调用统计和最近 7 天数据。
 - `GET /api/list`：无参数时返回旧版完整图库数组；带 `page` / `pageSize` / `search` / `tag` 参数时返回分页结果。
 - `POST /api/create`、`PUT /api/update/:id`、`DELETE /api/delete/:id`、`POST /api/batch`：图库管理接口，必须携带管理密钥。
+- `POST /api/batch-update`：批量增删标签（单事务，比逐张 `PUT /api/update/:id` 少 N-1 次全库读改写）。请求体为 `{"ids":[...],"addTags":[...],"removeTags":[...]}`，同样必须携带管理密钥；`ids` 与两个标签数组都受与批量导入相同的上限约束（`MAX_BATCH_SIZE`）。
 
 ## EdgeOne KV
 
