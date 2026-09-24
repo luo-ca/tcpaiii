@@ -19,6 +19,7 @@ import type { Stats } from '@/lib/types';
 import { fetchImagesPage, statsQueryOptions } from '@/lib/api';
 import { MAX_TAG_LENGTH } from '@/lib/constants';
 import { formatNumber } from '@/lib/helpers';
+import { stripControlChars } from '@/lib/text';
 import { buildAppUrl } from '@/lib/url';
 import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 
@@ -81,7 +82,9 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
   const showHeroImage = Boolean(heroImageUrl) && !heroImageFailed;
 
   const handleSubmit = () => {
-    onRequestRandom(tagInput.trim() || undefined);
+    // 剔控制字符：标签会直接进 /api/random?tag=...，
+    // 带不可见字符时用户会看到「搜了却永远取不到图」。
+    onRequestRandom(stripControlChars(tagInput).trim() || undefined);
   };
 
   const handleCopyApi = () => {

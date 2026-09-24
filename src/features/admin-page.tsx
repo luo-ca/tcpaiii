@@ -47,6 +47,7 @@ import { EmptyState } from '@/components/states/EmptyState';
 import { AddImageDialog } from './admin/add-image-dialog';
 import { BatchUpdateTagsDialog } from './admin/batch-update-tags-dialog';
 import { ImageCard } from './admin/image-card';
+import { stripControlChars } from '@/lib/text';
 import { claimDelete, releaseDelete, type DeleteGate } from './admin/delete-gate';
 
 // ============================================================
@@ -76,7 +77,8 @@ export default function GalleryPage() {
   const hasVerifiedAdminToken = hasAdminToken && adminAuthStatus === 'valid';
 
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
-  const searchQuery = debouncedSearchTerm.trim();
+  // 同图库搜索：控制字符不可见，只 trim 会造出「看不见的筛选条件」。
+  const searchQuery = stripControlChars(debouncedSearchTerm).trim();
   const imagesQuery = useQuery<PaginatedImages>({
     queryKey: ['images', { page, pageSize, search: searchQuery, tag: selectedTag }],
     queryFn: () =>

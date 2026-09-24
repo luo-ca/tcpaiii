@@ -17,6 +17,7 @@ import {
 } from '@/lib/constants';
 import { fetchExistingImageUrlSet, createImage, batchCreateImages } from '@/lib/api';
 import { getErrorMessage, parseTagsInput, parseBatchUrls, canonicalizeImageUrl } from '@/lib/helpers';
+import { stripControlChars } from '@/lib/text';
 
 // ============================================================
 // Add Image Dialog
@@ -70,7 +71,7 @@ export function AddImageDialog({
 
   const singleMutation = useMutation({
     mutationFn: () =>
-      createImage({ url: canonicalizeImageUrl(url) ?? url.trim(), title: title.trim() || '未命名图片', tags: parseTagsInput(tagsInput) }, adminToken),
+      createImage({ url: canonicalizeImageUrl(url) ?? url.trim(), title: stripControlChars(title).trim() || '未命名图片', tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => {
       toast.success('图片添加成功');
       setOpen(false);

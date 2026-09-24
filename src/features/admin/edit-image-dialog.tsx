@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { MAX_IMAGE_URL_LENGTH, MAX_TITLE_LENGTH, MAX_TAG_LENGTH, MAX_TAGS_PER_IMAGE } from '@/lib/constants';
 import { updateImage } from '@/lib/api';
 import { getErrorMessage, parseTagsInput, canonicalizeImageUrl } from '@/lib/helpers';
+import { stripControlChars } from '@/lib/text';
 
 // ============================================================
 // Edit Image Dialog
@@ -46,7 +47,7 @@ export function EditImageDialog({
 
   const mutation = useMutation({
     mutationFn: () =>
-      updateImage(image.id, { url: canonicalizeImageUrl(url) ?? url.trim(), title: title.trim(), tags: parseTagsInput(tagsInput) }, adminToken),
+      updateImage(image.id, { url: canonicalizeImageUrl(url) ?? url.trim(), title: stripControlChars(title).trim(), tags: parseTagsInput(tagsInput) }, adminToken),
     onSuccess: () => {
       toast.success('图片已更新');
       setOpen(false);

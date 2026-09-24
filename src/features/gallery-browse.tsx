@@ -10,6 +10,7 @@ import type { PaginatedImages, Stats } from '@/lib/types';
 import { MAX_SEARCH_LENGTH } from '@/lib/constants';
 import { fetchImagesPage, statsQueryOptions } from '@/lib/api';
 import { getErrorMessage } from '@/lib/helpers';
+import { stripControlChars } from '@/lib/text';
 import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 import { readGalleryQuery, writeGalleryQuery } from '@/lib/url';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -29,7 +30,9 @@ export default function GalleryBrowse() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
-  const searchQuery = debouncedSearchTerm.trim();
+  // 剔控制字符再 trim：用户 Ctrl+V 粘贴进来的 NUL 等是不可见的，
+  // 只 trim 会出现「输入框看着是空的、页面却一直在筛选」的假空结果态。
+  const searchQuery = stripControlChars(debouncedSearchTerm).trim();
 
   // 筛选状态回写地址栏。用 replaceState 而不是 pushState：
   // 否则每敲一个字都会往历史里塞一条记录，后退键会变成「逐字回退」。
