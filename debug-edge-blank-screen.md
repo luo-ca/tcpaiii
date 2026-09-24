@@ -1,6 +1,6 @@
 # Debug Session: edge-blank-screen
 
-Status: [OPEN]
+Status: [VERIFIED-CLOSED]
 
 ## Symptom
 推送到 EdgeOne 后页面仍然白屏；用户要求先移除 `https://static.paiii.cn/static/gbts.js`，避免控制台不可见。
@@ -31,3 +31,15 @@ Status: [OPEN]
 - `npm test` 通过：2 个测试文件，40 个测试。
 - `npm run lint` 通过。
 - `npm run build` 通过，构建产物生成成功。
+
+---
+
+## 后续核实（本轮）
+
+本记录的部分结论已被后续决策推翻，逐条核对：
+
+- **`App.tsx` 未导入符号**（`Search` / `Badge` / `Input`）：当前 `src/App.tsx` 已完全不引用这三个符号，相关渲染已下沉到 `src/components/sections/HeroSection.tsx` 等子组件，`tsc --noEmit` 通过，问题不复存在。
+- **移除 `https://static.paiii.cn/static/gbts.js`**：确已移除，`index.html` 中不再出现。
+- **移除 `https://imgs.paiii.cn/waf/gbts.js` 与 `disable-devtool-auto`**：此项已被推翻。后续 `6600d68 perf(html)` 明确改为 `defer` 并保留，理由写在 `index.html` 注释里：脚本必须能初始化 WAF 防调试，`defer` 已消除同步阻塞白屏风险（原先同步加载才是真隐患），并以 `document.querySelector("[disable-devtool-auto]")` 读自身配置，`defer` 时机反而更正确。该决定在 `P90` 时仍被保留。**不应再移除。**
+
+结论：本记录除 gbts 一项判定反转外，其余修复均在位；反转项已在源码注释中留档理由。

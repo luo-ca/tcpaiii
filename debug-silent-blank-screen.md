@@ -1,6 +1,6 @@
 # Debug Session: silent-blank-screen
 
-Status: [OPEN]
+Status: [VERIFIED-CLOSED]
 
 ## Symptom
 网页打开白屏，但浏览器控制台没有明显错误。
@@ -32,3 +32,13 @@ Status: [OPEN]
 - `npm test` 通过：2 个测试文件，41 个测试。
 - `npm run lint` 通过。
 - `npm run build` 通过，生产构建成功。
+
+---
+
+## 后续核实（本轮）
+
+- `index.html` 的 `#root` 静态兜底：在位（见 `debug-blank-screen-load.md` 核实）。
+- `RootErrorBoundary`：仍保留在 `src/main.tsx`，`componentDidCatch` 中调用 `renderFallback`，覆盖 React 渲染阶段异常。
+- `treeshake.moduleSideEffects: false` 改 `treeshake: true`：`vite.config.ts` 当前即为 `treeshake: true`，高风险配置未回归。
+
+结论：无需再改。

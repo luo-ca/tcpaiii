@@ -1,6 +1,6 @@
 # Debug Session: blank-screen-load
 
-Status: [OPEN]
+Status: [VERIFIED-CLOSED]
 
 ## Symptom
 网页打开时出现白屏，可能影响用户正常访问。
@@ -55,3 +55,17 @@ Status: [OPEN]
   - `/assets/index-D-xZMAH6.css` returned 200 CSS.
   - `/api/random?format=json` still returns SPA HTML under plain Vite preview, confirming this is an environment mismatch unless EdgeOne Functions/proxy is used. The frontend now tolerates this by keeping visible fallback Hero content.
 - Browser automation limitation: Playwright bundled browsers are not installed in this environment; Chrome executable exists, but direct headless dump did not provide usable console capture through the available terminal output. Cross-browser runtime smoke must be completed in CI or a machine with Playwright browsers installed.
+
+---
+
+## 后续核实（本轮）
+
+本条记录的修复均已落地并保留至今：
+
+- `index.html` 的 `#root` 内含静态可见兜底（「页面正在加载」卡片），JS 未执行/资源被拦截时不再纯白屏。已由 `dist/index.html` 产物核对确认存在。
+- `src/main.tsx` 保留入口同步 `try/catch` 的统一 `renderFallback`，对错误消息做 HTML 转义后展示。
+- Hero 首屏使用 `HERO_FALLBACK_IMAGE_URL` 兜底，`/api/random` 仅作挂载后的异步增强，失败不影响首屏可见。
+
+四道门禁当前全绿：lint / `tsc --noEmit` / 107 文件 546 用例 / build。
+
+结论：无需再改。若后续在真实浏览器复现，请以新记录跟踪。
