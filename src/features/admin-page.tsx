@@ -47,6 +47,7 @@ import { EmptyState } from '@/components/states/EmptyState';
 import { AddImageDialog } from './admin/add-image-dialog';
 import { BatchUpdateTagsDialog } from './admin/batch-update-tags-dialog';
 import { ImageCard } from './admin/image-card';
+import { claimDelete, releaseDelete, type DeleteGate } from './admin/delete-gate';
 
 // ============================================================
 // Gallery Page
@@ -165,8 +166,20 @@ export default function GalleryPage() {
     prefetchGalleryPage(page - 1);
   }, [imagesQuery.data, page, prefetchGalleryPage]);
 
+  // 飞行中的删除 id。删一张图会经过「校验密钥 → 发 DELETE」两段异步，
+  // 而 Radix 的 AlertDialogAction 是**先关弹窗再跑 onClick** —— 从弹窗关闭到
+  // mutation 启动之间有个窗口，此时 isDeleting 仍为 false，用户能再点一次确认，
+  // 于是同一 id 的 DELETE 发两遍：第二次收到 404「图片不存在」并弹一条失败 toast，
+  // 用户明明删成功了。窗口开在「弹窗已关、请求未发」之间，
+  // 所以禁用触发器堵不住，必须在 mutation 层按 id 去重。
+  const inFlightDeleteRef = useRef<DeleteGate['current']>(new Set());
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteImage(id, adminToken.trim()),
+    mutationFn: (id: string) => {
+      // 已被同一 id 的请求占着：静默吞掉重复点击。不抛错 —— 抛了会走
+      // onError，界面弹一条「删除失败」的误报（用户明明删成功了）。
+      if (!claimDelete(inFlightDeleteRef, id)) return Promise.resolve();
+      return deleteImage(id, adminToken.trim()).finally(() => releaseDelete(inFlightDeleteRef, id));
+    },
     onSuccess: () => {
       toast.success('图片已删除');
       refreshGallery();
