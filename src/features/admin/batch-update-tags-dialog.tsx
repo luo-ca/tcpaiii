@@ -81,9 +81,18 @@ export function BatchUpdateTagsDialog({
       return;
     }
     void (async () => {
-      if (!(await onRequireToken())) return;
+      // 守卫必须在 await 之前置位（同 edit-image-dialog）：onRequireToken 的
+      // 网络往返期间按钮若仍可点，连点会把同一批 id 处理两遍。
       setLoading(true);
-      mutation.mutate(undefined, { onSettled: () => setLoading(false) });
+      try {
+        if (!(await onRequireToken())) {
+          setLoading(false);
+          return;
+        }
+        mutation.mutate(undefined, { onSettled: () => setLoading(false) });
+      } catch {
+        setLoading(false);
+      }
     })();
   };
 

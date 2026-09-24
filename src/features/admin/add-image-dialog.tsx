@@ -181,25 +181,37 @@ export function AddImageDialog({
   const handleSingleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     void (async () => {
-      if (!(await onRequireToken())) return;
-
-      if (!url.trim()) {
-        toast.error('请填写图片地址');
-        return;
-      }
-
-      // 与批量模式同一把尺子：canonicalizeImageUrl 会拒掉非 http(s)、带凭据、
-      // 超长或无法解析的地址。只靠 input 的 type="url" 挡不住 —— 实测
-      // ftp://host/a.jpg 与 javascript:alert(1) 都能通过原生校验被打到服务端，
-      // 而服务端会回英文 url must be a valid http(s) URL，管理员看到的是英文报错。
-      const canonical = canonicalizeImageUrl(url);
-      if (!canonical) {
-        toast.error('图片地址必须是有效的 http(s) URL');
-        return;
-      }
-
+      // 守卫必须在 await 之前置位：onRequireToken 在密钥未验证时会打一次
+      // /api/admin/verify。那段往返期间按钮若仍可点，用户连点就会进入第二次
+      // 提交、同一 URL 发两次 POST（第二次 409「该图片地址已存在」误报失败）。
       setLoading(true);
-      singleMutation.mutate(undefined, { onSettled: () => setLoading(false) });
+      try {
+        if (!(await onRequireToken())) {
+          setLoading(false);
+          return;
+        }
+
+        if (!url.trim()) {
+          toast.error('请填写图片地址');
+          setLoading(false);
+          return;
+        }
+
+        // 与批量模式同一把尺子：canonicalizeImageUrl 会拒掉非 http(s)、带凭据、
+        // 超长或无法解析的地址。只靠 input 的 type="url" 挡不住 —— 实测
+        // ftp://host/a.jpg 与 javascript:alert(1) 都能通过原生校验被打到服务端，
+        // 而服务端会回英文 url must be a valid http(s) URL，管理员看到的是英文报错。
+        const canonical = canonicalizeImageUrl(url);
+        if (!canonical) {
+          toast.error('图片地址必须是有效的 http(s) URL');
+          setLoading(false);
+          return;
+        }
+
+        singleMutation.mutate(undefined, { onSettled: () => setLoading(false) });
+      } catch {
+        setLoading(false);
+      }
     })();
   };
 

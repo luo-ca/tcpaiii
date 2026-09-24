@@ -48,7 +48,15 @@ describe("单张添加 · URL 前置校验与批量一致", () => {
     const i = src.indexOf("const handleSingleSubmit");
     const block = src.slice(i, src.indexOf("return (", i));
     expect(block, "缺中文提示").toContain("图片地址必须是有效的 http(s) URL");
-    expect(block, "校验失败后没有 return，仍会发请求").toMatch(/toast\.error\([^)]*\);\s*\n\s*return;/);
+    // 只断言「提示之后确实中止了」，不要求 return 紧贴提示 —— 
+    // 守卫归还（setLoading(false)）可以合法地插在两者之间（P142）。
+    const toastAt = block.indexOf("图片地址必须是有效的 http(s) URL");
+    const after = block.slice(toastAt);
+    expect(after, "校验失败后没有 return，仍会发请求").toMatch(/return\s*;/);
+    // 且 return 必须出现在真正的提交调用之前（否则等于没拦）
+    const mutateAt = after.indexOf("singleMutation.mutate");
+    const returnAt = after.search(/return\s*;/);
+    expect(returnAt, "return 在提交调用之后，等于没拦").toBeLessThan(mutateAt);
   });
 
   it("提交的是规范化后的 URL（与服务端同一规范化）", () => {

@@ -60,22 +60,29 @@ export function EditImageDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     void (async () => {
-      if (!(await onRequireToken())) return;
-
-      if (!url.trim()) {
-        toast.error('请填写图片地址');
-        return;
-      }
-
-      // 与单张添加、批量导入同一把尺子：type="url" 允许 ftp: 与 javascript:，
-      // 只靠原生校验会把它们放到服务端，再收到英文的 url must be a valid http(s) URL。
-      const canonical = canonicalizeImageUrl(url);
-      if (!canonical) {
-        toast.error('图片地址必须是有效的 http(s) URL');
-        return;
-      }
+      // 守卫必须在 await 之前置位：onRequireToken 在密钥未验证时会打一次
+      // /api/admin/verify。那段往返期间若按钮仍可点，用户连点就会进入第二次
+      // 提交、PUT 同一张图两遍。try/finally 保证任何提前 return 都能归还。
       setLoading(true);
-      mutation.mutate(undefined, { onSettled: () => setLoading(false) });
+      try {
+        if (!(await onRequireToken())) return;
+
+        if (!url.trim()) {
+          toast.error('请填写图片地址');
+          return;
+        }
+
+        // 与单张添加、批量导入同一把尺子：type="url" 允许 ftp: 与 javascript:，
+        // 只靠原生校验会把它们放到服务端，再收到英文的 url must be a valid http(s) URL。
+        const canonical = canonicalizeImageUrl(url);
+        if (!canonical) {
+          toast.error('图片地址必须是有效的 http(s) URL');
+          return;
+        }
+        mutation.mutate(undefined, { onSettled: () => setLoading(false) });
+      } catch {
+        setLoading(false);
+      }
     })();
   };
 
