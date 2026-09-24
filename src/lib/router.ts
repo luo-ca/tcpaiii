@@ -24,6 +24,22 @@ import { prefersReducedMotion } from './helpers';
 export const ROUTES = ['/', '/gallery', '/docs', '/status', '/admin'] as const;
 export type RoutePath = (typeof ROUTES)[number];
 
+/**
+ * 软 404 提示里回显路径的字符上限。
+ *
+ * 路径来自 window.location.pathname —— 是**未经校验的用户输入**：
+ * 拼错的分享链接、爬虫扫的长垃圾路径都可能几千字符。原样拼进 toast
+ * 会铺成一大块文本盖住页面（toast 是文本渲染，无 XSS，但会挡内容）。
+ * 截断并在末尾加省略号，让用户知道显示的不是全貌。
+ */
+const MAX_DISPLAY_PATH_LENGTH = 60;
+
+/** 把路径裁到可展示长度；超长时以省略号结尾。 */
+export function truncatePathForDisplay(path: string): string {
+  if (path.length <= MAX_DISPLAY_PATH_LENGTH) return path;
+  return path.slice(0, MAX_DISPLAY_PATH_LENGTH) + '…';
+}
+
 const isBrowser = typeof window !== 'undefined';
 
 function normalize(pathname: string): RoutePath {
@@ -83,7 +99,7 @@ if (isBrowser) {
   if (!(ROUTES as readonly string[]).includes(rawPath)) {
     window.history.replaceState(null, '', '/');
     // 等 Toaster 挂载订阅后再播报，模块求值期直发会被 sonner 丢掉
-    window.setTimeout(() => toast.warning(`页面「${rawPath}」不存在，已回到首页`), 300);
+    window.setTimeout(() => toast.warning(`页面「${truncatePathForDisplay(rawPath)}」不存在，已回到首页`), 300);
   }
   snapshot = readLocation();
   window.addEventListener('popstate', emit);
