@@ -632,7 +632,7 @@ export default function GalleryPage() {
       )}
 
       {imagesQuery.isFetching && images.length > 0 && (
-        <div className="mb-4 flex items-center justify-center gap-2 rounded-xl border-2 border-ink bg-secondary px-4 py-2 text-sm text-muted-foreground">
+        <div role="status" aria-live="polite" className="mb-4 flex items-center justify-center gap-2 rounded-xl border-2 border-ink bg-secondary px-4 py-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           正在刷新图库数据...
         </div>
@@ -658,7 +658,13 @@ export default function GalleryPage() {
       </div>
 
       {filteredTotal > 0 && (
-        <div className="mt-8 flex flex-col gap-4 rounded-2xl border-2 border-ink bg-white px-4 py-3.5 text-sm text-muted-foreground shadow-[4px_4px_0_0_var(--color-ink)] lg:flex-row lg:items-center lg:justify-between">
+        <div
+          
+          
+          role="status"
+          aria-live="polite"
+          className="mt-8 flex flex-col gap-4 rounded-2xl border-2 border-ink bg-white px-4 py-3.5 text-sm text-muted-foreground shadow-[4px_4px_0_0_var(--color-ink)] lg:flex-row lg:items-center lg:justify-between"
+        >
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
             <span className="font-medium text-foreground/70">
               共 <span className="text-foreground font-bold">{filteredTotal}</span> 张
