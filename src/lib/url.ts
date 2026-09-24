@@ -8,6 +8,7 @@ import {
   MAX_SEARCH_LENGTH,
   MAX_TAG_LENGTH,
 } from './constants';
+import { stripControlChars } from './text';
 
 export function getAppOrigin(): string {
   if (typeof window === 'undefined') return APP_FALLBACK_DOMAIN;
@@ -56,6 +57,11 @@ export function buildApiPath(path: string): string {
 export const GALLERY_QUERY_SEARCH = 'q';
 export const GALLERY_QUERY_TAG = 'tag';
 
+/** 清洗 + 重新 trim：剔完控制字符可能露出首尾空白。 */
+function sanitizeQueryValue(raw: string | null): string {
+  return stripControlChars(raw ?? '').trim();
+}
+
 export function readGalleryQuery(search: string): { search: string; tag: string | null } {
   const params = new URLSearchParams(search);
   // 长度必须在这里收口，不能只靠输入框的 maxLength —— 那个只挡打字，
@@ -64,8 +70,8 @@ export function readGalleryQuery(search: string): { search: string; tag: string 
   //（edge-functions-src/lib/types.ts），于是**实际生效的筛选与地址栏里的不是同一个**，
   // 「复制链接分享」也复现不出用户看到的结果。
   // 先 trim 再 slice：不把空白算进额度（与输入框 maxLength 的语义一致）。
-  const rawSearch = params.get(GALLERY_QUERY_SEARCH)?.trim() ?? '';
-  const rawTag = params.get(GALLERY_QUERY_TAG)?.trim() ?? '';
+  const rawSearch = sanitizeQueryValue(params.get(GALLERY_QUERY_SEARCH));
+  const rawTag = sanitizeQueryValue(params.get(GALLERY_QUERY_TAG));
   return {
     search: rawSearch.slice(0, MAX_SEARCH_LENGTH),
     tag: rawTag ? rawTag.slice(0, MAX_TAG_LENGTH) : null,

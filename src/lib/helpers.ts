@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { MAX_IMAGE_URL_LENGTH, MAX_TAG_LENGTH, MAX_TAGS_PER_IMAGE } from './constants';
+import { stripControlChars } from './text';
 import { copyToClipboard } from './utils';
 
 /**
@@ -107,7 +108,7 @@ export function formatNumber(value: number): string {
  * 保证「提交什么就存什么」，不靠后端兜底。
  */
 export function parseTagsInput(value: string): string[] {
-  return [...new Set(value.split(/[,，]/).map(tag => tag.trim().slice(0, MAX_TAG_LENGTH)).filter(Boolean))]
+  return [...new Set(stripControlChars(value).split(/[,，]/).map(tag => tag.trim().slice(0, MAX_TAG_LENGTH)).filter(Boolean))]
     .slice(0, MAX_TAGS_PER_IMAGE);
 }
 
@@ -149,7 +150,14 @@ const BATCH_SPLIT_PATTERN = /[\s,，;；\n\r]+/;
  * Comparison semantics match the backend `normalizeImageUrl` + `urlSet` check.
  */
 export function parseBatchUrls(input: string, existingCanonicalUrls?: Set<string>): ParsedBatchUrls {
-  const raws = input.split(BATCH_SPLIT_PATTERN).map(part => part.trim()).filter(Boolean);
+  // 顺序很关键：**先按分隔符切，再逐项剔控制字符**。
+  // 反过来（先剔再切）会把 \n / \t 这些**分隔符本身**剔掉，
+  // 多行粘贴的 URL 会被粘成一条 —— 实测三行粘贴变成
+  // ["https://a/1.jpghttps://a/2.jpghttps://a/3.jpg"]，全部导入失败。
+  const raws = input
+    .split(BATCH_SPLIT_PATTERN)
+    .map(part => stripControlChars(part).trim())
+    .filter(Boolean);
   const seen = new Set<string>();
   const validNew: string[] = [];
   const duplicatesInBatch: string[] = [];
