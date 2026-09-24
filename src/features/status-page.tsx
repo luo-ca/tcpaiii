@@ -141,8 +141,12 @@ export default function StatusPage() {
     queryFn: fetchHealth,
     // 状态页的本职是「此刻是否可用」：破缓、且每 30s 自动复检一次。
     // 后端 health 分支不写 KV、也不计入 stats，轮询不消耗调用量。
+    // 标签页隐藏时停表（同 stats）：后台继续请求没有意义，而且定时器会被
+    // 浏览器节流，回来时反而是一段不确定有多旧的结果。
     staleTime: 0,
-    refetchInterval: 30_000,
+    refetchInterval: () => (typeof document !== 'undefined' && document.hidden ? false : 30_000),
+    // 切回标签页立即复检一次，接上停表期间的空白
+    refetchOnWindowFocus: true,
     retry: 1,
   });
 

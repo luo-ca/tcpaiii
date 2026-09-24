@@ -195,11 +195,26 @@ export async function fetchStats(): Promise<Stats> {
  */
 const STATS_POLL_MS = 15_000;
 
+/**
+ * 轮询间隔。标签页隐藏时返回 false，直接停表。
+ *
+ * 原来无条件每 15s 发一次：用户切到别的标签页后请求照跑——既白耗一次边缘
+ * 调用与调用量统计，又会被浏览器把后台定时器节流到不可预测的时机，回来时
+ * 看到的是「过期且不确定多久没更新」的数字 —— 相较之下挂着不动、切回来
+ * 立即重取更符合直觉（配合 refetchOnWindowFocus 由下面单独开）。
+ */
+function statsPollInterval(): number | false {
+  return typeof document !== 'undefined' && document.hidden ? false : STATS_POLL_MS;
+}
+
 export function statsQueryOptions() {
   return {
     queryKey: ['stats'] as const,
     queryFn: fetchStats,
-    refetchInterval: STATS_POLL_MS,
+    refetchInterval: statsPollInterval,
+    // 切回标签页立刻补一次：停表期间数据可能已过期，
+    // 否则要等下一个 15s 周期，回来先看到一段旧数字。
+    refetchOnWindowFocus: true,
     staleTime: STATS_POLL_MS,
   };
 }
