@@ -238,11 +238,34 @@ export async function saveAllImages(images, runtimeEnv) {
     // 写必须排队：'all' 与 'meta' 是两次 put，并发请求的写一旦交错，
     // 图库数据和 stats 元信息就会永久错位（各自的失败也互不影响）。
     // 链尾吞掉异常，避免一次失败卡死后续所有写；异常照常回传给本次调用方。
+    //
+    // 两次 put 之间没有事务：若 'all' 成功、'meta' 失败（配额耗尽 / 网络瞬断 /
+    // 节点被回收 —— 概率低但真实存在），必须**删掉旧的 meta**。
+    // 否则旧 meta 形状合法、会被 sanitizeImagesMeta 接受，导致 /api/stats
+    // 长期返回过期的 totalImages 与 tags，而 'all' 其实早已更新。
+    //
+    // 为什么删而不是回滚 'all'：meta 是**可从 all 重建的派生数据** ——
+    // getImagesMeta 在 meta 缺失时会回退到 getImagesState 现场重建。
+    // 删掉过期 meta 让下次读取自动自愈，既不用先 get 原值（省一次往返），
+    // 也让语义更清晰：all 是唯一权威，meta 只是它的缓存。
     const snapshot = images.slice();
     const task = _saveQueue.then(async () => {
         const kv = getKvImages(runtimeEnv);
         await kv.put('all', JSON.stringify(snapshot));
-        await kv.put(IMAGES_META_KEY, JSON.stringify(buildImagesMeta(snapshot)));
+        try {
+            await kv.put(IMAGES_META_KEY, JSON.stringify(buildImagesMeta(snapshot)));
+        }
+        catch (error) {
+            // meta 写失败：清掉可能残留的过期 meta，交下一次读取重建。
+            // delete 自身失败不能再掩盖原始错误 —— 一律吞掉它并抛原错。
+            try {
+                await kv.delete?.(IMAGES_META_KEY);
+            }
+            catch {
+                // ignore
+            }
+            throw error;
+        }
         _cachedImagesState = getCachedImagesState(snapshot);
     });
     _saveQueue = task.catch(() => undefined);

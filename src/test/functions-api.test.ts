@@ -1428,4 +1428,97 @@ describe("KV 基础设施故障（get 直接 reject）", () => {
       expect(String(body.buildId).length).toBeGreaterThan(0);
     });
   });
+describe("写 KV 部分失败（第 1 次 put 成功、第 2 次失败）", () => {
+    /**
+     * saveAllImages 是**两次** put：
+     *   await kv.put('all',  JSON.stringify(snapshot));
+     *   await kv.put('meta', JSON.stringify(buildImagesMeta(snapshot)));
+     *
+     * 两次之间没有事务。若第 1 次成功、第 2 次失败：
+     *   · KV 的 'all' 已是新数据（图真的加进去了）
+     *   · KV 的 'meta' 仍是旧的（totalImages 少 1、缺新标签）
+     *   · 调用方收到错误 → 管理员看到「添加失败」，但图其实已入库
+     *
+     * 更麻烦的是：旧 meta **形状完全合法**，sanitizeImagesMeta 会接受它，
+     * 于是 /api/stats 长期返回过期的 totalImages 与 tags，
+     * 直到下一次成功写入才自愈。
+     *
+     * 本测试钉住修复后的契约：第 2 次 put 失败时要**回滚第 1 次**（或至少
+     * 让 meta 不残留过期数据），保证 'all' 与 'meta' 始终互相一致。
+     */
+    function kvFailingSecondPut(namespace: string, failKey: string) {
+      let putCount = 0;
+      return {
+        get(key: string) {
+          return Promise.resolve(store[namespace]?.get(key));
+        },
+        put(key: string, value: string) {
+          putCount += 1;
+          // 命中目标 key 就失败（模拟第二次 put 挂掉）
+          if (key === failKey) {
+            return Promise.reject(new Error(`KV put failed for ${key}`));
+          }
+          store[namespace] ??= new Map();
+          store[namespace].set(key, value);
+          return Promise.resolve();
+        },
+        delete(key: string) {
+          return Promise.resolve(store[namespace]?.delete(key) ?? false);
+        },
+      };
+    }
+
+    it("meta 写失败时不留下与 all 不一致的过期 meta", async () => {
+      // 先准备一份「旧图库」与旧 meta
+      store.images = new Map([
+        ["all", JSON.stringify([{ id: "img-old", url: "https://x.test/old.jpg", title: "旧图", tags: ["风景"], createdAt: "2026-01-01T00:00:00.000Z" }])],
+        ["meta", JSON.stringify({ totalImages: 1, tags: ["风景"], updatedAt: "2026-01-01T00:00:00.000Z" })],
+      ]);
+
+      const env = {
+        // 让 meta 的 put 失败
+        images_kv: kvFailingSecondPut("images", "meta"),
+        stats_kv: edgeOneKv("stats"),
+      };
+
+      // 尝试新增一张图：saveAllImages 会在第二次 put（meta）失败
+      const response = await requestWithEnv(
+        "/api/create",
+        {
+          method: "POST",
+          headers: adminHeaders(),
+          body: JSON.stringify({ url: "https://x.test/new.jpg", title: "新图", tags: ["新标签"] }),
+        },
+        env,
+      );
+
+      // 允许两种修复策略：整体失败（500）并回滚，或成功且两处一致。
+      // 唯一不可接受的是：返回失败、但 all 已改而 meta 没改。
+      const status = response.status;
+      store.images ??= new Map();
+      const allRaw = store.images.get("all");
+      const metaRaw = store.images.get("meta");
+      const allCount = allRaw ? JSON.parse(allRaw).length : 0;
+      const metaCount = metaRaw ? JSON.parse(metaRaw).totalImages : -1;
+
+      // 修复后的契约：meta 是**可重建的派生缓存**，写失败时清掉它，
+      // 下次 getImagesMeta 会回退到 all 现场重建 —— 不再残留过期数字。
+      // 不可接受的状态是「all=2 而 meta 仍是有值的 1」（旧实现在这里红）。
+      expect(status).toBeGreaterThanOrEqual(500);
+      expect(allCount, "all 已写入新数据（图确实入库了）").toBe(2);
+      expect(
+        metaCount,
+        "meta 写失败后必须被清掉（-1 = 不存在），否则 stats 会长期读过期数字",
+      ).toBe(-1);
+
+      // 再验证自愈：下一次读 stats 时 meta 由 all 重建，数字正确
+      resetRuntimeCaches();
+      const statsRes = await requestWithEnv("/api/stats", undefined, env);
+      const statsBody = await json(statsRes);
+      expect(
+        statsBody.totalImages,
+        "meta 被清掉后 stats 必须从 all 重建出正确数量",
+      ).toBe(2);
+    });
+  });
 });
