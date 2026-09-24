@@ -382,7 +382,21 @@ function normalizeBatchResult<T extends { success: boolean }>(
   if (!raw.results.every(isBatchItem)) {
     throw new Error(`${fallbackMessage}：服务端返回的结果格式异常`);
   }
-  const results = raw.results;
+  // 元素过关了，里面的字段还得收口 —— 两个调用方都直接消费 url / error：
+  //   canonicalizeImageUrl(item.url) 内部调 value.trim()
+  //   JSX 里 {item.url} — {item.error ?? '失败'} 直接渲染
+  // url 是对象就抛英文 TypeError；error 是对象则让 React 抛
+  // 'Objects are not valid as a React child'，把整个批量面板打下线。
+  // 失败项的 url 允许空串（服务端 Invalid image payload 分支就是 url: ''），
+  // 所以只收**类型**、不要求非空。
+  const results = raw.results.map((item) => {
+    const record = item as unknown as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...record };
+    next.url = typeof record.url === 'string' ? record.url : '';
+    if (record.id !== undefined) next.id = typeof record.id === 'string' ? record.id : undefined;
+    if (record.error !== undefined) next.error = typeof record.error === 'string' ? record.error : undefined;
+    return next as unknown as T;
+  });
   const num = (value: unknown, fallback: number) =>
     typeof value === 'number' && Number.isFinite(value) ? value : fallback;
   const success = num(raw.success, results.filter((item) => item?.success).length);
