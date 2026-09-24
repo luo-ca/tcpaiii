@@ -43,7 +43,7 @@ export function RealtimeStats() {
             role="alert"
             className="mx-auto max-w-6xl rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm text-muted-foreground"
           >
-            实时统计暂时读取失败，页面会按 15 秒自动重试。
+            实时统计暂时读取失败，页面会按 15 秒自动重试（标签页切回时立即重试）。
           </div>
         </section>
       );

@@ -26,6 +26,10 @@ import { buildAppUrl } from '@/lib/url';
  * `document.getElementById` + `CustomEvent` 那种跨组件广播）。
  * `forwardRef` 是为了让上层能拿到这个区块的 DOM，用于「搜完滚动到预览」。
  */
+
+/** 图片加载兜底超时：超过它仍未触发 onLoad/onError 就按失败处理 */
+const IMAGE_LOAD_TIMEOUT_MS = 20_000;
+
 function OnlinePreviewImpl(
   { request }: { request: RandomRequest },
   ref: ForwardedRef<HTMLElement>,
@@ -121,6 +125,25 @@ function OnlinePreviewImpl(
     setPreviewError(message);
     toast.error(message);
   };
+
+  /**
+   * 图片加载超时兜底。
+   *
+   * imageLoading 的关闭完全依赖 <img> 的 onLoad / onError。若图片响应是
+   * 200 却不触发这两个事件（0 字节响应、被中间层静默截断、解码挂起），
+   * 那块 skeleton-shimmer 会永久盖在图片上 —— 用户卡在「加载中」，而且
+   * 因为 imageLoading 一直为 true，刷新按钮也一直是 disabled，连重试都点不了。
+   * 超过 20s 还没有结果就判定失败，把控制权交回给用户（错误面板带重试）。
+   */
+  useEffect(() => {
+    if (!imageLoading) return;
+    const timer = window.setTimeout(() => {
+      setImageLoading(false);
+      setImageLoaded(false);
+      setPreviewError('图片加载超时，请重试');
+    }, IMAGE_LOAD_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [imageLoading, imageKey]);
 
   const copyUrl = async () => {
     if (!imageUrl) return;

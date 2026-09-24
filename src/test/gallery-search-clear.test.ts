@@ -44,7 +44,15 @@ describe("图库搜索 · 只清搜索词的按钮", () => {
   });
 
   it("有词时输入框留出右内边距", () => {
-    expect(src, "缺 pr-9，长搜索词会压到按钮上").toMatch(/searchTerm \? 'pr-9' : ''/);
+    expect(src, "缺右内边距，长搜索词会压到按钮上").toMatch(/searchTerm \? 'pr-11' : ''/);
+  });
+
+  it("清除按钮的热区足够拇指点中（≥32px）", () => {
+    const i = src.indexOf('aria-label="清除搜索词"');
+    const around = src.slice(Math.max(0, i - 420), i + 420);
+    // 图标 14px + p-2.5 两侧各 10px = 34px 热区。原先 p-1.5 只有 26px ，
+    // 小屏上紧挨输入框，拇指很难准确点中。
+    expect(around, "清除按钮热区过小").toMatch(/rounded-lg p-2\.5 /);
   });
 
   it("「清空筛选」仍然是同时清两者（行为没被改坏）", () => {
