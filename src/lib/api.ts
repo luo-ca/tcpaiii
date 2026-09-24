@@ -254,8 +254,12 @@ export async function fetchExistingImageUrlSet(): Promise<Set<string>> {
   );
   const records = Array.isArray(body) ? body : (body.items ?? []);
   const set = new Set<string>();
+  // 与 fetchImagesPage 同一把尺子：列表项也要过形状守卫。
+  // 原先直接读 record.url —— 一条 null 就抛 TypeError，
+  // 让「批量导入」的去重预检整个失败（界面提示「库内地址读取失败，导入会被拦下」），
+  // 管理员从此导不进任何图片，只因为库里有一条脏数据。
   for (const record of records) {
-    const canonical = canonicalizeImageUrl(record.url ?? '');
+    const canonical = isImageRecord(record) ? canonicalizeImageUrl(record.url) : null;
     if (canonical) set.add(canonical);
   }
   return set;
