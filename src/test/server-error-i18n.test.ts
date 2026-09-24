@@ -85,6 +85,25 @@ describe("服务端错误 · 英译中", () => {
     expect(await messageOf(429, { error: "Too Many Requests" })).toContain("频繁");
   });
 
+
+  // Edge 函数 dispatcher 的兜底 500 文案（api/[[default]].ts 的 catch）就是
+  // 字面量 `Internal Server Error`，以及方法/路由类的 `Method Not Allowed` /
+  // `Not Found`。它们都真实可达，原先没有映射，会原样漏到中文界面上。
+  it("dispatcher 的英文兜底文案也译成中文（P126）", async () => {
+    expect(await messageOf(500, { error: "Internal Server Error" })).toBe(
+      "服务端处理失败，请稍后重试",
+    );
+    expect(await messageOf(405, { error: "Method Not Allowed" })).toContain("不支持");
+    expect(await messageOf(404, { error: "Not Found" })).toContain("接口不存在");
+  });
+
+  // 随机接口按标签找不到图时会回显用户输入的 tag，
+  // 前端在线预览用它给出可读提示，不该是整句英文。
+  it("带标签的 404 也给出中文提示", async () => {
+    const message = await messageOf(404, { error: "No images found with tag: acg" });
+    expect(message).not.toContain("No images found");
+    expect(message).toContain("acg");
+  });
   it("未收录的文案原样透传（不吞信息）", async () => {
     expect(await messageOf(500, { error: "some brand new server failure" })).toBe(
       "some brand new server failure",
