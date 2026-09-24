@@ -252,9 +252,15 @@ export async function fetchExistingImageUrlSet(): Promise<Set<string>> {
     undefined,
     '获取已有图片地址失败',
   );
-  const records = Array.isArray(body) ? body : (body.items ?? []);
+  // 响应体本身也要守：返回 JSON `null` 时 `body.items` 会抛「Cannot read properties of null」，
+  // 同样让批量导入预检整体失败。非数组、非对象、items 非数组一律当空集合
+  //（没有可去重的历史地址，不该阻断导入）。
+  const records = Array.isArray(body)
+    ? body
+    : body && typeof body === 'object' && Array.isArray(body.items)
+      ? body.items
+      : [];
   const set = new Set<string>();
-  // 与 fetchImagesPage 同一把尺子：列表项也要过形状守卫。
   // 原先直接读 record.url —— 一条 null 就抛 TypeError，
   // 让「批量导入」的去重预检整个失败（界面提示「库内地址读取失败，导入会被拦下」），
   // 管理员从此导不进任何图片，只因为库里有一条脏数据。
