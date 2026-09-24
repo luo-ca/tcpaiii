@@ -7,6 +7,20 @@ import { apiRequest } from './api-client';
 import { buildApiPath } from './url';
 import { canonicalizeImageUrl } from './helpers';
 
+
+/**
+   * 把「声称是时间戳的字符串」收成一个必定可渲染的值。
+   *
+   * 后端字段在契约上是 ISO 串，但前端只做了 `typeof === 'string'` 的检查：
+   * 一旦拿到解析不了的串（脏数据、上游透传、字段改名），`new Date(x)` 会得到
+   * Invalid Date，而 `toLocaleDateString()` / `toLocaleTimeString()` 会把它
+   * **原样渲染成字面量 "Invalid Date"** —— 中文页面上直接露出英文脏值。
+   * 这里在边界处校验可解析性，解析不了就回退（调用方各自给合理默认）。
+   */
+function toIsoOrNull(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  return Number.isNaN(Date.parse(value)) ? null : value;
+}
 // ---- Public API ----
 
 export async function fetchRandomImage(tag?: string, exclude?: string): Promise<ImageRecord> {
@@ -47,7 +61,7 @@ export async function fetchHealth(): Promise<HealthPayload> {
     ok: Boolean(body?.ok),
     runtime: body?.runtime ?? 'unknown',
     buildId: body?.buildId ?? '',
-    timestamp: body?.timestamp ?? new Date().toISOString(),
+    timestamp: toIsoOrNull(body?.timestamp) ?? new Date().toISOString(),
     kv: {
       imagesBound: Boolean(kv?.imagesBound),
       statsBound: Boolean(kv?.statsBound),
@@ -108,7 +122,7 @@ export async function fetchStats(): Promise<Stats> {
     todayRequests: num(body?.todayRequests),
     totalImages: num(body?.totalImages),
     totalSites: num(body?.totalSites),
-    lastRequestAt: typeof body?.lastRequestAt === 'string' ? body.lastRequestAt : null,
+    lastRequestAt: toIsoOrNull(body?.lastRequestAt),
     tags,
     dailyRequests: daily,
   };
