@@ -34,6 +34,25 @@ function toIsoOrNull(value: unknown): string | null {
 function toStringOr(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback;
 }
+
+/**
+ * 列表项的运行时形状守卫。
+ *
+ * fetchImagesPage 原先只校验 `items` 是数组，**不校验数组里的每个元素**：
+ * 一条 null 就会一路进到 MasonryTile，读 image.url 时抛错、整页落到错误边界。
+ * 实测（items 里塞一条 null）：/gallery 与 / 都变成「页面出错了」。
+ * 这里把不满足最低形状的项滤掉 —— 少一张图远好过整页白给。
+ */
+function isImageRecord(value: unknown): value is ImageRecord {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.id === 'string' &&
+    typeof item.url === 'string' &&
+    typeof item.title === 'string' &&
+    Array.isArray(item.tags)
+  );
+}
 // ---- Public API ----
 
 export async function fetchRandomImage(tag?: string, exclude?: string): Promise<ImageRecord> {
@@ -200,7 +219,7 @@ export async function fetchImagesPage(params: {
   // 在边界处收口，调用方不必各写一套防御。
   if (Array.isArray(body)) {
     return {
-      items: body,
+      items: body.filter(isImageRecord),
       page: params.page,
       pageSize: params.pageSize,
       total: body.length,
@@ -210,7 +229,7 @@ export async function fetchImagesPage(params: {
     };
   }
 
-  const items = Array.isArray(body?.items) ? body.items : [];
+  const items = Array.isArray(body?.items) ? body.items.filter(isImageRecord) : [];
   return {
     items,
     page: typeof body?.page === 'number' ? body.page : params.page,
