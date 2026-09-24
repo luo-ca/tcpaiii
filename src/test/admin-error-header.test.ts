@@ -62,7 +62,9 @@ describe("后台错误态 · 保留页头", () => {
   });
 
   it("与图库页保持一致：那边的 h1 也在错误分支之前", () => {
-    const galleryErr = gallery.indexOf("imagesQuery.isError ?");
+    const galleryErr = gallery.indexOf("isInitialError ?");
+    // 注意：整块错误态只服务于「首屏失败」（isInitialError = isError && 无数据）；
+    // 续加载失败不会替换已渲染的网格，这一条只钉「首屏错误分支在 h1 之后」。
     expect(galleryErr).toBeGreaterThan(0);
     expect(gallery.slice(0, galleryErr), "图库页也丢了页头").toContain("<h1");
   });

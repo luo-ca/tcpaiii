@@ -81,6 +81,13 @@ export default function GalleryBrowse() {
   const tags = stats?.tags ?? [];
   const isInitialLoading = imagesQuery.isLoading && !imagesQuery.data;
   const isEmpty = !isInitialLoading && images.length === 0;
+
+  // 「整块错误态」只服务首屏失败。续加载失败时 isError 同样是 true，
+  // 但那时用户已经看到了一批图 —— 实测（第 1 页正常、第 2 页恒 500）：
+  // 点「加载更多」失败后，24 张瓦片被整块替换成「图库加载失败」，
+  // 已浏览的内容全丢，只能重新加载。所以这里按 hasData 区分：
+  // 有数据时失败只在「加载更多」附近就地提示，不动已渲染的网格。
+  const isInitialError = imagesQuery.isError && images.length === 0;
   const hasFilter = Boolean(selectedTag) || searchQuery.length > 0;
   const hasNextPage = Boolean(imagesQuery.hasNextPage);
   const fetchNextPage = imagesQuery.fetchNextPage;
@@ -242,7 +249,7 @@ export default function GalleryBrowse() {
             />
           ))}
         </div>
-      ) : imagesQuery.isError ? (
+      ) : isInitialError ? (
         <ErrorState
           title="图库加载失败"
           message={getErrorMessage(imagesQuery.error, '请稍后重试')}
@@ -283,6 +290,12 @@ export default function GalleryBrowse() {
           </div>
 
           <div className="mt-8 flex flex-col items-center gap-3">
+            {/* 续加载失败：就地提示 + 重试，不把已加载的图换掉 */}
+            {nextPageFailed && (
+              <p role="alert" className="text-xs font-medium text-destructive-ink">
+                加载更多失败：{getErrorMessage(imagesQuery.error, '请稍后重试')}
+              </p>
+            )}
             {/* 加载更多是纯视觉结果：读屏用户点完按钮，DOM 只是「多了几张瓦片」，
                 没有任何提示说明加载是否完成。用常驻 live region 播报状态变化
                 （按钮文案/到底提示本身不播报，因为焦点还在按钮上、不会重读）。 */}
