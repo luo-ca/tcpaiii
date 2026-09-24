@@ -1521,4 +1521,50 @@ describe("写 KV 部分失败（第 1 次 put 成功、第 2 次失败）", () =
       ).toBe(2);
     });
   });
+it("KV 没有 delete 方法时，meta 写失败也不会崩（可选链保护）", async () => {
+      /**
+       * P160 给 meta 写失败加了「删掉过期 meta」的自愈逻辑，用的是
+       * `kv.delete?.(...)`。而 EdgeOne 的 KV 绑定**可能不提供 delete**
+       * （已有用例 "accepts EdgeOne KV bindings without a delete method" 覆盖了成功路径）。
+       *
+       * 这里补的是组合场景：**没有 delete + meta 写失败**。
+       * 若当初写成 `kv.delete(...)`，这条会抛 TypeError 掩盖原始的 put 错误，
+       * 管理员看到的是「delete is not a function」而不是真正的写入失败原因。
+       */
+      store.images = new Map([
+        ["all", JSON.stringify([{ id: "img-old", url: "https://x.test/old.jpg", title: "旧图", tags: ["风景"], createdAt: "2026-01-01T00:00:00.000Z" }])],
+        ["meta", JSON.stringify({ totalImages: 1, tags: ["风景"], updatedAt: "2026-01-01T00:00:00.000Z" })],
+      ]);
+
+      const noDeleteKv = {
+        get(key: string) {
+          return Promise.resolve(store.images?.get(key));
+        },
+        put(key: string, value: string) {
+          if (key === "meta") return Promise.reject(new Error("meta put failed"));
+          store.images ??= new Map();
+          store.images.set(key, value);
+          return Promise.resolve();
+        },
+        // 刻意不提供 delete
+      };
+
+      const response = await requestWithEnv(
+        "/api/create",
+        {
+          method: "POST",
+          headers: adminHeaders(),
+          body: JSON.stringify({ url: "https://x.test/new.jpg", title: "新图", tags: ["新标签"] }),
+        },
+        { images_kv: noDeleteKv, stats_kv: edgeOneKv("stats") },
+      );
+
+      // 关键：不能因为缺 delete 而崩出新错误类型；应是正常的 5xx 写入失败
+      expect(response.status).toBeGreaterThanOrEqual(500);
+      const body = await json(response);
+      expect(
+        String(body.error),
+        "报错信息不该泄漏 delete is not a function 这类实现细节",
+      ).toBe("Internal Server Error");
+    });
 });
