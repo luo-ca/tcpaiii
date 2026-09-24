@@ -1,19 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Code, Tag, Zap, Copy as CopyIcon } from 'lucide-react';
-import { copyText } from '@/lib/helpers';
+import { Check, Code, Tag, Zap, Copy as CopyIcon } from 'lucide-react';
 import { buildAppUrl } from '@/lib/url';
+import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 
 function CodeRow({
   label,
   code,
   onCopy,
+  copied = false,
 }: {
   label?: string;
   code: string;
   onCopy: () => void;
+  /** 刚复制的是不是这一条。由父级按 key 判定，避免 6 个按钮共用同一个布尔 */
+  copied?: boolean;
 }) {
   return (
     <div className="group flex flex-col gap-2.5 rounded-xl border border-border bg-white p-3.5 transition-colors hover:bg-brand-50 sm:flex-row sm:items-center sm:justify-between">
@@ -32,26 +35,48 @@ function CodeRow({
         onClick={onCopy}
         // 可见文字一律是「复制」，而这一屏有 6 个这样的按钮：读屏用户
         // 逐个 Tab 过去只会听到「复制、复制、复制…」，分不清复制的是哪一段。
-        // 用行自身的 label 补一个能区分的可访问名（label 可能没有，
+        // 用 label 补一个能区分的可访问名（label 可能没有，
         // 这时退回用代码片段本身做区分）。
         aria-label={label ? `复制：${label}` : `复制代码：${code}`}
       >
-        <CopyIcon className="w-3 h-3" aria-hidden="true" />
-        <span className="text-xs">复制</span>
+        {copied ? (
+          <Check className="w-3 h-3 text-success-ink" aria-hidden="true" />
+        ) : (
+          <CopyIcon className="w-3 h-3" aria-hidden="true" />
+        )}
+        <span className="text-xs">{copied ? '已复制' : '复制'}</span>
       </Button>
     </div>
   );
 }
-
 export function ApiDocsSection() {
   const [activeDocTab, setActiveDocTab] = useState('basic');
+  // 「刚复制的是哪一个」——必须按条目区分。用一个共用布尔会让 6 个按钮
+  // 全部切成「已复制」，看起来像六个都复制成功了。
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  // 复位计时器：点第二个按钮时先清掉上一个的计时，避免它把新的「已复制」提前关掉
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { copy } = useCopyFeedback();
+
+  useEffect(
+    () => () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    },
+    [],
+  );
+
   const randomApiUrl = buildAppUrl('/api/random');
   const randomTagApiUrl = buildAppUrl('/api/random?tag=acg');
   const randomJsonApiUrl = buildAppUrl('/api/random?format=json');
   const randomExcludeApiUrl = buildAppUrl('/api/random?exclude=img-001');
 
-  const copyCode = async (text: string) => {
-    await copyText(text);
+  /** 复制后把这一条切到「已复制」，2s 后复位。按 key 区分，6 个按钮互不干扰。 */
+  const copyCode = async (text: string, key: string) => {
+    const ok = await copy(text);
+    if (!ok) return;
+    setCopiedKey(key);
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(() => setCopiedKey(null), 2000);
   };
 
   return (
@@ -113,17 +138,20 @@ export function ApiDocsSection() {
                   <CodeRow
                     label="API 地址（默认 302）"
                     code={randomApiUrl}
-                    onCopy={() => copyCode(randomApiUrl)}
+                    copied={copiedKey === 'api'}
+                    onCopy={() => copyCode(randomApiUrl, 'api')}
                   />
                   <CodeRow
                     label="HTML 使用示例"
                     code={`<img src="${randomApiUrl}" alt="随机图片" />`}
-                    onCopy={() => copyCode(`<img src="${randomApiUrl}" alt="随机图片" />`)}
+                    copied={copiedKey === 'html'}
+                    onCopy={() => copyCode(`<img src="${randomApiUrl}" alt="随机图片" />`, 'html')}
                   />
                   <CodeRow
                     label="Markdown 使用示例"
                     code={`![随机图片](${randomApiUrl})`}
-                    onCopy={() => copyCode(`![随机图片](${randomApiUrl})`)}
+                    copied={copiedKey === 'markdown'}
+                    onCopy={() => copyCode(`![随机图片](${randomApiUrl})`, 'markdown')}
                   />
                 </div>
               </CardContent>
@@ -146,7 +174,8 @@ export function ApiDocsSection() {
                 </div>
                 <CodeRow
                   code={randomTagApiUrl}
-                  onCopy={() => copyCode(randomTagApiUrl)}
+                  copied={copiedKey === 'tag'}
+                  onCopy={() => copyCode(randomTagApiUrl, 'tag')}
                   />
                 <div className="mt-4 rounded-xl border border-border bg-secondary px-4 py-3">
                   <p className="text-xs font-bold text-foreground">exclude=&lt;id&gt; 跳过上一张</p>
@@ -157,7 +186,8 @@ export function ApiDocsSection() {
                   <div className="mt-2">
                     <CodeRow
                       code={randomExcludeApiUrl}
-                      onCopy={() => copyCode(randomExcludeApiUrl)}
+                      copied={copiedKey === 'exclude'}
+                      onCopy={() => copyCode(randomExcludeApiUrl, 'exclude')}
                     />
                   </div>
                 </div>
@@ -182,7 +212,8 @@ export function ApiDocsSection() {
                 <div className="space-y-2.5">
                   <CodeRow
                     code={randomJsonApiUrl}
-                    onCopy={() => copyCode(randomJsonApiUrl)}
+                    copied={copiedKey === 'json'}
+                    onCopy={() => copyCode(randomJsonApiUrl, 'json')}
                   />
                   <div className="code-block">
                     <div className="code-block-header">
