@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { HealthPayload, ImageRecord, Stats, PaginatedImages } from './types';
-import { apiRequest } from './api-client';
+import { apiRequest, API_REQUEST_TIMEOUT_MS } from './api-client';
 import { buildApiPath } from './url';
 import { canonicalizeImageUrl } from './helpers';
 
@@ -120,15 +120,27 @@ export async function fetchHealth(): Promise<HealthPayload> {
  * `Failed to fetch`（线上状态页实测踩过）。manual 模式在自家首响应处止步：
  * 302 本身即「服务正常返回」，opaque 重定向响应也照常 resolve。
  * 真正测的就是用户接入的第一跳；图床快慢不由本 API 背书。
+ *
+ * @param timeoutMs 超时门限。默认与 apiRequest 同源的 15s；
+ *   仅测试注入短值用（这样超时路径能在毫秒级被验证，
+ *   不必让整个测试套件干等 15 秒）。
  */
-export async function measureRandomLatency(): Promise<number> {
+export async function measureRandomLatency(
+  timeoutMs: number = API_REQUEST_TIMEOUT_MS,
+): Promise<number> {
   const start = performance.now();
   // 走 buildApiPath：预览链接（?eo_token=…）上裸 fetch 会打到生产部署，
   // 测出来的延迟与预览环境无关 —— 与 apiRequest 补预览参数同一契约。
+  //
+  // signal 必须显式给：这条路径刻意不走 apiRequest（redirect/cache 语义独有），
+  // 因此没继承它那 15s 的兜底。边缘函数挂住时这个 await 会永远悬着，
+  // 状态页的 latencyBusy 就一直停在 true —— 按钮永久禁用、界面永远「测速中…」，
+  // 用户既看不到错也点不动。与 P138 在 apiRequest 上修掉的是同一个问题。
   const response = await fetch(buildApiPath('/api/random'), {
     method: 'GET',
     redirect: 'manual',
     cache: 'no-store',
+    signal: AbortSignal.timeout(timeoutMs),
   });
   // opaqueredirect 的 status 是 0，但它代表 3xx 已返回；2xx/3xx 都算可达
   const reachable =

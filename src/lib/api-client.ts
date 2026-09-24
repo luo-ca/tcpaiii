@@ -15,7 +15,9 @@ import { appendCurrentPreviewParams, buildApiPath } from './url';
  * 也在数秒级。15s 足够容纳冷启动与批量，又不至于让用户对着骨架屏干等太久 ——
  * 超时后走错误态，至少用户能看到「失败」并能重试。
  */
-const API_REQUEST_TIMEOUT_MS = 15_000;
+// 导出给 measureRandomLatency 复用：那条路径刻意不走 apiRequest（redirect/cache
+// 语义独有），但超时门限必须同源，否则两处魔法数字迟早漂移。
+export const API_REQUEST_TIMEOUT_MS = 15_000;
 
 function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   return typeof value === 'object' && value !== null;
