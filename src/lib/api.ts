@@ -6,6 +6,7 @@ import type { HealthPayload, ImageRecord, Stats, PaginatedImages } from './types
 import { apiRequest, API_REQUEST_TIMEOUT_MS } from './api-client';
 import { buildApiPath } from './url';
 import { canonicalizeImageUrl } from './helpers';
+import { MAX_BATCH_IMAGE_COUNT } from './constants';
 
 
 /**
@@ -473,6 +474,15 @@ export async function batchUpdateImageTags(
   failed: number;
   results: Array<{ success: boolean; id: string; tags?: string[]; error?: string }>;
 }> {
+  // 前端预检服务端的同一上限。勾选是**跨页保留**的，逐页点「本页全选」
+  // 很容易超过 500（上线图库已 261 张且持续增长）。不预检的话用户勾了几百张、
+  // 发出去才收到一句「单次批量数量超出上限」，既没说超了多少、也没法只减掉超出的部分。
+  // 与 add-image-dialog 对「单次最多导入 N 张」的处理保持同一形状。
+  if (data.ids.length > MAX_BATCH_IMAGE_COUNT) {
+    throw new Error(
+      `已选中 ${data.ids.length} 张，单次最多 ${MAX_BATCH_IMAGE_COUNT} 张；请分批应用`,
+    );
+  }
   const body = await apiRequest<unknown>(
     '/api/batch-update',
     { method: 'POST', headers: getAdminHeaders(adminToken), body: JSON.stringify(data) },
