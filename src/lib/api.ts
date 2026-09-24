@@ -241,12 +241,27 @@ export async function fetchImagesPage(params: {
   }
 
   const items = Array.isArray(body?.items) ? body.items.filter(isImageRecord) : [];
+  // 数字字段原先只查 `typeof === 'number'` —— 但 NaN、0、负数、小数全是 'number'。
+  // 脏值一路进 UI：totalPages=0 让后台「第 N / 0 页」自相矛盾、<Input max> 非法；
+  // 小数让 getVisiblePages 的 Array.from({length}) 与真实页数错位；
+  // page=NaN 让 `data.page !== page` 恒真、后台无限 setPage；total=NaN 直接显示「NaN 张」。
+  // 与同文件其它字段（toIsoOrNull / toStringOr / num）同一口径：在边界收口。
+  const num = (value: unknown, fallback: number, min = 0) =>
+    typeof value === 'number' && Number.isFinite(value) && value >= min ? value : fallback;
+  // 页码/页大小必须是正整数：小数与 0 都会破坏分页算术
+  const int = (value: unknown, fallback: number) => {
+    const n = num(value, fallback, 1);
+    return Number.isInteger(n) ? n : fallback;
+  };
+  const total = num(body?.total, items.length);
+  // totalPages 至少 1：UI 用「1」兜底页码，0 页在展示层无意义
+  const totalPages = Math.max(1, int(body?.totalPages, 1));
   return {
     items,
-    page: typeof body?.page === 'number' ? body.page : params.page,
-    pageSize: typeof body?.pageSize === 'number' ? body.pageSize : params.pageSize,
-    total: typeof body?.total === 'number' ? body.total : items.length,
-    totalPages: typeof body?.totalPages === 'number' ? body.totalPages : 1,
+    page: Math.min(int(body?.page, params.page), totalPages),
+    pageSize: int(body?.pageSize, params.pageSize),
+    total: Math.max(total, items.length),
+    totalPages,
     hasPrevPage: Boolean(body?.hasPrevPage),
     hasNextPage: Boolean(body?.hasNextPage),
   };
