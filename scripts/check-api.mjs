@@ -63,6 +63,25 @@ try {
   await expectJson('/api/random?format=json', 'random json');
   await expectRedirect('/api/random', 'random redirect');
 
+  // 首屏依赖的两个读接口 —— 漏了它们，脚本会在「首页取不到图」时依然全绿。
+  // /api/health：状态页第一屏 + 线上排障入口。
+  // /api/list：首页「最新收录」「Hero 主视觉」与 /gallery 的唯一取图接口。
+  const health = await expectJson('/api/health', 'health');
+  if (health?.ok !== true) {
+    fail(`health.ok 应为 true，实际是 ${JSON.stringify(health?.ok)}`);
+  }
+  if (typeof health?.buildId !== 'string' || !health.buildId) {
+    fail('health.buildId 缺失：无法确认线上跑的是哪个版本');
+  }
+
+  const list = await expectJson('/api/list?page=1&pageSize=1', 'list');
+  if (!Array.isArray(list?.items)) {
+    fail(`list.items 应为数组，实际是 ${typeof list?.items}`);
+  }
+  if (typeof list?.total !== 'number') {
+    fail(`list.total 应为数字，实际是 ${typeof list?.total}`);
+  }
+
   const tags = Array.isArray(stats.tags) ? stats.tags : [];
   console.log(`tags: ${tags.join(', ') || '(none)'}`);
 
