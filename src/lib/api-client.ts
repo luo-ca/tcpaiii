@@ -84,6 +84,52 @@ export function withNoCacheQuery(input: RequestInfo | URL, init?: RequestInit): 
   return input;
 }
 
+/**
+ * Edge 函数返回的错误文案是英文（`Invalid admin token`、`Image URL already exists`…），
+ * 而 getErrorMessage 会把 error.message 原样展示 —— 结果是中文后台里冒出英文报错。
+ *
+ * 实测触发路径（都是正常操作，不需要构造异常）：
+ *   · 密钥填错            → Invalid admin token
+ *   · 密钥未配置          → Admin token is not configured
+ *   · 连续试错            → Too many failed admin attempts, try again later
+ *   · 添加/编辑成重复地址 → Image URL already exists
+ *   · 批量粘贴重复地址    → URL already exists
+ *   · 地址格式非法        → url must be a valid http(s) URL
+ *   · 编辑/删除已被删的图 → Image not found
+ *
+ * 原先只有 admin-page 对 `not configured` 做了一次特判，其余全部漏出。
+ * 收口在这一层：所有经 apiRequest 的错误都会先过映射，调用方不必各写一份。
+ * 映射不到的文案原样返回 —— 不吞信息，只是把已知的常见错误译成中文。
+ */
+const SERVER_ERROR_ZH: Array<[RegExp, string]> = [
+  [/^invalid admin token$/i, '管理密钥错误'],
+  [/^admin token required$/i, '请先填写管理密钥'],
+  [/^admin token is not configured$/i, '服务端未配置管理密钥，请先在 ESA 环境变量配置 ADMIN_TOKEN'],
+  [/^too many failed admin attempts/i, '管理密钥尝试次数过多，请稍后再试'],
+  [/^(image )?url already exists$/i, '该图片地址已存在'],
+  [/^url must be a valid https?\(s\) url$/i, '图片地址必须是有效的 http(s) URL'],
+  [/^invalid image id$/i, '图片 ID 无效'],
+  [/^image not found$/i, '图片不存在（可能刚被删除）'],
+  [/^no images available$/i, '图库暂时没有可用的图片'],
+  [/^invalid image payload$/i, '图片数据格式不正确'],
+  [/^images array is required/i, '请至少提供一张图片'],
+  [/^maximum \d+ images per batch/i, '单次批量数量超出上限'],
+  [/^tags must be an array of strings$/i, '标签格式不正确'],
+  [/^ids array is required/i, '请至少选择一张图片'],
+  [/^addtags\/removetags must be arrays/i, '标签参数格式不正确'],
+  [/^addtags or removetags must contain at least one tag$/i, '请至少填写一个要添加或移除的标签'],
+  [/^request body must be a valid json object$/i, '请求数据格式不正确'],
+  [/^too many requests$/i, '请求过于频繁，请稍后再试'],
+];
+
+function translateServerError(message: string): string {
+  const trimmed = message.trim();
+  for (const [pattern, zh] of SERVER_ERROR_ZH) {
+    if (pattern.test(trimmed)) return zh;
+  }
+  return message;
+}
+
 export async function getApiErrorMessage(response: Response, fallback: string): Promise<string> {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
 
@@ -91,7 +137,7 @@ export async function getApiErrorMessage(response: Response, fallback: string): 
     if (isJsonContentType(contentType)) {
       const payload = await response.clone().json();
       if (isApiErrorPayload(payload)) {
-        return payload.error || payload.message || fallback;
+        return translateServerError(payload.error || payload.message || fallback);
       }
     }
   } catch {

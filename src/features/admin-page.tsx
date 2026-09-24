@@ -259,9 +259,11 @@ export default function GalleryPage() {
     } catch (err) {
       if (isStale()) return false;
       const message = getErrorMessage(err, '管理密钥校验失败');
-      if (message.includes('not configured')) {
+      // 服务端文案已在 api-client 层统一译成中文（含 not configured），
+      // 这里只需按「服务端未配置」这一种去设置专属状态，其余按密钥无效处理。
+      if (message.includes('服务端未配置管理密钥')) {
         setAdminAuthStatus('unconfigured');
-        toast.error('服务端未配置管理密钥，请先在 ESA 环境变量配置 ADMIN_TOKEN');
+        toast.error(message);
       } else {
         setAdminAuthStatus('invalid');
         toast.error(message);
