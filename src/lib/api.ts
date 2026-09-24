@@ -21,6 +21,19 @@ function toIsoOrNull(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   return Number.isNaN(Date.parse(value)) ? null : value;
 }
+
+/**
+ * 把「声称是字符串」的字段收成真的字符串。
+ *
+ * `body?.runtime ?? unknown` 只挡 null/undefined：若服务端给了对象/数组，
+ * React 渲染它时会抛 "Objects are not valid as a React child"，整页落到
+ * 错误边界。实测把 /api/health 的 runtime 换成 {name:"edge"}，状态页直接
+ * 显示「页面出错了」—— 而这正是「服务挂了时用户来看」的页面，它自己崩掉
+ * 是最糟的结果。
+ */
+function toStringOr(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value : fallback;
+}
 // ---- Public API ----
 
 export async function fetchRandomImage(tag?: string, exclude?: string): Promise<ImageRecord> {
@@ -59,8 +72,8 @@ export async function fetchHealth(): Promise<HealthPayload> {
   const kv = (body?.kv ?? {}) as HealthPayload['kv'];
   return {
     ok: Boolean(body?.ok),
-    runtime: body?.runtime ?? 'unknown',
-    buildId: body?.buildId ?? '',
+    runtime: toStringOr(body?.runtime, 'unknown'),
+    buildId: toStringOr(body?.buildId, ''),
     timestamp: toIsoOrNull(body?.timestamp) ?? new Date().toISOString(),
     kv: {
       imagesBound: Boolean(kv?.imagesBound),
