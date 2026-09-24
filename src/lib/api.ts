@@ -156,7 +156,16 @@ export async function fetchStats(): Promise<Stats> {
   // stats?.tags ?? [] 同样会把字符串原样放行（长度是字符数，map 时才炸）。
   // 后端目前有 sanitizeImagesMeta 兜底，但前端与这个接口的契约一直没校验；
   // 在边界收口，5 个消费者就不必各自防御。
-  const tags = Array.isArray(body?.tags) ? body.tags : [];
+  // 只挡容器类型还不够：三条标签筛选条（gallery-browse / admin-page /
+  // OnlinePreview）都直接 <TagChip>{tag}</TagChip> 渲染数组元素，
+  // `[{bad:1}]` 能通过 Array.isArray，却让 React 抛
+  // 'Objects are not valid as a React child'。
+  // 实测（真实构建产物 + /api/stats 回 tags:[{bad:1},2,"风景"]）：
+  // /、/gallery、/admin 三页全部整页崩到「页面出错了」。
+  // 与 P123（列表项 tags 元素）、P124（随机图 tags 元素）同一类口子。
+  const tags = Array.isArray(body?.tags)
+    ? body.tags.filter((tag): tag is string => typeof tag === 'string')
+    : [];
   // dailyRequests 的 value 也必须逐个校验数字。只用 `?? {}` 挡 null/undefined，
   // 挡不住「值是字符串」：RealtimeStats 的 `sum + item.requests` 会退化成字符串拼接，
   // 实测把某天写成 "12" 后，「近 7 天」显示成 1,201,307,685,123 次（正确值 300）。
