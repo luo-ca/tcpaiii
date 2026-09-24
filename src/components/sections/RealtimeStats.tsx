@@ -39,7 +39,10 @@ export function RealtimeStats() {
     if (isError && !stats) {
       return (
         <section id="stats" className="relative z-10 px-4 py-10 sm:px-6 lg:py-12">
-          <div className="mx-auto max-w-6xl rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm text-muted-foreground">
+          <div
+            role="alert"
+            className="mx-auto max-w-6xl rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm text-muted-foreground"
+          >
             实时统计暂时读取失败，页面会按 15 秒自动重试。
           </div>
         </section>
