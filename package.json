@@ -8,7 +8,6 @@
     "build": "npm run build:functions && vite build",
     "build:dev": "vite build --mode development",
     "build:functions": "tsc -p tsconfig.functions.json",
-    "check:functions": "tsc -p tsconfig.functions.json --noEmit && node --check edge-functions/api/[[default]].js",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
