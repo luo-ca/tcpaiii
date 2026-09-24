@@ -85,6 +85,10 @@ export default function GalleryBrowse() {
   const hasNextPage = Boolean(imagesQuery.hasNextPage);
   const fetchNextPage = imagesQuery.fetchNextPage;
 
+  // 续加载（翻到末尾自动拉下一页）失败时要能告知灯箱 —— 否则它会停在
+  // 「正在加载下一张…」，而 hasNextPage 失败后仍为 true，越界处理不会收弹窗。
+  const nextPageFailed = imagesQuery.isFetchNextPageError;
+
   // 筛选条件（标签/搜索词）一变就收起灯箱。
   // 理由：`placeholderData: keepPreviousData` 会在切筛选的瞬间把旧一批结果
   // 继续留在 `images` 里，此时旧索引仍「合法」，灯箱不会自动关。等新数据
@@ -318,6 +322,8 @@ export default function GalleryBrowse() {
         onClose={() => setLightboxIndex(null)}
         onNavigate={navigateLightbox}
         hasMore={hasNextPage}
+        nextFailed={nextPageFailed}
+        onRetryNext={() => void fetchNextPage()}
       />
     </div>
   );

@@ -11,6 +11,7 @@ import {
   ExternalLink,
   ImageOff,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -30,6 +31,8 @@ export function ImageLightbox({
   onClose,
   onNavigate,
   hasMore = false,
+  nextFailed = false,
+  onRetryNext,
 }: {
   images: ImageRecord[];
   index: number | null;
@@ -37,6 +40,13 @@ export function ImageLightbox({
   onNavigate: (delta: number) => void;
   /** 是否还有「尚未加载」的后继图片：为 true 时「下一张」保持可用，以触发续加载 */
   hasMore?: boolean;
+  /**
+   * 续加载（翻到末尾自动请求下一页）是否失败。失败时必须给出提示与重试入口 ——
+   * 否则灯箱会永远停在「正在加载下一张…」：hasNextPage 在请求失败后仍为 true，
+   * 越界处理就不会收起弹窗（实测：等 2.5s 后仍是加载态，用户没有任何出路）。
+   */
+  nextFailed?: boolean;
+  onRetryNext?: () => void;
 }) {
   const { copied, copy } = useCopyFeedback();
 
@@ -151,7 +161,9 @@ export function ImageLightbox({
       >
         <DialogTitle className="sr-only">
           {isPendingNext
-            ? `正在加载下一张（已显示 ${images.length} 张）`
+            ? nextFailed
+              ? '下一张加载失败'
+              : `正在加载下一张（已显示 ${images.length} 张）`
             : image?.title || '图片预览'}
           {!isPendingNext && index !== null
             ? `（第 ${index + 1} 张，共 ${images.length} 张）`
@@ -170,9 +182,33 @@ export function ImageLightbox({
           </span>
         )}
 
+        {/* 续加载失败：不能继续显示「正在加载下一张…」（那会永远转下去）。
+            给明确失败说明 + 重试入口，用户才有出路；重试成功会自动回到加载态。 */}
+        {isPendingNext && nextFailed && (
+          <div
+            role="alert"
+            className="flex h-[min(70vh,560px)] w-[min(92vw,880px)] flex-col items-center justify-center gap-3 text-center"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-white/25 bg-white/10">
+              <ImageOff className="h-6 w-6 text-white/70" aria-hidden="true" />
+            </span>
+            <p className="text-sm text-white/80">下一张加载失败</p>
+            {onRetryNext && (
+              <button
+                type="button"
+                onClick={onRetryNext}
+                className="sticker-chip inline-flex h-8 items-center gap-1 rounded-full px-3.5 text-xs"
+              >
+                <RefreshCw className="h-3 w-3" aria-hidden="true" />
+                重试
+              </button>
+            )}
+          </div>
+        )}
+
         {/* 翻到末尾、下一页还在路上：给个明确的加载态，别让对话框空着。
             与图片舞台同尺寸：翻页占位态与实际图之间弹窗不再缩一下再撑开 */}
-        {isPendingNext && (
+        {isPendingNext && !nextFailed && (
           <div
             role="status"
             className="flex h-[min(70vh,560px)] w-[min(92vw,880px)] flex-col items-center justify-center gap-3 text-center"
