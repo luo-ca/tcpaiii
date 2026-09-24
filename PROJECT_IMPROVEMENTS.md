@@ -136,6 +136,22 @@ dist/assets/chart-vendor-B9msUCCN.js  383.16 kB │ gzip: 105.67 kB
 
 ## 建议的后续改进
 
+> **⚠️ 本节已核实（2026-09-25）**。逐条结论如下 —— 前 5 条已完成，
+> 后 3 条经评估**明确不做**（附理由），请勿重复实现。
+
+| 原建议 | 结论 | 依据 |
+|---|---|---|
+| 添加图片懒加载 | ✅ 已完成 | 公开图库用原生 `loading="lazy"`；后台用 `IntersectionObserver`（`use-lazy-image.ts`） |
+| 实现虚拟滚动 | ❌ 不做 | 261 张 ≈ 1300 DOM 节点，无性能问题；真正的成本（网络）已由原生 lazy 解决。CSS multi-column 与虚拟化天然冲突（列高依赖全部子项），改造只增复杂度 |
+| 启用更严格 TS 配置 | ✅ 已完成 | `tsconfig.app.json` 已开 `strict` + `noUnusedLocals` + `noUnusedParameters` + `noImplicitAny` + `noFallthroughCasesInSwitch` |
+| 添加更多单元测试 | ✅ 已完成 | 从当时的 35 个增至 **107 个测试文件 / 546 条用例** |
+| 添加骨架屏 | ✅ 已完成 | `skeleton-shimmer` 覆盖首屏、懒加载区块（含与真实结构同形的骨架，见 App.tsx 各 Fallback） |
+| 实现离线支持 (Service Worker) | ❌ 不做 | 图库图片是**外链**（img.static.paiii.cn），SW 缓存不了跨域资源；stats 数据离线必然过期。SW 带来的缓存版本管理/更新提示/调试成本与收益严重不匹配 |
+| 添加 API 使用示例 | ✅ 已完成 | `/docs` 有 URL / HTML / Markdown / 分类 / 排除 / JSON 六类可复制示例 |
+| 创建贡献指南 | ❌ 不做 | README 已覆盖本地开发、门禁、API 行为、KV 配置、部署全流程 —— 贡献者需要的信息都在。单独建 CONTRIBUTING.md 只会重复它 |
+
+以下为原文（历史记录）：
+
 1. **性能优化**
    - 考虑添加图片懒加载
    - 实现虚拟滚动以处理大型图库列表
@@ -151,7 +167,6 @@ dist/assets/chart-vendor-B9msUCCN.js  383.16 kB │ gzip: 105.67 kB
 4. **文档**
    - 添加 API 使用示例
    - 创建贡献指南
-
 ## 总结
 
 项目已成功完成检查、修复和优化。所有关键问题已解决:
