@@ -86,7 +86,9 @@ describe("B · 状态页可复制摘要 / 构建版本显示短哈希", () => {
     expect(handler).toContain("派次元 API 状态");
     expect(handler).toContain("KV 绑定");
     expect(handler).toContain("构建版本");
-    expect(statusSource).toMatch(/copyText\(lines\.join/);
+    // P147 把裸 copyText 换成 useCopyFeedback 的 copy（同一底层实现，
+    // 额外拿到按钮就地反馈）。断言真实意图：确实复制了摘要且带成功提示。
+    expect(statusSource).toMatch(/copy[A-Za-z]*\(lines\.join\('\\n'\), '状态摘要已复制'\)/);
   });
 });
 
@@ -98,7 +100,8 @@ describe("D · 图库筛选可复制分享链接", () => {
       gallerySource.indexOf("handleCopyShareLink = "),
       gallerySource.indexOf("const openTile"),
     );
-    expect(handler).toMatch(/copyText\(\s*window\.location\.href/);
+    // 同上：改成 hook 后仍是复制当前完整地址，只是多了就地反馈。
+    expect(handler).toMatch(/copy[A-Za-z]*\(\s*window\.location\.href/);
   });
 
   it("「复制链接」与「清空筛选」都在 hasFilter 分支内出现", () => {

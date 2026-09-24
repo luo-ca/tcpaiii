@@ -5,6 +5,7 @@ import {
   CircleAlert,
   CircleCheck,
   CircleX,
+  Check,
   Clock,
   Copy,
   Gauge,
@@ -17,7 +18,8 @@ import { toast } from 'sonner';
 
 import type { HealthPayload } from '@/lib/types';
 import { fetchHealth, measureRandomLatency } from '@/lib/api';
-import { copyText, getErrorMessage } from '@/lib/helpers';
+import { getErrorMessage } from '@/lib/helpers';
+import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -181,6 +183,8 @@ export default function StatusPage() {
   const copy = overall.kind === 'loading' ? null : BANNER_TEXT[overall.kind];
 
   /** 反馈问题用的一行摘要：总状态 + 关键字面值 + 可选延迟，够对方判断环境。 */
+  const { copied: copiedSummary, copy: copySummary } = useCopyFeedback();
+
   const handleCopySummary = useCallback(() => {
     if (overall.kind === 'loading') return;
     const lines: string[] = [
@@ -199,8 +203,8 @@ export default function StatusPage() {
     }
     if (latency !== null) lines.push(`调用延迟：${latency} ms`);
     lines.push(`页面：${window.location.origin}`);
-    void copyText(lines.join('\n'), '状态摘要已复制');
-  }, [latency, overall]);
+    void copySummary(lines.join('\n'), '状态摘要已复制');
+  }, [copySummary, latency, overall]);
 
   return (
     <div className="relative z-10 mx-auto max-w-4xl px-4 pb-24 pt-[calc(var(--header-h)+32px)] sm:px-6 sm:pb-28">
@@ -258,8 +262,12 @@ export default function StatusPage() {
               className="h-8 rounded-xl bg-white/70 text-xs"
               onClick={handleCopySummary}
             >
-              <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-              复制摘要
+              {copiedSummary ? (
+                <Check className="mr-1.5 h-3.5 w-3.5 text-success-ink" aria-hidden="true" />
+              ) : (
+                <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              {copiedSummary ? '已复制' : '复制摘要'}
             </Button>
             <Button
               variant="outline"

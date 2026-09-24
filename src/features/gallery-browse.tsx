@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useQuery, keepPreviousData } from '@tanstack/react-query';
-import { Images, Link2, Loader2, Search, SearchX, Tag, X } from 'lucide-react';
+import { Check, Images, Link2, Loader2, Search, SearchX, Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MasonryTile, SKELETON_RATIOS } from '@/components/ui/masonry-tile';
@@ -9,7 +9,8 @@ import { TagChip } from '@/components/ui/tag-chip';
 import type { PaginatedImages, Stats } from '@/lib/types';
 import { MAX_SEARCH_LENGTH } from '@/lib/constants';
 import { fetchImagesPage, statsQueryOptions } from '@/lib/api';
-import { copyText, getErrorMessage } from '@/lib/helpers';
+import { getErrorMessage } from '@/lib/helpers';
+import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 import { readGalleryQuery, writeGalleryQuery } from '@/lib/url';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ErrorState } from '@/components/states/ErrorState';
@@ -140,11 +141,13 @@ export default function GalleryBrowse() {
     setSearchTerm('');
   };
 
+  const { copied: copiedShareLink, copy: copyShareLink } = useCopyFeedback();
+
   // 筛选状态本就写进了地址栏（readGalleryQuery/writeGalleryQuery），
   // 但用户不知道这条链接可以分享。直接把当前完整地址复制走。
   const handleCopyShareLink = useCallback(() => {
-    void copyText(window.location.href, '筛选链接已复制，发给别人打开即是这个结果');
-  }, []);
+    void copyShareLink(window.location.href, '筛选链接已复制，发给别人打开即是这个结果');
+  }, [copyShareLink]);
 
   // 稳定引用：配合 MasonryTile 的 memo，搜索输入等无关渲染不会逐张重排瓦片
   const openTile = useCallback((index: number) => setLightboxIndex(index), []);
@@ -205,8 +208,12 @@ export default function GalleryBrowse() {
                 onClick={handleCopyShareLink}
                 className="h-10 shrink-0 rounded-xl px-3 text-xs text-muted-foreground hover:text-foreground"
               >
-                <Link2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                复制链接
+                {copiedShareLink ? (
+                  <Check className="mr-1 h-3.5 w-3.5 text-success-ink" aria-hidden="true" />
+                ) : (
+                  <Link2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                )}
+                {copiedShareLink ? '已复制' : '复制链接'}
               </Button>
               <Button
                 variant="ghost"
