@@ -335,6 +335,22 @@ fallback 由上面那行 `edgeone.json` 配置承担。
 
 ### 10.4 留给 P1 的已知问题（P0 未动）
 
+> **⚠️ 本节已过时（2026-09-25 核实）**：下列 7 条**全部已完成**。
+> 保留原文是为了留下历史记录，但**不要照着做** —— 照着做会重复实现已有功能。
+> 逐条核实依据：
+>
+> | 原问题 | 现状 | 依据 |
+> |---|---|---|
+> | `ApiDocsSection` 在两个 tab 重复渲染 | ✅ 已修 | `App.tsx` 只在 DocsPage 渲染一次（lazy） |
+> | 无前端路由，文档页不可分享 | ✅ 已修 | `src/lib/router.ts` 零依赖 History 路由 + edgeone SPA fallback |
+> | 首页需滚动才能拿 API 地址 | ✅ 已修 | `HeroSection` 首屏即有「点击复制 API 地址」 |
+> | `HeroSection` ↔ `OnlinePreview` 靠 getElementById + CustomEvent | ✅ 已修 | 改为 ref + props 传 `RandomRequest`；源码里残留的 getElementById/CustomEvent 只在**注释**里描述历史做法 |
+> | 统计条无数据时显示「累计调用 0 次」 | ✅ 已修 | `hasStatData` 门控 + 加载态同构骨架 |
+> | 图库页不支持混合比例（瀑布流） | ✅ 已修 | `MasonryTile` 用 `aspect-ratio` + `image-ratio.ts` 宽高比缓存 |
+> | `H1` 是英文 `anime images for anyone` | ✅ 已修 | 现为「二次元图片 / 人人可用」 |
+>
+> 以下为原文（历史记录）：
+
 - `ApiDocsSection` 仍在两个 tab 中重复渲染（`App.tsx:60`、`App.tsx:97`）
 - 无前端路由，文档页不可分享
 - 首页仍需滚动才能拿到 API 地址（核心动作未前置）
@@ -342,7 +358,6 @@ fallback 由上面那行 `edgeone.json` 配置承担。
 - 统计条在无数据时仍会显示"累计调用 0 次"
 - 图库页尚未支持混合比例（瀑布流）
 - `H1` 仍是英文 `anime images for anyone`（`test/app-copy.test.ts` 有断言，改动时需同步）
-
 ---
 
 ## 11. P1 实施记录（信息架构与交互）
