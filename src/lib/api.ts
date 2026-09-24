@@ -42,6 +42,9 @@ function toStringOr(value: unknown, fallback: string): string {
  * 一条 null 就会一路进到 MasonryTile，读 image.url 时抛错、整页落到错误边界。
  * 实测（items 里塞一条 null）：/gallery 与 / 都变成「页面出错了」。
  * 这里把不满足最低形状的项滤掉 —— 少一张图远好过整页白给。
+ * 连 tags 的**元素**也要查：`tags: [{bad:1}]` 能通过 Array.isArray，
+ * 但 MasonryTile 渲染 image.tags[0]、灯箱 map 标签时，React 会因
+ * object 子元素抛错 —— 实测同样让 /gallery 与 / 整页崩到错误边界。
  */
 function isImageRecord(value: unknown): value is ImageRecord {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -50,7 +53,7 @@ function isImageRecord(value: unknown): value is ImageRecord {
     typeof item.id === 'string' &&
     typeof item.url === 'string' &&
     typeof item.title === 'string' &&
-    Array.isArray(item.tags)
+    Array.isArray(item.tags) && item.tags.every((tag) => typeof tag === 'string')
   );
 }
 // ---- Public API ----
