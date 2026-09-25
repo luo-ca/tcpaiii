@@ -102,7 +102,18 @@ export default function GalleryBrowse() {
       return true;
     });
   }, [imagesQuery.data]);
-  const total = imagesQuery.data?.pages[0]?.total ?? 0;
+  /**
+   * 头部「共 N 张」。
+   *
+   * 必须取**最后一页**的 total，不能用 pages[0] —— pages[0] 是第一次请求的快照，
+   * 只要图库在浏览期间被改动（管理员导入或删除，与上面去重挡的是同一个竞态），
+   * 后面的翻页会带回新的 total，头部却仍钉在旧值上。实测（pageSize 24、只要
+   * hasNextPage 就继续翻）：首访 30 张、翻到第 2 页时图库已被导入到 50，页面渲染
+   * 50 张瓦片，头部却写「共 30 张」，而同屏页脚写着「已经到底了 · 共 50 张」——
+   * 两个「共 N 张」自相矛盾，且没有任何报错信号。
+   */
+  const total =
+    imagesQuery.data?.pages[imagesQuery.data.pages.length - 1]?.total ?? 0;
   const tags = stats?.tags ?? [];
   const isInitialLoading = imagesQuery.isLoading && !imagesQuery.data;
   const isEmpty = !isInitialLoading && images.length === 0;
