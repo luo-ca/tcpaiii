@@ -99,10 +99,17 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
           留下零散的「碎线」，是首屏显脏的主因之一。 */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 hero-grid" />
 
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10">
+      {/*
+        加 grid-cols-1 是必要的，不是装饰：grid 未指定列时轨道是 auto，
+        取 max-content。Hero 左栏里的 chip 是一整行不可断的 `inline-flex`，
+        它的 max-content 宽（320px 视口下实测 309px）+ 两侧 px-4 撑出 341px，
+        超过视口 —— 页面被 overflow-hidden 裁掉右侧内容，用户看不到完整文案。
+        显式 grid-cols-1 生成 minmax(0,1fr)，轨道受容器约束。
+      */}
+<div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10">
         {/* ── 左栏：文案 + 动作 ───────────────────────────────────────── */}
         <div className="text-center lg:text-left">
-          <div className="hero-enter inline-flex items-center gap-1.5 rounded-full border border-brand-500/20 bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-600">
+          <div className="hero-enter inline-flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-full border border-brand-500/20 bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-600">
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             <span>二次元图片 · EdgeOne 加速 · JSON / 302 双模式</span>
           </div>

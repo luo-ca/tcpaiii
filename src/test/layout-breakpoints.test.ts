@@ -98,3 +98,36 @@ describe("Hero · 双栏断点（P158）", () => {
     expect(grid![0], "Hero 栅格不应在 lg 之前就分栏").not.toMatch(/\b(sm|md):grid-cols/);
   });
 });
+describe("多栏栅格 · 窄屏不得被裁（P166）", () => {
+  const PREVIEW = readFileSync(resolve(process.cwd(), "src/components/sections/OnlinePreview.tsx"), "utf8");
+
+  /**
+   * 背景：`grid` 不写基础列数时，列轨道是 auto，取 max-content。
+   * 只要子元素里有不可断行的 `inline-flex` / `min-w-max`，轨道就会被撑得比
+   * 容器宽，而外层又是 overflow-hidden —— 右侧内容被直接裁掉，页面也不报错。
+   *
+   * 实测（无头 Chrome，构建产物，320px 视口，修复前）：
+   *   Hero        轨道 324.9px > 可用 288px → section.scrollWidth 341
+   *   OnlinePreview 轨道 309.1px > 可用 284px
+   * 两者都是「右栏内容看不见」。显式 grid-cols-1（= minmax(0,1fr)）后归零，
+   * 280 / 320 / 360 / 390 / 414 / 768 / 1024 / 1440 八档均无溢出。
+   */
+  it("出现响应式列断点时，必须有基础列数兜底", () => {
+    for (const [name, src] of [["HeroSection", HERO], ["OnlinePreview", PREVIEW]]) {
+      for (const line of src.split("\n")) {
+        const isGrid = /className=(["\x27`])[^"\x27`]*\bgrid\b/.test(line);
+        const hasRespCols = /(lg|md|sm|xl|2xl):grid-cols/.test(line);
+        if (!isGrid || !hasRespCols) continue;
+        expect(
+          line,
+          `${name} 的栅格有响应式列但缺基础列，窄屏会被 max-content 撑破：${line.trim()}`
+        ).toMatch(/(^|[\s"\x27`])grid-cols-1([\s"\x27`]|$)/);
+      }
+    }
+  });
+
+  it("Hero 与预览卡的栅格都带 grid-cols-1", () => {
+    expect(HERO, "Hero 栅格缺 grid-cols-1").toContain("grid max-w-6xl grid-cols-1");
+    expect(PREVIEW, "预览卡栅格缺 grid-cols-1").toContain("grid grid-cols-1 gap-0");
+  });
+});

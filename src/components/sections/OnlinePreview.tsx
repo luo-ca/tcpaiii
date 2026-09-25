@@ -221,7 +221,7 @@ function OnlinePreviewImpl(
           </div>
 
           {/* Content Grid */}
-          <div className="grid gap-0 lg:grid-cols-[1.3fr_0.7fr]">
+          <div className="grid grid-cols-1 gap-0 lg:grid-cols-[1.3fr_0.7fr]">
             {/* Image Preview Panel */}
             <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden bg-secondary sm:min-h-[460px]">
               {/* 换图是异步的：给读屏一个礼貌播报，说明现在展示的是哪张，
