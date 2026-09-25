@@ -398,7 +398,17 @@ export default function GalleryBrowse() {
                 )}
               </Button>
             ) : (
-              <p className="text-xs text-muted-foreground">已经到底了 · 共 {images.length} 张</p>
+              /*
+               * 措辞刻意用「已加载」而不是「共」：
+               * 头部那句「共 N 张」用的是服务端 total（库里一共有多少），
+               * 而这里说的是**本次会话渲染了多少张**。去重（P171）之后两者可以不等 ——
+               * 实测：分页重叠时头部「共 24 张」、这里「共 21 张」同屏出现，
+               * 两个「共」字读起来像同一件事的两种说法，用户只能判断成页面出错。
+               * 各自表述清楚就不会打架：一个讲库存，一个讲进度。
+               */
+              <p className="text-xs text-muted-foreground">
+                已经到底了 · 已加载 {images.length} 张
+              </p>
             )}
           </div>
         </>
