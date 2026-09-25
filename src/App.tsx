@@ -247,8 +247,6 @@ export default function App() {
   return (
     <div id="top" className="relative overflow-x-hidden page-bg">
       <AmbientBackground />
-      <Header />
-
       {/* 跳到主内容：键盘/读屏用户不必每页从头 Tab 过整条顶栏。
           平时视觉隐藏，获得焦点时浮到左上角。 */}
       <a
@@ -257,6 +255,7 @@ export default function App() {
       >
         跳到主内容
       </a>
+      <Header />
 
       <main id="main" ref={mainRef} tabIndex={-1} className="focus:outline-none">
         {/* 路由级边界：lazy chunk 404（部署换代）只炸这一块，页头/页脚保留；
