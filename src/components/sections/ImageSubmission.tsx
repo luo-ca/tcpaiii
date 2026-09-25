@@ -54,7 +54,7 @@ export function ImageSubmission() {
                 className="h-9 rounded-xl text-xs"
                 asChild
               >
-                <a href="https://www.paiii.cn/bbs/9" target="_blank" rel="noreferrer">
+                <a href="https://www.paiii.cn/bbs/9" target="_blank" rel="noopener noreferrer">
                   前往投稿
                   <ChevronRight className="w-3.5 h-3.5 ml-1" aria-hidden="true" />
                 </a>
