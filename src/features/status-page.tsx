@@ -30,6 +30,28 @@ import { Card, CardContent } from '@/components/ui/card';
 type Tone = 'ok' | 'warn' | 'bad' | 'idle';
 
 /**
+ * 「调用延迟自测」的状态。
+ *
+ * 收成判别联合是因为原先用 `latency: number | null` 兼表「从未测过」与
+ * 「上次失败」——一个值担两义，两条渲染分支就都判错（见 status-latency-state 测试）：
+ *
+ *   · 测速进行中：latency 仍是 null、busy 为 true，`null && !busy` 为 false，
+ *     于是落到「测速失败」那支上 —— 那块外面套着 aria-live="polite"，
+ *     读屏用户会当场听到一句并不存在的故障播报。
+ *   · 真的失败之后：busy 回到 false，`null && !busy` 为 true，反而命中
+ *     「尚未测速」提示。失败被显示成「还没测过」。
+ *
+ * 合起来的后果是 `'测速失败'` 这个字面量**只会在测速进行中出现**，
+ * 永远不会用于报告真实失败 —— 语义整个反了。这里让
+ * 「进行中且已失败」这种组合在类型上就不存在。
+ */
+type LatencyState =
+  | { kind: 'idle' }
+  | { kind: 'testing' }
+  | { kind: 'ok'; ms: number }
+  | { kind: 'failed' };
+
+/**
  * 把「服务到底活着没」这个判断收敛成一处：读 /api/health 的结果 + 网络可达性，
  * 推导一个总状态。状态页的每一块展示（横幅、逐项卡）都基于它，避免各处各写
  * 一套判断逻辑而分叉。
@@ -133,6 +155,25 @@ function latencyTone(ms: number): Tone {
   return 'bad';
 }
 
+/**
+ * 把测速状态映射成 CheckRow 的三个属性。
+ *
+ * 收敛到一处是为了让「哪个状态配哪句文案」只有一份，四种状态一一对应、
+ * 不再有交叉判断（原缺陷正是两条三元表达式各自判断同一个 null）。
+ */
+function latencyRow(state: LatencyState): { tone: Tone; value: string } {
+  switch (state.kind) {
+    case 'ok':
+      return { tone: latencyTone(state.ms), value: `${state.ms} ms` };
+    case 'failed':
+      return { tone: 'bad', value: '测速失败' };
+    case 'testing':
+      return { tone: 'idle', value: '测速中…' };
+    case 'idle':
+      return { tone: 'idle', value: '—' };
+  }
+}
+
 // ============================================================
 // Status Page
 // ============================================================
@@ -158,23 +199,22 @@ export default function StatusPage() {
     healthQuery.data,
   );
 
-  const [latency, setLatency] = useState<number | null>(null);
-  const [latencyBusy, setLatencyBusy] = useState(false);
+  const [latency, setLatency] = useState<LatencyState>({ kind: 'idle' });
+  /** 由状态派生，不再单独维护一个布尔 —— 两个变量各说各话正是原缺陷的来源 */
+  const latencyBusy = latency.kind === 'testing';
 
   const runLatencyTest = useCallback(async () => {
-    setLatencyBusy(true);
+    setLatency({ kind: 'testing' });
     try {
       const ms = await measureRandomLatency();
-      setLatency(ms);
+      setLatency({ kind: 'ok', ms });
     } catch (err) {
-      setLatency(null);
+      setLatency({ kind: 'failed' });
       // 网络类原生错误的中文化已收口在 getErrorMessage（P131）：那里只映射
       // 「已知的网络文案」，其余错误原样透传。原先这里用 `instanceof TypeError`
       // 一刀切，会把真正的代码 TypeError（例如内部调用的 toLowerCase of undefined）
       // 也误报成「网络不可达」，掩盖真实故障。
       toast.error(`测速失败：${getErrorMessage(err, '测速请求失败')}`);
-    } finally {
-      setLatencyBusy(false);
     }
   }, []);
 
@@ -201,7 +241,8 @@ export default function StatusPage() {
       );
       lines.push(`接口时间：${overall.health.timestamp}`);
     }
-    if (latency !== null) lines.push(`调用延迟：${latency} ms`);
+    // 只把真实测到的数值写进摘要：'failed' 与 'testing' 都不该冒充一次测量结果
+    if (latency.kind === 'ok') lines.push(`调用延迟：${latency.ms} ms`);
     lines.push(`页面：${window.location.origin}`);
     void copySummary(lines.join('\n'), '状态摘要已复制');
   }, [copySummary, latency, overall]);
@@ -352,14 +393,13 @@ export default function StatusPage() {
               </Button>
             </div>
             <div className="mt-3" aria-live="polite">
-              {latency === null && !latencyBusy ? (
+              {latency.kind === 'idle' ? (
                 <p className="text-sm text-muted-foreground">尚未测速。点「开始测速」测一次当前网络下的真实延迟。</p>
               ) : (
                 <CheckRow
                   icon={Gauge}
                   label="最近一次 /api/random"
-                  tone={latency === null ? 'idle' : latencyTone(latency)}
-                  value={latency === null ? '测速失败' : `${latency} ms`}
+                  {...latencyRow(latency)}
                 />
               )}
             </div>
