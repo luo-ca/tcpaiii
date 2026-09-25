@@ -77,10 +77,31 @@ export default function GalleryBrowse() {
     placeholderData: keepPreviousData,
   });
 
-  const images = useMemo(
-    () => imagesQuery.data?.pages.flatMap((page) => page.items) ?? [],
-    [imagesQuery.data],
-  );
+  /**
+   * 合并所有已加载页，并按 id 去重（保留首次出现）。
+   *
+   * 为什么必须去重：分页是 offset 式的（服务端按 start/start+pageSize 切片全量数组），
+   * 而「加载更多」是两次独立的请求。两次请求之间图库只要多了一张图（管理员导入、
+   * 或别的管理员刚加完），整个数组就右移一位 —— 第 2 页会把第 1 页末尾几张**再发一遍**。
+   *
+   * 实测（桩：第 1 页返回 1..12、第 2 页返回 10..21，模拟中间插入了新图）：
+   * 未去重时页面出现 24 张瓦片但只有 21 个唯一地址，img-10 / img-11 / img-12 各渲染两次，
+   * 用户看到重复图片。React 不会因此报错（key 由 MasonryTile 内部生成），所以
+   * 这类重复不会有任何控制台信号 —— 只能靠去重挡住。
+   *
+   * 去重放在这一层（合页之后）而不是依赖服务端，是因为 offset 分页的重叠是分页模型本身
+   * 的固有性质，服务端无状态、无从知道客户端已经拿过哪些。换 cursor 分页能根治，但那是
+   * 更大的改动；这里按「同一个 id = 同一张图」收敛，代价是一次 O(n) 扫描。
+   */
+  const images = useMemo(() => {
+    const merged = imagesQuery.data?.pages.flatMap((page) => page.items) ?? [];
+    const seen = new Set<string>();
+    return merged.filter((image) => {
+      if (seen.has(image.id)) return false;
+      seen.add(image.id);
+      return true;
+    });
+  }, [imagesQuery.data]);
   const total = imagesQuery.data?.pages[0]?.total ?? 0;
   const tags = stats?.tags ?? [];
   const isInitialLoading = imagesQuery.isLoading && !imagesQuery.data;
