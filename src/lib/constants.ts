@@ -59,6 +59,14 @@ export const STATS_TIME_ZONE = 'Asia/Shanghai';
  * 两处每页张数会悄悄不同。一致性由 src/test/constants-parity.test.ts 钉住。
  */
 export const GALLERY_PAGE_SIZE = 24;
+/**
+ * 「每页张数」下拉项。**每一项都必须 ≤ 后端 `MAX_LIST_PAGE_SIZE`**
+ * （`edge-functions-src/lib/types.ts`，当前 60）—— 服务端的
+ * `normalizePositiveInt(value, fallback, max)` 是**静默夹取**而非报错：
+ * 加了 96 进去，服务端照 60 返回，用户选了「96」实际只拿到 60 条，
+ * 界面上「每页 N 张」与真实条数悄悄对不上，且不产生任何错误提示。
+ * 这个「上限包含」关系由 src/test/gallery-page-size-options-bounds.test.ts 钉住。
+ */
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 
 import type { RoutePath } from './router';
