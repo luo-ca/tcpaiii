@@ -50,6 +50,14 @@ export const MAX_SEARCH_LENGTH = 100;
  * 「今日调用 61 · 2026/9/21」这种日期与标签互相打架的显示。
  */
 export const STATS_TIME_ZONE = 'Asia/Shanghai';
+/**
+ * 图库每页张数。与后端 `DEFAULT_LIST_PAGE_SIZE`
+ * （`edge-functions-src/lib/types.ts`）**是同一个语义** —— 两边名字不同，
+ * 改动时务必成对改：客户端请求带的是这个值，而服务端在请求**未带** pageSize
+ * 时用的是它自己那份默认值。不一致的后果是分页粒度分裂：
+ * 首页预览不传 pageSize、走的是后端默认，图库页传的是前端值，
+ * 两处每页张数会悄悄不同。一致性由 src/test/constants-parity.test.ts 钉住。
+ */
 export const GALLERY_PAGE_SIZE = 24;
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 

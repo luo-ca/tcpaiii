@@ -39,6 +39,7 @@ const PAIRS: Array<{ fe: string; be: string; why: string }> = [
   { fe: "MAX_IMAGE_URL_LENGTH", be: "MAX_IMAGE_URL_LENGTH", why: "URL 硬上限：前端拒的与后端拒的必须一致" },
   { fe: "MAX_BATCH_IMAGE_COUNT", be: "MAX_BATCH_SIZE", why: "批量上限：前端预检与后端硬限同值（P144 依赖它）" },
   { fe: "MAX_SEARCH_LENGTH", be: "MAX_LIST_FILTER_LENGTH", why: "搜索词上限：输入框 maxLength 与服务端截断同值" },
+  { fe: "GALLERY_PAGE_SIZE", be: "DEFAULT_LIST_PAGE_SIZE", why: "图库每页张数：前端请求粒度与服务端「未传 pageSize 时的默认」同值" },
 ];
 
 describe("前后端常量一致性（P152）", () => {
