@@ -83,12 +83,6 @@ export async function handleRandomImage(request: Request, runtimeEnv?: RuntimeEn
     // 全部候选，pool 会变成空数组 —— pool[NaN] 是 undefined，
     // 紧接着的 selected.id / selected.url 就会抛异常，把这个 tag 变成
     // 持续 500。宁可返回「上一张」，也不能让接口挂掉。
-    // excludeId 只是「别撞回上一张」的软偏好，不是硬约束。
-    // 过滤后必须自己兜一次空池：id 理论上唯一（crypto.randomUUID），
-    // 但存储被手工改过 / 数据损坏时可能出现重复 id，此时若排除项恰好覆盖
-    // 全部候选，pool 会变成空数组 —— pool[NaN] 是 undefined，
-    // 紧接着的 selected.id / selected.url 就会抛异常，把这个 tag 变成
-    // 持续 500。宁可返回「上一张」，也不能让接口挂掉。
     const filteredPool = excludeId && candidates.length > 1
         ? candidates.filter(image => image.id !== excludeId)
         : candidates;
