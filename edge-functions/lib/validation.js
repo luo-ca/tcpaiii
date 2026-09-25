@@ -65,10 +65,29 @@ export function sortTags(tags) {
         return left.localeCompare(right, 'zh-CN');
     });
 }
+/**
+ * 剔除 C0/C1 控制字符与 DEL。
+ *
+ * 与前端 src/lib/text.ts 的 stripControlChars 同一套规则，这里在服务端再挡一道 ——
+ * 两条路径的输入控制不住：
+ *   · /api/create、/api/batch 是可被直接调用的公开接口，绕过前端表单就能塞脏数据；
+ *   · KV 可能被手工改过，或存着更早期没有这道校验时写入的记录。
+ *
+ * 控制字符的危害不是「看起来乱」而是**零宽**：标题里的 NUL 在界面上完全看不见，
+ * 却会进到 aria-label 里 —— 读屏软件遇到 NUL 可能提前截断或整段跳过，
+ * 用户听到的是一个残缺甚至空白的标题，而肉眼排查时什么都看不到。
+ *
+ * 只剔控制字符，不做「只留字母数字」那种激进过滤：标签合法地包含中文、emoji、空格。
+ */
+export function stripControlChars(value) {
+    // eslint-disable-next-line no-control-regex
+    return value.replace(/[\u0000-\u001f\u007f-\u009f]/g, '');
+}
 export function normalizeTitle(value, fallback = '未命名图片') {
     if (typeof value !== 'string')
         return fallback;
-    const trimmed = value.trim();
+    // 先去控制字符再 trim：'\u0000'.trim() 仍是非空串，只 trim 会把纯控制字符当合法标题
+    const trimmed = stripControlChars(value).trim();
     return trimmed ? trimmed.slice(0, MAX_TITLE_LENGTH) : fallback;
 }
 export function normalizeTags(value) {
@@ -79,7 +98,7 @@ export function normalizeTags(value) {
     if (value.some(tag => typeof tag !== 'string'))
         return null;
     const tags = value
-        .map(tag => tag.trim())
+        .map(tag => stripControlChars(tag).trim())
         .map(tag => tag.slice(0, MAX_TAG_LENGTH))
         .filter(Boolean);
     return [...new Set(tags)].slice(0, MAX_TAGS_PER_IMAGE);
