@@ -5,6 +5,27 @@ import { Toaster } from "sonner";
 import App from "./App.tsx";
 import "./index.css";
 
+/**
+ * 查询默认值。
+ *
+ * refetchOnWindowFocus: false —— 这是**全局默认关闭**，不是「忘了开」。
+ * 理由：每次切回标签页都会让所有挂载中的查询一起回源，而本站的读接口走边缘函数
+ * 计费与限流；对图库列表、首页主视觉这些「几分钟内不会变」的数据，切窗口就重拉
+ * 既白耗边缘调用，又会让内容在用户眼皮下无声跳动（明明没做任何操作，图却换了）。
+ *
+ * 需要准实时的查询**各自显式打开**，目前有两处：
+ *   · statsQueryOptions()     —— 统计数字，refetchOnWindowFocus + 15s 轮询
+ *   · status-page 的健康检查   —— refetchOnWindowFocus + 30s 轮询
+ * 其余查询靠 staleTime 控制新鲜度（如 add-image-dialog 的库内地址快照用 30s），
+ * 并在写操作后由 refreshGallery() 主动失效，不依赖切窗口。
+ *
+ * 代价（已知并接受）：多标签并发下，A 标签改完数据、B 标签切回前台不会自动刷新，
+ * 仍显示旧数据。B 上做的写操作会由服务端拒绝，并给出明确文案
+ * （「图片不存在（可能刚被删除）」/「加载失败」），不会静默失败。
+ *
+ * retry: 1 —— 失败只重试一次。边缘函数 5xx 多为瞬时问题，重试一次足够；
+ * 再多会拖长错误态出现的时间，用户盯着转圈比看到「重试」按钮更难受。
+ */
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
