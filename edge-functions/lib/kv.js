@@ -127,14 +127,34 @@ function sanitizeStoredImages(value) {
         return [];
     return value.map(sanitizeStoredImage).filter((item) => Boolean(item));
 }
+/**
+ * 按 lowercase 去重标签，保留首次出现的原样写法。
+ *
+ * 必须与 byTag 的键同一套规则：标签检索全站大小写不敏感，
+ * "ACG"/"acg"/"Acg" 在 byTag 里是**同一个**桶、筛选出同一批图。
+ * 若按原样去重，/api/stats 的 tags 会多出几张 chip，点下去命中同一批 ——
+ * 用户以为它们是不同标签，「共 N 个分类」也多算了。
+ *
+ * 建索引（buildImageIndex）与读回存量 meta（sanitizeImagesMeta）共用这一条规则，
+ * 免得两条路径各写一遍再各自漂移。
+ */
+function dedupeTagsCaseInsensitive(tags) {
+    const seen = new Map();
+    for (const tag of tags) {
+        const key = tag.toLowerCase();
+        if (!seen.has(key))
+            seen.set(key, tag);
+    }
+    return Array.from(seen.values());
+}
 export function buildImageIndex(images) {
     const byTag = new Map();
-    const tagSet = new Set();
+    const allTags = [];
     const urlSet = new Set();
     for (const image of images) {
         urlSet.add(image.url);
         for (const tag of image.tags) {
-            tagSet.add(tag);
+            allTags.push(tag);
             const normalizedTag = tag.toLowerCase();
             const group = byTag.get(normalizedTag);
             if (group) {
@@ -147,7 +167,7 @@ export function buildImageIndex(images) {
     }
     return {
         byTag,
-        sortedTags: sortTags(Array.from(tagSet)),
+        sortedTags: sortTags(dedupeTagsCaseInsensitive(allTags)),
         urlSet,
     };
 }
@@ -166,7 +186,7 @@ function sanitizeImagesMeta(value) {
         return null;
     return {
         totalImages: Math.max(0, Math.floor(value.totalImages)),
-        tags: sortTags([...new Set(tags)]),
+        tags: sortTags(dedupeTagsCaseInsensitive(tags)),
         updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : new Date(0).toISOString(),
     };
 }

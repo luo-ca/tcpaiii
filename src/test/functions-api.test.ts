@@ -798,6 +798,25 @@ describe("functions api", () => {
     });
   });
 
+  it("读回存量 meta 时同样合并大小写变体（老数据不必等下一次写才修好）", async () => {
+    // 修复只落在写入路径（buildImagesMeta）上还不够：KV 里已经存下的 meta
+    // 仍带着修复前写进去的大小写变体。getImagesMeta 的 sanitize 是唯一的
+    // 读回关卡，它若按原样去重，老数据就会一直吐重复 chip 直到图库被写一次。
+    store.images.set("meta", JSON.stringify({
+      totalImages: 3,
+      tags: ["ACG", "acg", "壁纸"],
+      updatedAt: "2026-04-29T00:00:00.000Z",
+    }));
+
+    const response = await request("/api/stats");
+
+    expect(response.status).toBe(200);
+    const stats = await json(response);
+    const acgVariants = (stats.tags as string[]).filter((tag) => tag.toLowerCase() === "acg");
+    expect(acgVariants, `存量 meta 的大小写变体未合并：${JSON.stringify(stats.tags)}`).toHaveLength(1);
+    expect(stats.tags).toEqual(["ACG", "壁纸"]);
+  });
+
   it("keeps legacy list responses as arrays when no pagination params are provided", async () => {
     await request("/api/create", {
       method: "POST",
@@ -1036,6 +1055,37 @@ describe("functions api", () => {
     expect(stats.tags).toContain("新标签");
     expect(stats.tags).toContain("保留");
     expect(stats.tags).not.toContain("旧");
+  });
+
+  it("stats tags 对大小写变体只留一个（与 byTag 桶、筛选结果集一一对应）", async () => {
+    // 标签检索全站是大小写不敏感的（见下一条用例）：byTag 按 toLowerCase 建桶，
+    // 所以 "ACG"/"acg"/"Acg" 是**同一个**筛选结果集。若 sortedTags 按原样去重，
+    // 筛选条会多出几张 chip，点下去命中的却是同一批图 —— 用户以为它们是不同标签。
+    for (const [url, tags] of [
+      ["https://cdn.example.test/case-a.jpg", ["ACG", "壁纸"]],
+      ["https://cdn.example.test/case-b.jpg", ["acg"]],
+      ["https://cdn.example.test/case-c.jpg", ["Acg", "插画"]],
+    ] as Array<[string, string[]]>) {
+      const response = await request("/api/create", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ url, tags }),
+      });
+      expect(response.status).toBe(201);
+    }
+
+    const stats = await json(await request("/api/stats"));
+    const tags = stats.tags as string[];
+
+    // 三个大小写变体只能留下一个（保留首次出现的原样写法）
+    const acgVariants = tags.filter((tag) => tag.toLowerCase() === "acg");
+    expect(acgVariants, `大小写变体未合并：${JSON.stringify(tags)}`).toHaveLength(1);
+    expect(acgVariants[0]).toBe("ACG");
+
+    // 其它标签不受影响
+    expect(tags).toContain("壁纸");
+    expect(tags).toContain("插画");
+    expect(tags).toHaveLength(3);
   });
 
   it("removes tags case-insensitively and stays idempotent on repeated ids", async () => {
