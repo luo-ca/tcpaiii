@@ -43,14 +43,42 @@ if (!existsSync(dstDir)) {
 }
 
 const installed = [];
+const backedUp = [];
+
+/**
+ * 归一化换行后再比内容：Windows 上 git 可能把已装好的钩子 checkout 成 CRLF，
+ * 那是同一份钩子的另一种换行，不该被当成「被改过」。
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+function normalize(text) {
+  return text.replace(/\r\n/g, "\n");
+}
+
 for (const name of readdirSync(srcDir)) {
   if (!/^[a-z-]+$/.test(name)) continue; // 只装钩子本体，跳过 install.* 之类
   const from = join(srcDir, name);
   const to = join(dstDir, name);
-  copyFileSync(from, to);
+  const incoming = normalize(readFileSync(from, "utf8"));
+
+  // 覆盖前先看目标位置有没有「不是我们这份」的内容。
+  //
+  // 原先是无条件 copyFileSync：实测往 .git/hooks/pre-commit 放一个自定义钩子，
+  // 跑一次安装就被**静默抹掉** —— 没有备份、没有提示。而 prepare 挂在
+  // `npm install` 上，意味着用户每装一次依赖，自定义钩子就被重置一次。
+  // 这类「悄无声息地覆盖用户文件」是应当避免的，至少要留个痕迹。
+  if (existsSync(to)) {
+    const existing = normalize(readFileSync(to, "utf8"));
+    if (existing !== incoming) {
+      const backup = `${to}.bak-${Date.now()}`;
+      copyFileSync(to, backup);
+      backedUp.push(`${name} -> ${backup}`);
+    }
+  }
+
   // 保证 LF 且可执行：CRLF 会让 sh 报 bad interpreter
-  const content = readFileSync(to, "utf8").replace(/\r\n/g, "\n");
-  writeFileSync(to, content);
+  writeFileSync(to, incoming);
   try {
     chmodSync(to, 0o755);
   } catch {
@@ -65,4 +93,10 @@ if (installed.length === 0) {
 }
 
 console.log(`已安装到 ${dstDir}：\n  ${installed.join("\n  ")}`);
+if (backedUp.length > 0) {
+  // 明确告知：覆盖了原有内容，但已经备份 —— 用户不会以为自己写的钩子凭空消失
+  console.log(
+    `\n注意：以下钩子原本已有不同内容，已先备份再覆盖（如需还原请手动改名回去）：\n  ${backedUp.join("\n  ")}`,
+  );
+}
 console.log("\n跳过某次检查：SKIP_PRECOMMIT=1 git commit ...");
