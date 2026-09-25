@@ -91,12 +91,29 @@ export default function GalleryPage() {
     placeholderData: (previousData) => previousData,
   });
 
-  const { data: stats } = useQuery<Stats>(statsQueryOptions());
+  const { data: stats, isSuccess: statsLoaded } = useQuery<Stats>(statsQueryOptions());
 
   const images = imagesQuery.data?.items ?? [];
   const totalImages = stats?.totalImages ?? imagesQuery.data?.total ?? 0;
-  const totalPages = imagesQuery.data?.totalPages ?? 1;
+  /**
+   * 「图库确实是空的」——必须是**全库**没有图，不能拿筛选后的数量冒充。
+   *
+   * 原先直接用 totalImages === 0 判空库，而 totalImages 在 stats 未到达时会回退到
+   * imagesQuery.data.total —— 那是**当前筛选结果**的数量。实测：后端 /api/stats 恒 500，
+   * 库里 48 张图，管理员随手输一个搜不到的词，界面就显示「图片库还是空的 /
+   * 添加第一张图片，开始建设你的共享图库」—— 把「筛选无结果」谎报成「图库为空」，
+   * 还附赠一个引导添加的按钮，管理员很可能以为数据丢了。
+   *
+   * 正确判据：只有 stats 成功返回（它是唯一知道全库总数的来源）且 totalImages 为 0 时
+   * 才算空库。stats 拿不到就干脆不显示空库态 —— 少一个提示，好过给一个错的。
+   */
   const filteredTotal = imagesQuery.data?.total ?? 0;
+  const hasActiveFilter = Boolean(selectedTag) || searchQuery.length > 0;
+  const isGalleryEmpty = statsLoaded
+    ? (stats?.totalImages ?? 0) === 0
+    : // stats 拿不到时，只有「没有筛选」才可以信任 filteredTotal 就是全库数量
+      !hasActiveFilter && filteredTotal === 0;
+  const totalPages = imagesQuery.data?.totalPages ?? 1;
   const tags = stats?.tags ?? [];
   const totalTags = tags.length;
   const visiblePages = useMemo(() => getVisiblePages(page, totalPages), [page, totalPages]);
@@ -631,7 +648,7 @@ export default function GalleryPage() {
         </div>
       )}
 
-      {totalImages === 0 && (
+      {isGalleryEmpty && (
         <EmptyState
           icon={Camera}
           title="图片库还是空的"
@@ -645,7 +662,7 @@ export default function GalleryPage() {
         </EmptyState>
       )}
 
-      {totalImages > 0 && filteredTotal === 0 && (
+      {!isGalleryEmpty && filteredTotal === 0 && (
         <EmptyState
           icon={Search}
           title="没有找到匹配的图片"
