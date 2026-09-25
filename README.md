@@ -15,12 +15,14 @@ npm run edgeone:dev
 `npm run hooks:install` 时手动安装）。提交前会跑：
 
 - `npm run typecheck` —— tsc（app + node 两份配置）
+- `npm run lint` —— eslint（挡 tsc 抓不到的那类问题，如 react-refresh 的导出形状）
 - `npm run test` —— 全量用例
 
-两者都很快，专挡「本地构建看不出来」的问题。注意：`build` 用的是
+三者都很快，专挡「本地构建看不出来」的问题。注意：`build` 用的是
 vite/esbuild，**只转译不做类型检查**；`lint` 也没开 type-aware 规则 ——
 所以类型错误只有 typecheck 能发现。本仓库历史上就因此积压过两个 tsc 错误，
-直到把 typecheck 补进门禁才清零。
+直到把 typecheck 补进门禁才清零。`build` 更慢且被 typecheck 覆盖大半，
+留给显式调用的 `npm run check`。
 
 赶时间时可以跳过单次检查：
 
@@ -28,7 +30,7 @@ vite/esbuild，**只转译不做类型检查**；`lint` 也没开 type-aware 规
 SKIP_PRECOMMIT=1 git commit -m "..."
 ```
 
-需要跑完整门禁（含 lint 与 build）时用 `npm run check`。
+需要跑完整门禁（在提交前三项之外再加 `build`）时用 `npm run check`。
 
 `edgeone pages dev` 会读取 `edgeone.json` 的 `devCommand` 启动 Vite，并在同一个本地端口代理 Pages Functions。若只开发前端界面，也可以直接运行：
 
