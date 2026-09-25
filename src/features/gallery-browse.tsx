@@ -143,15 +143,44 @@ export default function GalleryBrowse() {
   }, [selectedTag, searchQuery]);
 
   // 灯箱索引越界处理。
-  // 允许索引停在 `images.length` —— 那是「已请求、但下一页还没到达」的占位，
-  // 等 fetchNextPage 回来后数据变长，索引自然落到新图上。只有当越界且确实
-  // 没有下一页（例如切换筛选后结果变少）时才收起灯箱。
+  //
+  // 索引可以临时等于 `images.length`：那是「已请求下一页、数据还在路上」的占位。
+  // 但这个占位**必须有解除条件**，否则灯箱会永久停在「正在加载下一张…」。
+  //
+  // 实测踩到的死锁（P171 引入前端去重之后）：
+  //   服务端第 2 页整页都是第 1 页已有的项（offset 分页在两次请求之间被插入新图时的极端形态）。
+  //   去重后 `images` 长度不变，而 hasNextPage 仍为 true —— 原先的判据
+  //   「越界 && hasNextPage && index === length」永远成立，占位态永不解除。
+  //   实测：连按 8 次「下一张」后弹窗文字停在「正在加载下一张（已显示 6 张）」，
+  //   瓦片数始终 6，弹窗不关 —— 用户只能手动关掉。
+  //
+  // 现在按三种情况分开：
+  //   · 确实在拉下一页        → 保留占位（原有行为）
+  //   · 拉失败（待用户重试）  → 保留占位，交给 ImageLightbox 显示重试 UI
+  //   · 不在拉、也没失败      → 这一页没有带来任何新图，回退到最后一张，不让用户卡住
   useEffect(() => {
     if (lightboxIndex === null) return;
     if (lightboxIndex <= images.length - 1) return;
-    if (hasNextPage && lightboxIndex === images.length) return;
-    setLightboxIndex(null);
-  }, [images.length, lightboxIndex, hasNextPage]);
+    const awaitingNextPage =
+      lightboxIndex === images.length &&
+      hasNextPage &&
+      (imagesQuery.isFetchingNextPage || nextPageFailed);
+    if (awaitingNextPage) return;
+    if (images.length === 0) {
+      setLightboxIndex(null);
+      return;
+    }
+    // 回退到已加载的最后一张，而不是直接关弹窗 —— 关掉会让用户以为是自己误触
+    setLightboxIndex(images.length - 1);
+  }, [
+    images.length,
+    lightboxIndex,
+    hasNextPage,
+    imagesQuery.isFetchingNextPage,
+    nextPageFailed,
+  ]);
+
+  const isFetchingNextPage = imagesQuery.isFetchingNextPage;
 
   const navigateLightbox = useCallback(
     (delta: number) => {
@@ -159,16 +188,18 @@ export default function GalleryBrowse() {
         if (current === null) return current;
         const next = current + delta;
         if (next < 0 || next > images.length) return current;
-        // 走到末尾再按「下一张」：就地续加载下一页，而不是把用户卡住
+        // 走到末尾再按「下一张」：就地续加载下一页，而不是把用户卡住。
+        // 已在拉下一页时不重复触发 —— 否则连按右键会每按一次发一个请求，
+        // 而它们请求的是同一个 pageParam，纯属放大器。
         if (next === images.length) {
           if (!hasNextPage) return current;
-          void fetchNextPage();
+          if (!isFetchingNextPage) void fetchNextPage();
           return next;
         }
         return next;
       });
     },
-    [images.length, hasNextPage, fetchNextPage],
+    [images.length, hasNextPage, fetchNextPage, isFetchingNextPage],
   );
 
   const clearFilters = () => {
