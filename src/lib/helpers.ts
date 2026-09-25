@@ -113,6 +113,30 @@ export function parseTagsInput(value: string): string[] {
 }
 
 /**
+ * 批量导入这批 URL 序列化后的真实字节数。
+ *
+ * 必须与 batchCreateImages 实际发出的 body **同形**（`{ images: [...] }`、
+ * title 是 `图片 N`、tags 共用同一份），否则预检的数字和真正发出去的不是一回事，
+ * 就又退化成拦不住。按 UTF-8 字节算 —— 服务端判的是字节不是字符数，
+ * 一个中文 URL 字符占 3 字节。
+ *
+ * 存在的理由：条数上限(500) × 每条 URL 上限(2048) 序列化后约 1MB，
+ * 是服务端请求体上限(256KB) 的 ~4 倍 —— 两个各自合法的上限没法同时满足，
+ * 只查条数会让用户贴满后被服务端以体积超限拒掉。
+ */
+export function batchPayloadBytes(urls: string[], tagsRaw: string): number {
+  return new TextEncoder().encode(JSON.stringify({ images: buildBatchImagesPayload(urls, tagsRaw) })).byteLength;
+}
+
+/**
+ * 批量导入的 body.images。预检与实际发送共用，避免两处各写一份而漂移。
+ */
+export function buildBatchImagesPayload(urls: string[], tagsRaw: string) {
+  const tags = parseTagsInput(tagsRaw);
+  return urls.map((url, index) => ({ url, title: `图片 ${index + 1}`, tags }));
+}
+
+/**
  * Canonicalize an image URL the same way the backend does (`new URL().toString()`).
  * Returns null for non-http(s) URLs, URLs with embedded credentials, URLs over
  * the backend's 2048-char cap (输入与规范化结果各查一遍), or unparsable input.

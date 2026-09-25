@@ -11,13 +11,25 @@ import { Label } from '@/components/ui/label';
 import {
   MAX_BATCH_IMAGE_COUNT,
   MAX_IMAGE_URL_LENGTH,
+  MAX_JSON_BODY_BYTES,
   MAX_TITLE_LENGTH,
   MAX_TAG_LENGTH,
   MAX_TAGS_PER_IMAGE,
 } from '@/lib/constants';
 import { fetchExistingImageUrlSet, createImage, batchCreateImages } from '@/lib/api';
-import { getErrorMessage, parseTagsInput, parseBatchUrls, canonicalizeImageUrl } from '@/lib/helpers';
+import {
+  getErrorMessage,
+  parseTagsInput,
+  parseBatchUrls,
+  canonicalizeImageUrl,
+  batchPayloadBytes,
+  buildBatchImagesPayload,
+} from '@/lib/helpers';
 import { stripControlChars } from '@/lib/text';
+
+function formatKb(bytes: number): string {
+  return `${Math.round(bytes / 1024)} KB`;
+}
 
 // ============================================================
 // Add Image Dialog
@@ -132,14 +144,23 @@ export function AddImageDialog({
       return;
     }
 
-    const tags = parseTagsInput(batchTags);
+    // 条数过关不等于体量过关：条数上限(500) × 每条 URL 上限(2048) 序列化后约 1MB，
+    // 是服务端请求体上限(256KB)的 ~4 倍 —— 两个各自合法的上限没法同时满足。
+    // 不在这里拦，用户会按「最多 500 张」的提示贴满一屏长 URL，然后被服务端以
+    // 体积超限拒掉，却完全猜不到是体积问题（报的曾是「不是合法 JSON」）。
+    const payloadBytes = batchPayloadBytes(cleanUrls, batchTags);
+    if (payloadBytes > MAX_JSON_BODY_BYTES) {
+      toast.error(
+        `这批地址太长（约 ${formatKb(payloadBytes)}，上限 ${formatKb(MAX_JSON_BODY_BYTES)}）：` +
+          `URL 越长单次能导入的条数越少，请分批导入`,
+      );
+      return;
+    }
+
     setProgress({ current: 0, total: cleanUrls.length });
     setBatchFailures([]);
 
-    const result = await batchCreateImages(
-      cleanUrls.map((imageUrl, index) => ({ url: imageUrl, title: `图片 ${index + 1}`, tags })),
-      adminToken,
-    );
+    const result = await batchCreateImages(buildBatchImagesPayload(cleanUrls, batchTags), adminToken);
     setProgress({ current: result.success, total: cleanUrls.length });
     // 成功的那几条要从输入框里去掉。部分失败时弹窗会留在原地（见下），
     // 而 textarea 里仍是原封不动的一整批 —— 用户顺手再点一次「导入」，

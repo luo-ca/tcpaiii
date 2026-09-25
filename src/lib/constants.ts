@@ -44,6 +44,19 @@ export const MAX_IMAGE_URL_LENGTH = 2048;
 export const MAX_SEARCH_LENGTH = 100;
 
 /**
+ * 请求体字节上限。与后端 `MAX_JSON_BODY_BYTES`（`edge-functions-src/lib/types.ts`）
+ * 同值。
+ *
+ * 为什么前端也要有一份：批量导入的两个上限是**乘法关系** ——
+ * MAX_BATCH_IMAGE_COUNT(500) × MAX_IMAGE_URL_LENGTH(2048) 序列化后约 1MB，
+ * 是请求体上限（256KB）的 ~4 倍。也就是说「500 条」和「每条 2048 字」这两个
+ * 各自合法的上限**没法同时满足**。只查条数的前端会让用户按提示一路贴到 500 条，
+ * 然后被服务端以体积超限拒掉，而错误信息（修复前）说的是「不是合法 JSON」。
+ * 一致性由 src/test/constants-parity.test.ts 钉住。
+ */
+export const MAX_JSON_BODY_BYTES = 256 * 1024;
+
+/**
  * 统计口径时区。必须与后端 edge-functions-src/lib/types.ts 的
  * STATS_TIME_ZONE 保持一致 —— 服务端按它给 dailyRequests 分桶，
  * 前端任何「把某天显示给人看」的地方也要按它渲染，否则会出现

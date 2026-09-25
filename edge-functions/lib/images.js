@@ -1,7 +1,7 @@
 // Image CRUD route handlers.
-import { MAX_BATCH_SIZE } from './types';
+import { MAX_BATCH_SIZE, MAX_JSON_BODY_BYTES } from './types';
 import { corsHeaders, json, noStoreHeaders } from './response';
-import { isJsonObject, isValidImageId, normalizeImageUrl, normalizePositiveInt, normalizeTags, normalizeTitle, readJsonObject, } from './validation';
+import { isJsonObject, isValidImageId, normalizeImageUrl, normalizePositiveInt, normalizeTags, normalizeTitle, readJsonBody, } from './validation';
 import { DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE, MAX_LIST_FILTER_LENGTH, MAX_TAG_LENGTH, MAX_IMAGE_ID_LENGTH, READ_CACHE_CONTROL, } from './types';
 import { getAllImages, getImagesState, saveAllImages } from './kv';
 import { updateRequestStats } from './stats';
@@ -138,10 +138,13 @@ export async function handleListImages(request, runtimeEnv) {
 }
 // ── POST /api/batch ──────────────────────────────────────────
 export async function handleBatchCreateImages(request, runtimeEnv) {
-    const body = await readJsonObject(request);
-    if (!body) {
-        return json({ error: 'Request body must be a valid JSON object' }, 400);
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) {
+        return parsed.reason === 'too-large'
+            ? json({ error: `Request body exceeds ${MAX_JSON_BODY_BYTES} bytes` }, 413)
+            : json({ error: 'Request body must be a valid JSON object' }, 400);
     }
+    const body = parsed.body;
     if (!Array.isArray(body.images) || body.images.length === 0) {
         return json({ error: 'images array is required and must not be empty' }, 400);
     }
@@ -204,10 +207,13 @@ export async function handleBatchCreateImages(request, runtimeEnv) {
 }
 // ── POST /api/batch-update ───────────────────────────────────
 export async function handleBatchUpdateImageTags(request, runtimeEnv) {
-    const body = await readJsonObject(request);
-    if (!body) {
-        return json({ error: 'Request body must be a valid JSON object' }, 400);
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) {
+        return parsed.reason === 'too-large'
+            ? json({ error: `Request body exceeds ${MAX_JSON_BODY_BYTES} bytes` }, 413)
+            : json({ error: 'Request body must be a valid JSON object' }, 400);
     }
+    const body = parsed.body;
     if (!Array.isArray(body.ids) || body.ids.length === 0) {
         return json({ error: 'ids array is required and must not be empty' }, 400);
     }
@@ -268,10 +274,13 @@ export async function handleBatchUpdateImageTags(request, runtimeEnv) {
 }
 // ── POST /api/create ─────────────────────────────────────────
 export async function handleCreateImage(request, runtimeEnv) {
-    const body = await readJsonObject(request);
-    if (!body) {
-        return json({ error: 'Request body must be a valid JSON object' }, 400);
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) {
+        return parsed.reason === 'too-large'
+            ? json({ error: `Request body exceeds ${MAX_JSON_BODY_BYTES} bytes` }, 413)
+            : json({ error: 'Request body must be a valid JSON object' }, 400);
     }
+    const body = parsed.body;
     const imageUrl = normalizeImageUrl(body.url);
     if (!imageUrl) {
         return json({ error: 'url must be a valid http(s) URL' }, 400);
@@ -303,10 +312,13 @@ export async function handleUpdateImage(request, id, runtimeEnv) {
     if (!isValidImageId(id)) {
         return json({ error: 'Invalid image id' }, 400);
     }
-    const body = await readJsonObject(request);
-    if (!body) {
-        return json({ error: 'Request body must be a valid JSON object' }, 400);
+    const parsed = await readJsonBody(request);
+    if (!parsed.ok) {
+        return parsed.reason === 'too-large'
+            ? json({ error: `Request body exceeds ${MAX_JSON_BODY_BYTES} bytes` }, 413)
+            : json({ error: 'Request body must be a valid JSON object' }, 400);
     }
+    const body = parsed.body;
     return withGalleryTransaction(async () => {
         const imagesState = await getImagesState(runtimeEnv);
         const images = imagesState.images.slice();

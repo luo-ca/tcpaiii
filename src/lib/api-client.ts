@@ -130,6 +130,9 @@ const SERVER_ERROR_ZH: Array<[RegExp, string]> = [
   [/^addtags\/removetags must be arrays/i, '标签参数格式不正确'],
   [/^addtags or removetags must contain at least one tag$/i, '请至少填写一个要添加或移除的标签'],
   [/^request body must be a valid json object$/i, '请求数据格式不正确'],
+  // 413：请求体超过 MAX_JSON_BODY_BYTES。与上面那条「格式不正确」是**两回事** ——
+  // 合在一起会把用户引向逐条检查 URL/JSON，而真正的原因是这批数据太大。
+  [/^request body exceeds \d+ bytes$/i, '这批数据太大，超过了单次请求的体积上限，请分批提交'],
   [/^too many requests$/i, '请求过于频繁，请稍后再试'],
   // Edge 函数 dispatcher 的兜底 500（api/[[default]].ts 的 catch）就是这三个字面量，
   // 原先都不在表内：用户做任何操作撞上一次未捕获异常，界面上就出现整句英文。

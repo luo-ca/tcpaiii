@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getRecentStatsDateKeys, getStatsDateKey, handler, resetRuntimeCaches } from "../../edge-functions-src/api/[[default]]";
 import { MAX_TRACKED_DAILY_KEYS } from "../../edge-functions-src/lib/types";
+import { canonicalizeImageUrl } from "@/lib/helpers";
 
 type Store = Record<string, Map<string, string>>;
 type TestKv = {
@@ -116,6 +117,22 @@ describe("functions api", () => {
       method: "POST",
       headers: adminHeaders(),
       body: "{bad json",
+    });
+
+    expect(response.status).toBe(400);
+    await expect(json(response)).resolves.toMatchObject({
+      error: "Request body must be a valid JSON object",
+    });
+  });
+
+  it("rejects empty request bodies", async () => {
+    // 空体走的是 JSON.parse('') 抛 SyntaxError 这条分支（旧实现靠 !body 早退，
+    // 重构成 readJsonBody 后这条路径换了形状）。结果必须仍是 400 + 格式文案：
+    // "" 是**格式问题**，不是体积问题 —— 不能因为新加了 413 就把它归错类。
+    const response = await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: "",
     });
 
     expect(response.status).toBe(400);
@@ -676,20 +693,27 @@ describe("functions api", () => {
     });
   });
 
-  it("rejects oversized JSON bodies before parsing", async () => {
+  it("rejects oversized JSON bodies before parsing（413 而非 400：体积不是格式问题）", async () => {
+    // 这条原先断言 400 + 'Request body must be a valid JSON object'，
+    // 但 body 就是 JSON.stringify 的输出 —— **本来就是合法 JSON**，
+    // 那句话对这份输入是假的。超限的报文必须说「太大」，不能报成格式错误。
     const oversizedTitle = "x".repeat(256 * 1024);
+    const body = JSON.stringify({
+      url: "https://cdn.example.test/oversized.jpg",
+      title: oversizedTitle,
+    });
+    // 前提：这份 body 确实是合法 JSON，拒它只能是因为体积
+    expect(() => JSON.parse(body)).not.toThrow();
+
     const response = await request("/api/create", {
       method: "POST",
       headers: adminHeaders(),
-      body: JSON.stringify({
-        url: "https://cdn.example.test/oversized.jpg",
-        title: oversizedTitle,
-      }),
+      body,
     });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(413);
     await expect(json(response)).resolves.toMatchObject({
-      error: "Request body must be a valid JSON object",
+      error: expect.stringContaining("exceeds"),
     });
   });
 
@@ -1039,6 +1063,66 @@ describe("functions api", () => {
       success: 51,
       failed: 0,
     });
+  });
+
+  it("批请求超体积时回 413 并说明是体积问题，而不是报「不是合法 JSON」", async () => {
+    // MAX_BATCH_SIZE(500) × MAX_IMAGE_URL_LENGTH(2048) 与 MAX_JSON_BODY_BYTES(256KB)
+    // 之间有一条从未被守过的隐含约束：500 条 2048 字符的合法 URL 序列化后约 1MB，
+    // 是请求体上限的近 4 倍 —— 两个各自合法的上限**没法同时满足**。
+    // （要让它恒成立，cap 得提到 ~5.68MB：每个 URL 字符 2048 × UTF-8 最坏 4 字节。）
+    //
+    // 修复前 readJsonObject 超限返回 null，于是回 400
+    // 'Request body must be a valid JSON object' —— 报文里没有「太大」这个信息，
+    // translateServerError 也没有对应模式，英文原文直出。用户按提示逐条检查 URL，
+    // 永远找不到问题，而且 500 还在客户端声明的上限之内。
+    const longUrl = (index: number) =>
+      `https://cdn.example.test/long/${index}.jpg?token=${"a".repeat(1900)}`;
+
+    // 前提：这些 URL 本身都是合法且不超 2048 的（所以拒的原因只可能是体积）
+    for (const url of [longUrl(0), longUrl(499)]) {
+      expect(canonicalizeImageUrl(url), "用例前提：URL 必须合法且不超 2048").not.toBeNull();
+    }
+
+    const images = Array.from({ length: 500 }, (_, index) => ({
+      url: longUrl(index),
+      title: `图片 ${index + 1}`,
+      tags: ["batch"],
+    }));
+    const body = JSON.stringify({ images });
+    expect(new TextEncoder().encode(body).byteLength).toBeGreaterThan(256 * 1024);
+
+    const response = await request("/api/batch", {
+      method: "POST",
+      headers: adminHeaders(),
+      body,
+    });
+
+    // 413 而非 400：问题在体积不在格式
+    expect(response.status).toBe(413);
+    const errorBody = await json(response);
+    expect(errorBody).toMatchObject({ error: expect.stringContaining("exceeds") });
+    // 不能再是那句会把人带偏的「不是合法 JSON」
+    expect(errorBody.error).not.toBe("Request body must be a valid JSON object");
+  });
+
+  it("客户端预检的字节数与服务端判的是同一件事（500 条短 URL 仍可导入）", async () => {
+    // 体积上限不该把正常批导入也拦掉：短 URL 时 500 条完全装得下。
+    // 这条同时钉住「条数上限本身仍然有效」——预检放宽不能顺手把 500 也废掉。
+    const images = Array.from({ length: 500 }, (_, index) => ({
+      url: `https://cdn.example.test/ok-${index}.jpg`,
+      tags: ["batch"],
+    }));
+    const body = JSON.stringify({ images });
+    expect(new TextEncoder().encode(body).byteLength).toBeLessThan(256 * 1024);
+
+    const response = await request("/api/batch", {
+      method: "POST",
+      headers: adminHeaders(),
+      body,
+    });
+
+    expect(response.status).toBe(201);
+    await expect(json(response)).resolves.toMatchObject({ total: 500, success: 500, failed: 0 });
   });
 
   it("rejects batch imports above 500 images", async () => {

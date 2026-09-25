@@ -14,21 +14,48 @@ export function isJsonObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export async function readJsonObject(request: Request): Promise<Record<string, unknown> | null> {
+/**
+ * 读取并解析 JSON 请求体。
+ *
+ * 返回值区分三种失败，调用方要能分辨（原先统一返回 null，于是
+ * 「体积超限」被当成「JSON 格式错误」报出去）：
+ *   · 'too-large' —— 超出 MAX_JSON_BODY_BYTES，报文体积问题；
+ *   · 'invalid'   —— 空体 / 非 UTF-8 超限 / JSON.parse 失败 / 不是对象；
+ *   · 对象本身     —— 解析成功。
+ *
+ * 为什么必须分开：MAX_BATCH_SIZE(500) × MAX_IMAGE_URL_LENGTH(2048) 序列化后
+ * 约 1MB，是请求体上限的 ~4 倍。一批**完全合法**的长 URL 会栽在体积上，
+ * 而原先的报文说「Request body must be a valid JSON object」—— 用户按提示
+ * 逐条检查 URL，永远找不到问题，且 500 还在客户端声明的上限之内。
+ */
+export type ReadJsonBodyResult =
+    | { ok: true; body: Record<string, unknown> }
+    | { ok: false; reason: 'too-large' | 'invalid' };
+
+export async function readJsonBody(request: Request): Promise<ReadJsonBodyResult> {
+    // content-length 只是提示，可以缺失或撒谎，所以文本读完后必须再按字节数判一次
+    const contentLength = Number(request.headers.get('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > MAX_JSON_BODY_BYTES) {
+        return { ok: false, reason: 'too-large' };
+    }
+    let body: string;
     try {
-        const contentLength = Number(request.headers.get('content-length'));
-        if (Number.isFinite(contentLength) && contentLength > MAX_JSON_BODY_BYTES) {
-            return null;
-        }
-        const body = await request.text();
-        if (!body || new TextEncoder().encode(body).byteLength > MAX_JSON_BODY_BYTES) {
-            return null;
-        }
-        const parsed = JSON.parse(body);
-        return isJsonObject(parsed) ? parsed : null;
+        body = await request.text();
     }
     catch {
-        return null;
+        return { ok: false, reason: 'invalid' };
+    }
+    // 按**字节**判而不是 body.length：非 ASCII 每字符占多字节
+    if (new TextEncoder().encode(body).byteLength > MAX_JSON_BODY_BYTES) {
+        return { ok: false, reason: 'too-large' };
+    }
+    try {
+        const parsed = JSON.parse(body);
+        return isJsonObject(parsed) ? { ok: true, body: parsed } : { ok: false, reason: 'invalid' };
+    }
+    catch {
+        // 含空体："".length 是 0，JSON.parse('') 抛 SyntaxError —— 与旧实现的 !body 同结果
+        return { ok: false, reason: 'invalid' };
     }
 }
 

@@ -3,21 +3,30 @@ import { ALLOWED_IMAGE_PROTOCOLS, IMAGE_ID_PATTERN, MAX_IMAGE_URL_LENGTH, MAX_JS
 export function isJsonObject(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-export async function readJsonObject(request) {
+export async function readJsonBody(request) {
+    // content-length 只是提示，可以缺失或撒谎，所以文本读完后必须再按字节数判一次
+    const contentLength = Number(request.headers.get('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > MAX_JSON_BODY_BYTES) {
+        return { ok: false, reason: 'too-large' };
+    }
+    let body;
     try {
-        const contentLength = Number(request.headers.get('content-length'));
-        if (Number.isFinite(contentLength) && contentLength > MAX_JSON_BODY_BYTES) {
-            return null;
-        }
-        const body = await request.text();
-        if (!body || new TextEncoder().encode(body).byteLength > MAX_JSON_BODY_BYTES) {
-            return null;
-        }
-        const parsed = JSON.parse(body);
-        return isJsonObject(parsed) ? parsed : null;
+        body = await request.text();
     }
     catch {
-        return null;
+        return { ok: false, reason: 'invalid' };
+    }
+    // 按**字节**判而不是 body.length：非 ASCII 每字符占多字节
+    if (new TextEncoder().encode(body).byteLength > MAX_JSON_BODY_BYTES) {
+        return { ok: false, reason: 'too-large' };
+    }
+    try {
+        const parsed = JSON.parse(body);
+        return isJsonObject(parsed) ? { ok: true, body: parsed } : { ok: false, reason: 'invalid' };
+    }
+    catch {
+        // 含空体："".length 是 0，JSON.parse('') 抛 SyntaxError —— 与旧实现的 !body 同结果
+        return { ok: false, reason: 'invalid' };
     }
 }
 export function isSha256Hex(value) {

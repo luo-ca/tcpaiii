@@ -24,11 +24,18 @@ import { describe, expect, it } from "vitest";
 const FE = readFileSync(resolve(process.cwd(), "src/lib/constants.ts"), "utf8");
 const BE = readFileSync(resolve(process.cwd(), "edge-functions-src/lib/types.ts"), "utf8");
 
-/** 从源码里取一个 `export const NAME = <number>;`（允许下划线分隔） */
+/**
+ * 从源码里取一个 `export const NAME = <number>;`。
+ * 允许下划线分隔（262_144），也允许**单个乘法**（256 * 1024）——
+ * 字节型上限两处都写成 `256 * 1024` 更易读，而它必须照样能被比对，
+ * 否则成对常量一到这种写法就静默漏检。
+ */
 function readConst(src: string, name: string): number | null {
-  const re = new RegExp(`export const ${name}\\s*=\\s*(\\d[\\d_]*)\\s*;`);
+  const re = new RegExp(`export const ${name}\\s*=\\s*(\\d[\\d_]*)\\s*(?:\\*\\s*(\\d[\\d_]*))?\\s*;`);
   const m = src.match(re);
-  return m ? Number(m[1].replace(/_/g, "")) : null;
+  if (!m) return null;
+  const num = (s: string) => Number(s.replace(/_/g, ""));
+  return m[2] ? num(m[1]) * num(m[2]) : num(m[1]);
 }
 
 /** 前端名 ↔ 后端名（名字不同但语义相同的成对常量） */
@@ -39,6 +46,7 @@ const PAIRS: Array<{ fe: string; be: string; why: string }> = [
   { fe: "MAX_IMAGE_URL_LENGTH", be: "MAX_IMAGE_URL_LENGTH", why: "URL 硬上限：前端拒的与后端拒的必须一致" },
   { fe: "MAX_BATCH_IMAGE_COUNT", be: "MAX_BATCH_SIZE", why: "批量上限：前端预检与后端硬限同值（P144 依赖它）" },
   { fe: "MAX_SEARCH_LENGTH", be: "MAX_LIST_FILTER_LENGTH", why: "搜索词上限：输入框 maxLength 与服务端截断同值" },
+  { fe: "MAX_JSON_BODY_BYTES", be: "MAX_JSON_BODY_BYTES", why: "请求体字节上限：前端批量预检与服务端硬限同值" },
   { fe: "GALLERY_PAGE_SIZE", be: "DEFAULT_LIST_PAGE_SIZE", why: "图库每页张数：前端请求粒度与服务端「未传 pageSize 时的默认」同值" },
 ];
 
