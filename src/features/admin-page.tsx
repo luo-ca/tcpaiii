@@ -94,7 +94,20 @@ export default function GalleryPage() {
   const { data: stats, isSuccess: statsLoaded } = useQuery<Stats>(statsQueryOptions());
 
   const images = imagesQuery.data?.items ?? [];
-  const totalImages = stats?.totalImages ?? imagesQuery.data?.total ?? 0;
+  /**
+   * 统计卡「图片总数」的取值。
+   *
+   * 全库总数只有 /api/stats 知道。原先写成
+   *   stats?.totalImages ?? imagesQuery.data?.total ?? 0
+   * 把「筛选结果数」当成了「全库总数」的兜底 —— 实测：/api/stats 恒 500、库内 48 张，
+   * 管理员输入一个搜不到的词，统计卡立刻显示「图片总数 0」。数字本身看着毫无异常，
+   * 只有对着筛选条件才知道是错的；而管理员看到「总数 0」的第一反应通常是「数据没了」。
+   *
+   * 现在：stats 就绪才给数字，否则给 null，由渲染层显示占位符 —— 宁可显示「—」，
+   * 也不显示一个确切但错误的数字。（P175 修的是「空库提示」，这里是同一根因的
+   * 另一处出口：都源于拿 filteredTotal 冒充全库总数。）
+   */
+  const totalImages = statsLoaded ? (stats?.totalImages ?? 0) : null;
   /**
    * 「图库确实是空的」——必须是**全库**没有图，不能拿筛选后的数量冒充。
    *
@@ -500,7 +513,8 @@ export default function GalleryPage() {
         {[
           {
             label: '图片总数',
-            value: totalImages,
+            // null = stats 未就绪，显示占位而不是 0（见 totalImages 的注释）
+            value: totalImages ?? '—',
             icon: Image,
             color: 'text-brand-500',
             bg: 'bg-brand-50',

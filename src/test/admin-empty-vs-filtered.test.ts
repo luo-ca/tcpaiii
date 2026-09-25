@@ -75,4 +75,28 @@ describe("后台空态 · 空库判定不得被筛选污染", () => {
       "空库 EmptyState 被删掉了：新管理员看不到任何引导",
     ).toContain('title="图片库还是空的"');
   });
+
+  it("统计卡「图片总数」不得在 stats 未就绪时冒充（P176 同一根因的另一处出口）", () => {
+    // P175 修的是「空库提示」，但同一个根因（拿 filteredTotal 冒充全库总数）
+    // 还有第二处出口：统计卡。实测（/api/stats 恒 500、库内 48 张、输入搜不到的词）
+    // 修复前 → 统计卡「图片总数 0」；修复后 → 「图片总数 —」。
+    const i = SOURCE.indexOf("const totalImages");
+    expect(i, "找不到 totalImages").toBeGreaterThan(-1);
+    const decl = SOURCE.slice(i, i + 500);
+    expect(
+      decl,
+      "totalImages 又回退到 imagesQuery.data.total 了 —— 那是筛选结果数，会显示成「图片总数」",
+    ).not.toMatch(/totalImages\s*=\s*stats\?\.totalImages \?\? imagesQuery/);
+    expect(
+      decl,
+      "totalImages 未门控在 statsLoaded 之上",
+    ).toMatch(/statsLoaded/);
+  });
+
+  it("统计卡渲染层把 null 显示成占位符，而不是 0", () => {
+    expect(
+      SOURCE,
+      "统计卡直接渲染 totalImages —— null 会被渲染成空串或 0",
+    ).toMatch(/value: totalImages \?\? '—'/);
+  });
 });
