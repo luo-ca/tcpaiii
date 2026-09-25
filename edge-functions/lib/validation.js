@@ -32,24 +32,33 @@ export async function readJsonBody(request) {
 export function isSha256Hex(value) {
     return /^[a-f0-9]{64}$/i.test(value);
 }
-export function normalizeImageUrl(value) {
+export function normalizeImageUrlWithReason(value) {
     if (typeof value !== 'string')
-        return null;
+        return { ok: false, reason: 'invalid' };
     const trimmed = value.trim();
-    if (!trimmed || trimmed.length > MAX_IMAGE_URL_LENGTH)
-        return null;
+    if (!trimmed)
+        return { ok: false, reason: 'invalid' };
+    if (trimmed.length > MAX_IMAGE_URL_LENGTH)
+        return { ok: false, reason: 'too-long' };
     try {
         const parsed = new URL(trimmed);
         if (!ALLOWED_IMAGE_PROTOCOLS.has(parsed.protocol) || parsed.username || parsed.password) {
-            return null;
+            return { ok: false, reason: 'invalid' };
         }
         const canonical = parsed.toString();
-        // 百分号转义会让规范化结果比原串更长：两关都要过
-        return canonical.length <= MAX_IMAGE_URL_LENGTH ? canonical : null;
+        // 百分号转义会让规范化结果比原串更长：两关都要过。
+        // 这一条尤其容易让人困惑 —— 输入明明 ≤ 上限，却在这里被判超长。
+        return canonical.length <= MAX_IMAGE_URL_LENGTH
+            ? { ok: true, url: canonical }
+            : { ok: false, reason: 'too-long' };
     }
     catch {
-        return null;
+        return { ok: false, reason: 'invalid' };
     }
+}
+export function normalizeImageUrl(value) {
+    const result = normalizeImageUrlWithReason(value);
+    return result.ok ? result.url : null;
 }
 export function isValidImageId(value) {
     return IMAGE_ID_PATTERN.test(value);

@@ -22,6 +22,8 @@ import {
   parseTagsInput,
   parseBatchUrls,
   canonicalizeImageUrl,
+  canonicalizeImageUrlWithReason,
+  imageUrlErrorMessage,
   batchPayloadBytes,
   buildBatchImagesPayload,
 } from '@/lib/helpers';
@@ -128,7 +130,15 @@ export function AddImageDialog({
       return;
     }
     if (batchPreview.invalid.length > 0) {
-      toast.error(`有 ${batchPreview.invalid.length} 行不是有效的 http(s) 地址，请先删掉标红的行`);
+      // 「超长」要单独报：那些地址本身是合法的 http(s) 地址（浏览器能打开），
+      // 只是长度超限。一律说成「不是有效的 http(s) 地址」，用户会去逐字检查格式，
+      // 而该做的是换条短地址 —— 提示指错方向就等于没说。
+      const tooLong = batchPreview.tooLong.length;
+      const otherInvalid = batchPreview.invalid.length - tooLong;
+      const parts: string[] = [];
+      if (otherInvalid > 0) parts.push(`${otherInvalid} 行不是有效的 http(s) 地址`);
+      if (tooLong > 0) parts.push(`${tooLong} 行地址太长（上限 ${MAX_IMAGE_URL_LENGTH} 字符）`);
+      toast.error(`有 ${parts.join('，')}，请先删掉标红的行`);
       return;
     }
     if (cleanUrls.length === 0) {
@@ -232,9 +242,11 @@ export function AddImageDialog({
         // 超长或无法解析的地址。只靠 input 的 type="url" 挡不住 —— 实测
         // ftp://host/a.jpg 与 javascript:alert(1) 都能通过原生校验被打到服务端，
         // 而服务端会回英文 url must be a valid http(s) URL，管理员看到的是英文报错。
-        const canonical = canonicalizeImageUrl(url);
-        if (!canonical) {
-          toast.error('图片地址必须是有效的 http(s) URL');
+        // 「超长」要单独报：地址本身合法（浏览器能打开），只是太长 ——
+        // 报成「不是有效地址」会让人去逐字检查格式，方向就错了。
+        const canonical = canonicalizeImageUrlWithReason(url);
+        if (!canonical.ok) {
+          toast.error(imageUrlErrorMessage(canonical.reason));
           setLoading(false);
           return;
         }

@@ -1,7 +1,7 @@
 // Image CRUD route handlers.
-import { MAX_BATCH_SIZE, MAX_JSON_BODY_BYTES } from './types';
+import { MAX_BATCH_SIZE, MAX_IMAGE_URL_LENGTH, MAX_JSON_BODY_BYTES } from './types';
 import { corsHeaders, json, noStoreHeaders } from './response';
-import { isJsonObject, isValidImageId, normalizeImageUrl, normalizePositiveInt, normalizeTags, normalizeTitle, readJsonBody, } from './validation';
+import { isJsonObject, isValidImageId, normalizeImageUrlWithReason, normalizePositiveInt, normalizeTags, normalizeTitle, readJsonBody, } from './validation';
 import { DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE, MAX_LIST_FILTER_LENGTH, MAX_TAG_LENGTH, MAX_IMAGE_ID_LENGTH, READ_CACHE_CONTROL, } from './types';
 import { getAllImages, getImagesState, saveAllImages } from './kv';
 import { updateRequestStats } from './stats';
@@ -164,11 +164,17 @@ export async function handleBatchCreateImages(request, runtimeEnv) {
                 results.push({ success: false, url: '', error: 'Invalid image payload' });
                 continue;
             }
-            const trimmedUrl = normalizeImageUrl(item.url);
-            if (!trimmedUrl) {
-                results.push({ success: false, url: typeof item.url === 'string' ? item.url.trim() : '', error: 'URL must be a valid http(s) URL' });
+            const normalized = normalizeImageUrlWithReason(item.url);
+            if (!normalized.ok) {
+                // 超长不是「格式不对」：地址本身合法（浏览器能打开），只是太长。
+                // 混为一谈会让用户去逐字检查格式，而该做的是换条短地址。
+                const error = normalized.reason === 'too-long'
+                    ? `URL exceeds ${MAX_IMAGE_URL_LENGTH} characters`
+                    : 'URL must be a valid http(s) URL';
+                results.push({ success: false, url: typeof item.url === 'string' ? item.url.trim() : '', error });
                 continue;
             }
+            const trimmedUrl = normalized.url;
             if (existingUrls.has(trimmedUrl)) {
                 results.push({ success: false, url: trimmedUrl, error: 'URL already exists' });
                 continue;
@@ -281,10 +287,15 @@ export async function handleCreateImage(request, runtimeEnv) {
             : json({ error: 'Request body must be a valid JSON object' }, 400);
     }
     const body = parsed.body;
-    const imageUrl = normalizeImageUrl(body.url);
-    if (!imageUrl) {
-        return json({ error: 'url must be a valid http(s) URL' }, 400);
+    const normalizedUrl = normalizeImageUrlWithReason(body.url);
+    if (!normalizedUrl.ok) {
+        return json({
+            error: normalizedUrl.reason === 'too-long'
+                ? `url exceeds ${MAX_IMAGE_URL_LENGTH} characters`
+                : 'url must be a valid http(s) URL',
+        }, 400);
     }
+    const imageUrl = normalizedUrl.url;
     const tags = normalizeTags(body.tags);
     if (!tags) {
         return json({ error: 'tags must be an array of strings' }, 400);
@@ -326,9 +337,20 @@ export async function handleUpdateImage(request, id, runtimeEnv) {
         if (index === -1) {
             return json({ error: 'Image not found' }, 404);
         }
-        const nextUrl = body.url === undefined ? images[index].url : normalizeImageUrl(body.url);
-        if (!nextUrl) {
-            return json({ error: 'url must be a valid http(s) URL' }, 400);
+        let nextUrl;
+        if (body.url === undefined) {
+            nextUrl = images[index].url;
+        }
+        else {
+            const normalizedUrl = normalizeImageUrlWithReason(body.url);
+            if (!normalizedUrl.ok) {
+                return json({
+                    error: normalizedUrl.reason === 'too-long'
+                        ? `url exceeds ${MAX_IMAGE_URL_LENGTH} characters`
+                        : 'url must be a valid http(s) URL',
+                }, 400);
+            }
+            nextUrl = normalizedUrl.url;
         }
         if (nextUrl !== images[index].url) {
             if (images.some(img => img.id !== id && img.url === nextUrl)) {

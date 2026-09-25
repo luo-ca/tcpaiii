@@ -63,24 +63,45 @@ export function isSha256Hex(value: string) {
     return /^[a-f0-9]{64}$/i.test(value);
 }
 
-export function normalizeImageUrl(value: unknown): string | null {
+/**
+ * 图片地址规范化的结果。
+ *
+ * 区分 'too-long' 与 'invalid'，因为调用方要能给出**不同**的报错：
+ * 超长的地址本身是合法的 http(s) 地址（浏览器能打开），只是太长。
+ * 把它混进「不是有效的 http(s) 地址」里，用户会去逐字检查地址格式，
+ * 而真正该做的是换一条短一点的地址 —— 提示指错了方向。
+ */
+export type NormalizedImageUrl =
+    | { ok: true; url: string }
+    | { ok: false; reason: 'too-long' | 'invalid' };
+
+export function normalizeImageUrlWithReason(value: unknown): NormalizedImageUrl {
     if (typeof value !== 'string')
-        return null;
+        return { ok: false, reason: 'invalid' };
     const trimmed = value.trim();
-    if (!trimmed || trimmed.length > MAX_IMAGE_URL_LENGTH)
-        return null;
+    if (!trimmed)
+        return { ok: false, reason: 'invalid' };
+    if (trimmed.length > MAX_IMAGE_URL_LENGTH)
+        return { ok: false, reason: 'too-long' };
     try {
         const parsed = new URL(trimmed);
         if (!ALLOWED_IMAGE_PROTOCOLS.has(parsed.protocol) || parsed.username || parsed.password) {
-            return null;
+            return { ok: false, reason: 'invalid' };
         }
         const canonical = parsed.toString();
-        // 百分号转义会让规范化结果比原串更长：两关都要过
-        return canonical.length <= MAX_IMAGE_URL_LENGTH ? canonical : null;
+        // 百分号转义会让规范化结果比原串更长：两关都要过。
+        // 这一条尤其容易让人困惑 —— 输入明明 ≤ 上限，却在这里被判超长。
+        return canonical.length <= MAX_IMAGE_URL_LENGTH
+            ? { ok: true, url: canonical }
+            : { ok: false, reason: 'too-long' };
     }
     catch {
-        return null;
+        return { ok: false, reason: 'invalid' };
     }
+}
+export function normalizeImageUrl(value: unknown): string | null {
+    const result = normalizeImageUrlWithReason(value);
+    return result.ok ? result.url : null;
 }
 
 export function isValidImageId(value: string) {

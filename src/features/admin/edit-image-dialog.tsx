@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { MAX_IMAGE_URL_LENGTH, MAX_TITLE_LENGTH, MAX_TAG_LENGTH, MAX_TAGS_PER_IMAGE } from '@/lib/constants';
 import { updateImage } from '@/lib/api';
-import { getErrorMessage, parseTagsInput, canonicalizeImageUrl } from '@/lib/helpers';
+import { getErrorMessage, parseTagsInput, canonicalizeImageUrl, canonicalizeImageUrlWithReason, imageUrlErrorMessage } from '@/lib/helpers';
 import { stripControlChars } from '@/lib/text';
 
 // ============================================================
@@ -75,9 +75,9 @@ export function EditImageDialog({
 
         // 与单张添加、批量导入同一把尺子：type="url" 允许 ftp: 与 javascript:，
         // 只靠原生校验会把它们放到服务端，再收到英文的 url must be a valid http(s) URL。
-        const canonical = canonicalizeImageUrl(url);
-        if (!canonical) {
-          toast.error('图片地址必须是有效的 http(s) URL');
+        const canonical = canonicalizeImageUrlWithReason(url);
+        if (!canonical.ok) {
+          toast.error(imageUrlErrorMessage(canonical.reason));
           return;
         }
         mutation.mutate(undefined, { onSettled: () => setLoading(false) });

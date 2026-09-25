@@ -119,6 +119,9 @@ const SERVER_ERROR_ZH: Array<[RegExp, string]> = [
   [/^too many failed admin attempts/i, '管理密钥尝试次数过多，请稍后再试'],
   [/^(image )?url already exists$/i, '该图片地址已存在'],
   [/^url must be a valid https?\(s\) url$/i, '图片地址必须是有效的 http(s) URL'],
+  // 超长**不是**格式问题：地址本身是合法 http(s) 地址，只是太长。
+  // 与上一条分开，否则用户会去逐字检查地址格式，而该做的是换条短地址。
+  [/^url exceeds \d+ characters$/i, '图片地址太长，请换一条短一点的地址'],
   [/^invalid image id$/i, '图片 ID 无效'],
   [/^image not found$/i, '图片不存在（可能刚被删除）'],
   [/^no images available$/i, '图库暂时没有可用的图片'],

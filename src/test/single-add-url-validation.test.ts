@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { canonicalizeImageUrl } from "@/lib/helpers";
+import { canonicalizeImageUrl, imageUrlErrorMessage } from "@/lib/helpers";
 
 
 /**
@@ -41,16 +41,18 @@ describe("单张添加 · URL 前置校验与批量一致", () => {
     const i = src.indexOf("const handleSingleSubmit");
     expect(i, "未能定位 handleSingleSubmit").toBeGreaterThan(-1);
     const block = src.slice(i, src.indexOf("return (", i));
-    expect(block, "单张提交未做 URL 规范化校验").toContain("canonicalizeImageUrl(url)");
+    // 守卫改用 WithReason 版本：失败时带原因，才能把「太长」与「格式不对」分开报。
+    // 断言的是「这条守卫还在」——name 变了，但必须仍在提交之前跑。
+    expect(block, "单张提交未做 URL 规范化校验").toContain("canonicalizeImageUrlWithReason(url)");
   });
 
   it("非法 URL 给中文提示并中止（不再打到服务端看英文报错）", () => {
     const i = src.indexOf("const handleSingleSubmit");
     const block = src.slice(i, src.indexOf("return (", i));
-    expect(block, "缺中文提示").toContain("图片地址必须是有效的 http(s) URL");
+    expect(block, "缺中文提示").toContain("imageUrlErrorMessage(");
     // 只断言「提示之后确实中止了」，不要求 return 紧贴提示 —— 
     // 守卫归还（setLoading(false)）可以合法地插在两者之间（P142）。
-    const toastAt = block.indexOf("图片地址必须是有效的 http(s) URL");
+    const toastAt = block.indexOf("imageUrlErrorMessage(");
     const after = block.slice(toastAt);
     expect(after, "校验失败后没有 return，仍会发请求").toMatch(/return\s*;/);
     // 且 return 必须出现在真正的提交调用之前（否则等于没拦）
@@ -70,6 +72,18 @@ describe("单张添加 · URL 前置校验与批量一致", () => {
     );
   });
 
+  it("超长与格式错误给的是**不同**的中文提示（这正是本轮修的）", () => {
+    const tooLong = imageUrlErrorMessage("too-long");
+    const invalid = imageUrlErrorMessage("invalid");
+    expect(tooLong).not.toBe(invalid);
+    // 超长必须说「长」，不能说成「不是有效地址」—— 后者会把人引去逐字检查格式
+    expect(tooLong).toContain("太长");
+    expect(tooLong).not.toContain("必须是有效的");
+    expect(invalid).toContain("必须是有效的");
+    // 两种都必须含中文（不能把英文原文漏到界面上）
+    for (const msg of [tooLong, invalid]) expect(msg).toMatch(/[\u4e00-\u9fa5]/);
+  });
+
   it("canonicalizeImageUrl 本身确实拒掉这两类（钉住依赖的行为）", () => {
     expect(canonicalizeImageUrl("ftp://example.com/a.jpg")).toBeNull();
     expect(canonicalizeImageUrl("javascript:alert(1)")).toBeNull();
@@ -83,9 +97,9 @@ describe("单张添加 · URL 前置校验与批量一致", () => {
     expect(i, "未能定位编辑弹窗的 handleSubmit").toBeGreaterThan(-1);
     const block = editSrc.slice(i, editSrc.indexOf("return (", i));
     expect(block, "编辑弹窗未做 URL 校验：ftp: / javascript: 会打到服务端").toContain(
-      "canonicalizeImageUrl(url)",
+      "canonicalizeImageUrlWithReason(url)",
     );
-    expect(block, "缺中文提示").toContain("图片地址必须是有效的 http(s) URL");
+    expect(block, "缺中文提示").toContain("imageUrlErrorMessage(");
     expect(editSrc, "编辑弹窗提交了未规范化地址").toMatch(/url: canonicalizeImageUrl\(url\)/);
   });
 });

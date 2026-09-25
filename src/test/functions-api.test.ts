@@ -594,8 +594,14 @@ describe("functions api", () => {
     expect(new Set(stored.map((image) => image.url)).size).toBe(5);
   });
 
-  it("rejects image URLs beyond the 2048-char storage cap", async () => {
+  it("超长 URL 报「太长」而不是「不是有效的 http(s) 地址」", async () => {
+    // 这条原先断言超长地址回 'url must be a valid http(s) URL'。
+    // 但 2100 个 z 拼出来的就是个**合法**的 http(s) 地址 —— 浏览器能打开，
+    // 只是超过 2048 的存储上限。说它「不是有效地址」是假的，
+    // 会把用户引去逐字检查地址格式，而该做的是换条短地址。
     const longUrl = `https://cdn.example.test/${"z".repeat(2100)}.jpg`;
+    // 前提：这份输入确实是个能被解析的 http(s) 地址（所以拒它的只能是长度）
+    expect(new URL(longUrl).protocol).toBe("https:");
 
     const create = await request("/api/create", {
       method: "POST",
@@ -604,7 +610,7 @@ describe("functions api", () => {
     });
     expect(create.status).toBe(400);
     await expect(json(create)).resolves.toMatchObject({
-      error: "url must be a valid http(s) URL",
+      error: expect.stringContaining("exceeds"),
     });
 
     const batch = await request("/api/batch", {
@@ -617,7 +623,8 @@ describe("functions api", () => {
     expect(batch.status).toBe(201);
     const batchBody = await json(batch);
     const results = batchBody.results as Array<Record<string, unknown>>;
-    expect(results[0]).toMatchObject({ success: false, error: "URL must be a valid http(s) URL" });
+    // 超长这一条要说「太长」，合规的那条不受影响
+    expect(results[0]).toMatchObject({ success: false, error: expect.stringContaining("exceeds") });
     expect(results[1]).toMatchObject({ success: true });
   });
 

@@ -137,22 +137,53 @@ export function buildBatchImagesPayload(urls: string[], tagsRaw: string) {
 }
 
 /**
- * Canonicalize an image URL the same way the backend does (`new URL().toString()`).
- * Returns null for non-http(s) URLs, URLs with embedded credentials, URLs over
- * the backend's 2048-char cap (输入与规范化结果各查一遍), or unparsable input.
+ * 图片地址规范化的结果。
+ *
+ * 区分 'too-long' 与 'invalid'，因为两者该给用户**不同**的报错：
+ * 超长的地址本身是合法的 http(s) 地址（浏览器能打开），只是太长。
+ * 把它混进「不是有效的 http(s) 地址」里，用户会去逐字检查格式，
+ * 而真正该做的是换一条短一点的地址 —— 提示指错了方向。
  */
-export function canonicalizeImageUrl(value: string): string | null {
+export type CanonicalImageUrl =
+  | { ok: true; url: string }
+  | { ok: false; reason: 'too-long' | 'invalid' };
+
+/**
+ * Canonicalize an image URL the same way the backend does (`new URL().toString()`).
+ * 失败时带上原因。
+ */
+export function canonicalizeImageUrlWithReason(value: string): CanonicalImageUrl {
   const trimmed = value.trim();
-  if (!trimmed || trimmed.length > MAX_IMAGE_URL_LENGTH) return null;
+  if (!trimmed) return { ok: false, reason: 'invalid' };
+  if (trimmed.length > MAX_IMAGE_URL_LENGTH) return { ok: false, reason: 'too-long' };
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
-    if (parsed.username || parsed.password) return null;
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return { ok: false, reason: 'invalid' };
+    if (parsed.username || parsed.password) return { ok: false, reason: 'invalid' };
     const canonical = parsed.toString();
-    return canonical.length > MAX_IMAGE_URL_LENGTH ? null : canonical;
+    // 百分号转义会让规范化结果比原串更长：输入明明 ≤ 上限，却在这里被判超长。
+    return canonical.length <= MAX_IMAGE_URL_LENGTH
+      ? { ok: true, url: canonical }
+      : { ok: false, reason: 'too-long' };
   } catch {
-    return null;
+    return { ok: false, reason: 'invalid' };
   }
+}
+
+/**
+ * 只关心「能不能拿到规范化地址」时用这个（构建去重集合、清洗服务端返回值等）。
+ * 面向用户的校验请用 canonicalizeImageUrlWithReason，它带得上失败原因。
+ */
+export function canonicalizeImageUrl(value: string): string | null {
+  const result = canonicalizeImageUrlWithReason(value);
+  return result.ok ? result.url : null;
+}
+
+/** 超长/无效两种失败对应的中文提示（前端各处共用，避免文案各写一份）。 */
+export function imageUrlErrorMessage(reason: 'too-long' | 'invalid'): string {
+  return reason === 'too-long'
+    ? `图片地址太长（上限 ${MAX_IMAGE_URL_LENGTH} 字符），请换一条短一点的地址`
+    : '图片地址必须是有效的 http(s) URL';
 }
 
 export interface ParsedBatchUrls {
@@ -164,6 +195,16 @@ export interface ParsedBatchUrls {
   alreadyExists: string[];
   /** Raw lines that are not valid http(s) URLs. */
   invalid: string[];
+  /**
+   * Raw lines rejected specifically for being too long.
+   *
+   * 与 `invalid` 分开列，因为给用户的说法不同：超长的地址是**合法**的 http(s)
+   * 地址，只是太长。混进 `invalid` 里，界面只能说「不是有效的 http(s) 地址」，
+   * 用户便去逐字检查格式，而该做的是换条短地址。
+   * 注意这些行**同时也在** `invalid` 里（invalid 仍是「不能导入的全部」，
+   * 既有消费方按原语义继续工作），tooLong 只是其中的一个子集。
+   */
+  tooLong: string[];
 }
 
 const BATCH_SPLIT_PATTERN = /[\s,，;；\n\r]+/;
@@ -187,26 +228,29 @@ export function parseBatchUrls(input: string, existingCanonicalUrls?: Set<string
   const duplicatesInBatch: string[] = [];
   const alreadyExists: string[] = [];
   const invalid: string[] = [];
+  const tooLong: string[] = [];
 
   for (const raw of raws) {
-    const canonical = canonicalizeImageUrl(raw);
-    if (!canonical) {
+    const canonical = canonicalizeImageUrlWithReason(raw);
+    if (!canonical.ok) {
       if (!invalid.includes(raw)) invalid.push(raw);
+      // 超长单独记一份，让界面能给出「太长」而不是「格式不对」
+      if (canonical.reason === 'too-long' && !tooLong.includes(raw)) tooLong.push(raw);
       continue;
     }
-    if (seen.has(canonical)) {
-      if (!duplicatesInBatch.includes(canonical)) duplicatesInBatch.push(canonical);
+    if (seen.has(canonical.url)) {
+      if (!duplicatesInBatch.includes(canonical.url)) duplicatesInBatch.push(canonical.url);
       continue;
     }
-    seen.add(canonical);
-    if (existingCanonicalUrls?.has(canonical)) {
-      alreadyExists.push(canonical);
+    seen.add(canonical.url);
+    if (existingCanonicalUrls?.has(canonical.url)) {
+      alreadyExists.push(canonical.url);
     } else {
-      validNew.push(canonical);
+      validNew.push(canonical.url);
     }
   }
 
-  return { validNew, duplicatesInBatch, alreadyExists, invalid };
+  return { validNew, duplicatesInBatch, alreadyExists, invalid, tooLong };
 }
 
 /**
