@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getRecentStatsDateKeys, getStatsDateKey, handler, resetRuntimeCaches } from "../../edge-functions-src/api/[[default]]";
+import { MAX_TRACKED_DAILY_KEYS } from "../../edge-functions-src/lib/types";
 
 type Store = Record<string, Map<string, string>>;
 type TestKv = {
@@ -481,6 +482,49 @@ describe("functions api", () => {
     const body = await json(stats);
     expect(body.totalRequests).toBe(5);
     expect((body.dailyRequests as Record<string, number>)[getStatsDateKey()]).toBe(5);
+  });
+
+  it("热路径不保留无界的 dailyRequests 历史（与 sites 的 prune 对称）", async () => {
+    // dailyRequests 每天新增一个键、只增不减：stats.ts 的写路径是
+    // stats.dailyRequests[today] = (… ?? 0) + 1，读回（getStats）与写回
+    // （saveStats）都不带窗口。而它被 /api/random —— 全站热路径 —— 每个请求
+    // 全量 JSON.stringify 重写一次。sites 有 pruneSites 钉在 MAX_TRACKED_SITES，
+    // dailyRequests 没有任何等价收口，于是 value 随运行天数线性长（粗估 10 年 ~68KB）。
+    // /api/stats 的响应确实只回最近 7 天，但**存储**里的历史是全量。
+    const oldKeys: Record<string, number> = {};
+    for (let back = 400; back >= 1; back--) {
+      const day = new Date();
+      day.setUTCDate(day.getUTCDate() - back);
+      oldKeys[getStatsDateKey(day)] = 1;
+    }
+    store.stats.set("data", JSON.stringify({
+      totalRequests: 1,
+      lastRequestAt: "2026-04-29T00:00:00.000Z",
+      dailyRequests: oldKeys,
+      sites: {},
+    }));
+    await request("/api/create", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ url: "https://cdn.example.test/prune-daily.jpg", tags: ["prune"] }),
+    });
+
+    // 触发一次热路径写（随机接口本身就会 updateRequestStats）
+    const random = await request("/api/random?tag=prune&format=json");
+    expect(random.status).toBe(200);
+
+    const stored = JSON.parse(store.stats.get("data") ?? "{}");
+    const kept = Object.keys(stored.dailyRequests as Record<string, number>);
+    // +1：本次热路径刚写入的「今天」那个键不在被裁剪的旧键里
+    expect(
+      kept.length,
+      `dailyRequests 保留了 ${kept.length} 天历史（上限 ${MAX_TRACKED_DAILY_KEYS}，超期旧键未清理）`,
+    ).toBeLessThanOrEqual(MAX_TRACKED_DAILY_KEYS + 1);
+    // 最近的时间窗必须还在：裁剪只能丢「最旧」的键，不能把排障要用的近期数据也削掉
+    const recent = new Date();
+    recent.setUTCDate(recent.getUTCDate() - 5);
+    expect(kept).toContain(getStatsDateKey(recent));
+    expect(kept).toContain(getStatsDateKey());
   });
 
   it("keeps gallery writes consistent under concurrent create requests (no lost updates)", async () => {

@@ -1,5 +1,5 @@
 // Stats update, query, and date-utility helpers.
-import { KV_CACHE_TTL_MS, MAX_TRACKED_SITES, READ_CACHE_CONTROL, STATS_TIME_ZONE, } from './types';
+import { KV_CACHE_TTL_MS, MAX_TRACKED_DAILY_KEYS, MAX_TRACKED_SITES, READ_CACHE_CONTROL, STATS_TIME_ZONE, } from './types';
 import { json } from './response';
 import { getRequestSite, isJsonObject, isValidSiteKey } from './validation';
 import { getImagesMeta, getKvStats, parseStoredJson } from './kv';
@@ -57,6 +57,30 @@ function pruneSites(sites) {
         .sort((left, right) => right[1] - left[1])
         .slice(0, MAX_TRACKED_SITES));
 }
+/**
+ * dailyRequests 只保留最近 MAX_TRACKED_DAILY_KEYS 天。
+ *
+ * 与 pruneSites 对称：sites 有上限，dailyRequests 原先没有。它是每天新增一个键、
+ * 只增不减的桶，而 updateRequestStats 在 /api/random 热路径上每个请求都把整份
+ * stats 全量 JSON.stringify 重写一次 —— 键数随运行天数线性长，历史部分纯属
+ * 每次都要搬运的垃圾。公开响应本来只回最近 7 天（handleStats 的
+ * getRecentStatsDateKeys），更早的键没有任何读取方。
+ *
+ * 键是 'YYYY-MM-DD'，字典序即时间序，所以取排序后的末尾 N 个即可。
+ * 收口放在 getStats 的读回归一化处（与 dailyRequests 的校验同一处），
+ * 好处是**存量数据自愈**：老库里的超期键在第一次读取时就被丢掉，
+ * 不必等某天恰好有人手工清理。
+ */
+function pruneDailyRequests(dailyRequests) {
+    const keys = Object.keys(dailyRequests);
+    if (keys.length <= MAX_TRACKED_DAILY_KEYS)
+        return dailyRequests;
+    const kept = {};
+    for (const key of keys.sort().slice(-MAX_TRACKED_DAILY_KEYS)) {
+        kept[key] = dailyRequests[key];
+    }
+    return kept;
+}
 // ── Stats data access ────────────────────────────────────────
 export async function getStats(runtimeEnv) {
     if (_cachedStatsState && _cachedStatsState.expiresAt > Date.now()) {
@@ -78,6 +102,7 @@ export async function getStats(runtimeEnv) {
             }
         }
     }
+    const prunedDailyRequests = pruneDailyRequests(dailyRequests);
     const sites = {};
     if (isJsonObject(parsedStats.sites)) {
         for (const [site, count] of Object.entries(parsedStats.sites)) {
@@ -91,7 +116,7 @@ export async function getStats(runtimeEnv) {
         lastRequestAt: typeof parsedStats.lastRequestAt === 'string' && !Number.isNaN(Date.parse(parsedStats.lastRequestAt))
             ? parsedStats.lastRequestAt
             : null,
-        dailyRequests,
+        dailyRequests: prunedDailyRequests,
         sites,
     };
     _cachedStatsState = getCachedStatsState(stats);
