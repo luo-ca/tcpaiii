@@ -11,6 +11,15 @@ function fail(message) {
  * @param {string} label
  */
 function assertJsonResponse(response, body, label) {
+  // 状态码必须先查。原先只查 content-type 与「是不是 HTML」，于是
+  // 「500 + application/json + {"error":"..."}」会一路通过：
+  // 实测 /api/stats 恒 500、其余接口正常时，脚本打印 "stats: 500" 却
+  // 以退出码 0 收场 —— 首页的「实时统计」整块是坏的，而体检报绿。
+  // 这与 P155 修的「首屏坏了不再假绿」是同一类盲区，只是漏了状态码这一维。
+  if (!response.ok) {
+    fail(`${label} returned HTTP ${response.status}, expected 2xx`);
+  }
+
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.toLowerCase().includes('application/json')) {
     fail(`${label} returned ${contentType || 'no content-type'}, expected application/json`);
@@ -60,7 +69,16 @@ async function expectRedirect(path, label) {
 
 try {
   const stats = await expectJson('/api/stats', 'stats');
-  await expectJson('/api/random?format=json', 'random json');
+  if (!Array.isArray(stats?.tags)) {
+    fail(`stats.tags 应为数组，实际是 ${typeof stats?.tags}`);
+  }
+
+  const randomJson = await expectJson('/api/random?format=json', 'random json');
+  // 只要求「是 JSON」不够：图库为空时后端返回 404 {"error":"No images available"}，
+  // 形状完全合法。这里要求它真是一张图 —— 有 url 才算接口可用。
+  if (typeof randomJson?.url !== 'string' || !randomJson.url) {
+    fail(`random json 缺少 url 字段，实际是 ${JSON.stringify(randomJson)}`);
+  }
   await expectRedirect('/api/random', 'random redirect');
 
   // 首屏依赖的两个读接口 —— 漏了它们，脚本会在「首页取不到图」时依然全绿。
@@ -82,7 +100,7 @@ try {
     fail(`list.total 应为数字，实际是 ${typeof list?.total}`);
   }
 
-  const tags = Array.isArray(stats.tags) ? stats.tags : [];
+  const tags = stats.tags;
   console.log(`tags: ${tags.join(', ') || '(none)'}`);
 
   const tagToCheck = tags.includes('acg') ? 'acg' : tags[0];
