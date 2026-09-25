@@ -59,4 +59,20 @@ describe("后台空态 · 空库判定不得被筛选污染", () => {
     expect(decl, "hasActiveFilter 漏了标签筛选").toMatch(/selectedTag/);
     expect(decl, "hasActiveFilter 漏了搜索筛选").toMatch(/searchQuery/);
   });
+
+  it("真·空库仍要显示空态（P175 不得改过头，把空库也一起吞掉）", () => {
+    // stats 成功且全库为 0 时必须判空库 —— 否则「图库还是空的 + 添加第一张」的引导
+    // 永远不出现，新管理员面对一片空白且找不到入口。
+    // 实测（桩：stats 成功、totalImages=0、list 返回 0 条）→ 显示「图片库还是空的」。
+    const i = SOURCE.indexOf("const isGalleryEmpty");
+    const decl = SOURCE.slice(i, i + 400);
+    expect(
+      decl,
+      "stats 成功分支必须用 stats.totalImages 判 0 —— 否则真·空库不会被识别",
+    ).toMatch(/stats\?\.totalImages \?\? 0\) === 0/);
+    expect(
+      SOURCE,
+      "空库 EmptyState 被删掉了：新管理员看不到任何引导",
+    ).toContain('title="图片库还是空的"');
+  });
 });
