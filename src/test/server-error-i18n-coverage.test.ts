@@ -16,6 +16,10 @@ import { apiRequest } from "@/lib/api-client";
  *
  * 例外：品牌/技术术语（如 URL、ID、JSON、TAG）保留在中文文案里是既有约定，
  * 因此断言的是「整体是否仍是英文句子」，而不是「不含任何拉丁字母」。
+ *
+ * 边界：这条只扫**顶层** error（经 apiRequest -> translateServerError）。
+ * /api/batch 成功响应里的**逐条** results[].error 不走那条路径，
+ * 本文件天然覆盖不到 —— 那条由 batch-item-error-i18n.test.ts 负责（P190）。
  */
 
 function walk(dir: string, acc: string[] = []): string[] {

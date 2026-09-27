@@ -77,7 +77,7 @@ describe("batchCreateImages · url / error 字段归一化（P129）", () => {
     expect(r.success).toBe(0);
   });
 
-  it("正常项的 url / id / error 原样保留", async () => {
+  it("正常项的 url / id 原样保留，error 译成中文（P190）", async () => {
     stubOnce({
       total: 2,
       success: 1,
@@ -88,8 +88,11 @@ describe("batchCreateImages · url / error 字段归一化（P129）", () => {
       ],
     });
     const r = await batchCreateImages(payload, "tok");
+    // url / id 原样透传（本文件 P129 的原始意图）
     expect(r.results[0].url).toBe("https://cdn.example.test/a.jpg");
     expect(r.results[0].id).toBe("img-1");
-    expect(r.results[1].error).toBe("URL already exists");
+    // error 原先断言英文原样透传 —— 那正是 P190 修掉的行为：
+    // 逐条错误不走 apiRequest，不过映射就会以英文渲染进中文界面。
+    expect(r.results[1].error).toBe("该图片地址已存在");
   });
 });

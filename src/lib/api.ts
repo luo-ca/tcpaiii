@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { HealthPayload, ImageRecord, Stats, PaginatedImages } from './types';
-import { apiRequest, API_REQUEST_TIMEOUT_MS } from './api-client';
+import { apiRequest, API_REQUEST_TIMEOUT_MS, translateServerError } from './api-client';
 import { buildApiPath } from './url';
 import { canonicalizeImageUrl } from './helpers';
 import { MAX_BATCH_IMAGE_COUNT } from './constants';
@@ -431,7 +431,11 @@ function normalizeBatchResult<T extends { success: boolean }>(
     const next: Record<string, unknown> = { ...record };
     next.url = typeof record.url === 'string' ? record.url : '';
     if (record.id !== undefined) next.id = typeof record.id === 'string' ? record.id : undefined;
-    if (record.error !== undefined) next.error = typeof record.error === 'string' ? record.error : undefined;
+    // 逐条错误也要中文化：这条路径不走 apiRequest（响应是 201 成功），
+    // 不过这一道的话 'URL must be a valid http(s) URL' / 'URL already exists'
+    // 会原样渲染进失败列表，中文界面上冒出英文。
+    if (record.error !== undefined)
+      next.error = typeof record.error === 'string' ? translateServerError(record.error) : undefined;
     return next as unknown as T;
   });
   const num = (value: unknown, fallback: number) =>

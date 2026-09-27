@@ -146,7 +146,13 @@ const SERVER_ERROR_ZH: Array<[RegExp, string]> = [
   [/^no images found with tag:\s*(.*)$/i, '没有找到标签为「$1」的图片'],
 ];
 
-function translateServerError(message: string): string {
+/**
+ * 把服务端英文错误译成中文；映射不到的原样返回（不吞信息，只是翻译已知的）。
+ *
+ * 导出给**逐条**错误用：/api/batch 成功响应里的 results[].error 不走 apiRequest，
+ * 若不在这里过一道，它们会以英文直接渲染到界面上（P190）。
+ */
+export function translateServerError(message: string): string {
   const trimmed = message.trim();
   for (const [pattern, zh] of SERVER_ERROR_ZH) {
     if (!pattern.test(trimmed)) continue;
