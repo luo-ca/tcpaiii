@@ -50,10 +50,17 @@ describe("stats 轮询：隐藏时停表", () => {
   });
 
   it("打开 refetchOnWindowFocus：停表期间的空档在切回时补上", () => {
-    const options = apiSource.slice(
-      apiSource.indexOf("export function statsQueryOptions"),
-      apiSource.indexOf("// ---- Gallery API ----"),
-    );
+    const optionsStart = apiSource.indexOf("export function statsQueryOptions");
+    const optionsEnd = apiSource.indexOf("// ---- Gallery API ----");
+    expect(optionsStart, "未找到 statsQueryOptions").toBeGreaterThan(-1);
+    // 结束锚点此前没有任何守卫。indexOf 返回 -1 时 slice(start, -1) **不**抛错，
+    // 而是把整段延伸到文件末尾 —— 断言仍会通过，只是验证的范围根本不是
+    // statsQueryOptions 了（可能落在别的工厂函数上）。失败方向是 fail-open。
+    expect(
+      optionsEnd,
+      "找不到 statsQueryOptions 的结束锚点（注释 // ---- Gallery API ---- 被删或被改）",
+    ).toBeGreaterThan(optionsStart);
+    const options = apiSource.slice(optionsStart, optionsEnd);
     expect(options).toMatch(/refetchOnWindowFocus:\s*true/);
   });
 });
@@ -69,10 +76,12 @@ describe("health 轮询：同样停表 + 切回复检", () => {
   });
 
   it("health 也打开 refetchOnWindowFocus", () => {
-    const block = statusSource.slice(
-      statusSource.indexOf("queryKey: ['health']"),
-      statusSource.indexOf("retry: 1"),
-    );
+    const healthKey = statusSource.indexOf("queryKey: ['health']");
+    const healthEnd = statusSource.indexOf("retry: 1");
+    expect(healthKey, "未找到 health 的 queryKey").toBeGreaterThan(-1);
+    // 同 stats：结束锚点丢了会让切片延伸到文件末尾，断言在错误的范围上通过。
+    expect(healthEnd, "找不到 health 的结束锚点 retry: 1").toBeGreaterThan(healthKey);
+    const block = statusSource.slice(healthKey, healthEnd);
     expect(block).toMatch(/refetchOnWindowFocus:\s*true/);
   });
 });
