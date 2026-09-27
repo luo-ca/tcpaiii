@@ -49,6 +49,7 @@ describe("sitemap.xml · lastmod 注入", () => {
     expect(dist, "占位符未替换").not.toContain("__LASTMOD__");
     const locs = (dist.match(/<loc>/g) ?? []).length;
     const lastmods = (dist.match(/<lastmod>/g) ?? []).length;
+    expect(locs, "产物里一个 <loc> 都没有，上面两条断言会空跑").toBeGreaterThan(0);
     expect(lastmods, "lastmod 数量应与 loc 一一对应").toBe(locs);
     for (const m of dist.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)) {
       expect(m[1], "lastmod 必须是 YYYY-MM-DD").toMatch(/^\d{4}-\d{2}-\d{2}$/);

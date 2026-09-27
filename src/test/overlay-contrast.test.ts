@@ -69,5 +69,13 @@ describe("图片上的白字 · 遮罩深度不低于 AA 实测安全值", () =>
       classNames,
       "首页又有 class 用回 from-black/55：实测白字对比度只有 3.45:1，低于 AA",
     ).not.toContain("from-black/55");
+    // 防空扫：上面的 not.toContain 在「一条 className 都没扫到」时会假绿
+    // （空串不含任何子串）。钉住当前真实存在的 from-black/70 确实被扫到 ——
+    // 将来若把这条 className 换成 cn(...) 或模板串，正则就扫不到、集合变空，
+    // 这条会红而不是假装通过。
+    expect(
+      classNames,
+      "没扫到含 from-black/70 的 className —— 扫描正则可能已失效，上面的 not.toContain 是空跑",
+    ).toContain("from-black/70");
   });
 });

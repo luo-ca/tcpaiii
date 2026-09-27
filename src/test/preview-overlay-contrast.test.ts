@@ -54,6 +54,12 @@ describe("首页在线预览 · 标题底色恒定且达到 AA", () => {
     // 同为说明性注释里的历史值不算，只看真实 className
     const allClassNames = [...src.matchAll(/className="([^"]*)"/g)].map((m) => m[1]).join(" ");
     expect(allClassNames, "className 里又出现 via-black/45").not.toContain("via-black/45");
+    // 防空扫：同理，not.toContain 在空扫描时恒真。钉住当前真实存在的 bg-black/70
+    // 确实被扫到，正则失效时这里会红。
+    expect(
+      allClassNames,
+      "没扫到含 bg-black/70 的 className —— 扫描正则可能已失效，上面的 not.toContain 是空跑",
+    ).toContain("bg-black/70");
   });
 
   it("上方用 before: 伪元素补柔化渐变（消除硬边，且跟随内容盒高度）", () => {
