@@ -54,6 +54,12 @@ describe("cn / twMerge 的圆角合并语义", () => {
    */
   it("组件基础类不得用响应式变体写默认圆角", () => {
     const files = walk(resolve(process.cwd(), "src"));
+    // 防空跑：目录名改了或扩展名过滤写错时 files 会变空，下面循环一次不跑，
+    // offenders 恒为 []，测试「全绿」而实际什么都没查。
+    expect(
+      files.length,
+      "扫描集为空 —— walk() 可能没找到任何源文件，这道护栏已静默失效",
+    ).toBeGreaterThan(100);
     const offenders: string[] = [];
 
     for (const file of files) {

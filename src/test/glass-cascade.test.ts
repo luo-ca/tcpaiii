@@ -43,9 +43,16 @@ function classStringsOf(line: string): string[] {
 
 describe("glass 族不得与边框色工具类同元素共存", () => {
   it("全站没有「glass + border-<色>」的死类组合", () => {
+    const scanned = walk(resolve(process.cwd(), "src")).filter((f) => !f.includes("src/test"));
+    // 防空跑：本测试会排除 src/test，而 src/test 占了源文件的六成以上 ——
+    // 一旦 walk 的目录或扩展名匹配写错，剩下的集合可能直接为空，
+    // 循环空转而 offenders 恒为 []，护栏静默失效。
+    expect(
+      scanned.length,
+      "非测试源文件扫描集为空 —— walk() 或 src/test 排除逻辑把一切都滤掉了",
+    ).toBeGreaterThan(20);
     const offenders: string[] = [];
-    for (const file of walk(resolve(process.cwd(), "src"))) {
-      if (file.includes("src/test")) continue;
+    for (const file of scanned) {
       const lines = readFileSync(file, "utf8").split(/\r?\n/);
       lines.forEach((line, index) => {
         const trimmed = line.trim();

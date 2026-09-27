@@ -88,6 +88,12 @@ describe("源码不得混入不可见/同形字符", () => {
   ].map((f) => resolve(f));
 
   it("src 与 edge-functions-src 下没有零宽字符或西里尔字母", () => {
+    // 防空跑：集合为空时下面的 offenders 恒为 []，测试会「全绿」而实际什么都没查。
+    // walk() 依赖目录名与扩展名过滤，任何一处写错都会静默清空扫描集。
+    expect(
+      files.length,
+      "扫描集为空 —— walk() 可能没找到任何源码文件，这道护栏已静默失效",
+    ).toBeGreaterThan(50);
     const offenders: string[] = [];
     for (const file of files) {
       const text = readFileSync(file, "utf8");
@@ -104,6 +110,12 @@ describe("源码不得混入不可见/同形字符", () => {
   });
 
   it("入口文件与部署产物同样干净", () => {
+    // 防空跑：shipped 里的 public/* 与 edge-functions/* 都可能不存在
+    // （未构建时 walk 返回空数组），全空时下面的循环一次也不跑。
+    expect(
+      shipped.length,
+      "发布产物扫描集为空 —— 构建产物与 public 静态文件都没被扫到",
+    ).toBeGreaterThan(3);
     const offenders: string[] = [];
     for (const file of shipped) {
       let text: string;
@@ -133,6 +145,14 @@ describe("源码不得混入不可见/同形字符", () => {
    * 落在 U+0400–U+04FF（西里尔）与零宽区间的码点报错。
    */
   it("文件与目录名里没有零宽字符或西里尔同形字", () => {
+    // 防空跑：walkNames 对不存在的目录会返回空，四个 root 全空时循环空转。
+    const names = ["src", "edge-functions-src", "public", "edge-functions"].flatMap((root) =>
+      walkNames(resolve(process.cwd(), root)),
+    );
+    expect(
+      names.length,
+      "路径名扫描集为空 —— walkNames() 一个条目都没扫到，这道护栏已静默失效",
+    ).toBeGreaterThan(3);
     const offenders: string[] = [];
     for (const root of ["src", "edge-functions-src", "public", "edge-functions"]) {
       for (const name of walkNames(resolve(process.cwd(), root))) {
