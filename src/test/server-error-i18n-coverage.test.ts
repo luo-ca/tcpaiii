@@ -37,6 +37,13 @@ function collectServerMessages(): string[] {
     const src = readFileSync(file, "utf8");
     for (const m of src.matchAll(/error:\s*'([^']+)'/g)) found.add(m[1]);
     for (const m of src.matchAll(/error:\s*`([^`]+)`/g)) found.add(m[1]);
+    // 分类后再报错的形态同样要扫：`const error = cond ? `A` : 'B'`，
+    // 最后 `results.push({ error })` 里并不出现 error: 字面量。
+    // 只认 `error: '...'` 会漏掉这整类 —— 而它就是 images.ts 里
+    // 「超长 vs 格式非法」分支的现有写法。
+    for (const m of src.matchAll(/(?:const|let)\s+error\s*=\s*([\s\S]*?);/g)) {
+      for (const lit of m[1].matchAll(/'([^']+)'|`([^`]+)`/g)) found.add(lit[1] ?? lit[2]);
+    }
   }
   // 去掉明显不是文案的片段（多行拼接残留），并把模板占位符换成真实形态的值。
   // 占位符统一换成 "1" 而不是 "X"：服务端现有带占位符的模板都是

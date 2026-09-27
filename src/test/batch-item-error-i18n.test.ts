@@ -109,6 +109,12 @@ describe("批量逐条错误中文化（P190）", () => {
     const found = new Set<string>();
     for (const m of src.matchAll(/error:\s*'([^']+)'/g)) found.add(m[1]);
     for (const m of src.matchAll(/error:\s*`([^`]+)`/g)) found.add(m[1]);
+    // 「先分类再报错」的形态：`const error = cond ? `A` : 'B'` 后 `results.push({ error })`，
+    // 字面量前面没有 error: 前缀。不扫这整类，就意味着超长/格式这两条
+    // 逐条文案的守卫是空的 —— 它们正是用这种写法（P195 补）。
+    for (const m of src.matchAll(/(?:const|let)\s+error\s*=\s*([\s\S]*?);/g)) {
+      for (const lit of m[1].matchAll(/'([^']+)'|`([^`]+)`/g)) found.add(lit[1] ?? lit[2]);
+    }
     // 占位符换成真实值形态（与既有护栏同一处理）
     const msgs = [...found]
       .map((s) => s.trim())
@@ -116,6 +122,12 @@ describe("批量逐条错误中文化（P190）", () => {
       .map((s) => s.replace(/\$\{[^}]*\}/g, "1"));
 
     expect(msgs.length, "扫到的逐条文案数不该这么少（防扫描失效）").toBeGreaterThan(3);
+    // 覆盖断言：三元分支那两条必须真的被扫到。
+    // 若将来有人把提取器改回只认 `error: '...'`，这两条会消失，
+    // 而它们的守卫会静默变空 —— 这里直接钉住「扫到了」。
+    for (const must of ["URL must be a valid http(s) URL", "URL exceeds 1 characters"]) {
+      expect(msgs, `漏扫了「${must}」（疑提取器又被收窄成只认 error: 前缀）`).toContain(must);
+    }
 
     const leaked: Array<{ server: string; shown: string }> = [];
     for (const server of msgs) {
