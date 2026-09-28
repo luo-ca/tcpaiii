@@ -133,7 +133,14 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
           </p>
 
           {/* Search Box */}
-          <div className="hero-enter mt-8 w-full max-w-xl lg:max-w-none" style={{ animationDelay: '180ms' }}>
+          <form
+            className="hero-enter mt-8 w-full max-w-xl lg:max-w-none"
+            style={{ animationDelay: '180ms' }}
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSubmit();
+            }}
+          >
             {/* 焦点环用实心 brand-500，不降透明度：
                 40% 叠在白底上合成 #99CAFF，对白底只有 1.72:1，低于 WCAG 1.4.11 要求的 3:1；
                 实心 #007aff 是 4.02:1，也与全站全局焦点指示器同色同强度。 */}
@@ -143,9 +150,6 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                 <Input
                   value={tagInput}
                   onChange={(event) => setTagInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') handleSubmit();
-                  }}
                   placeholder="搜索标签：acg、壁纸、头像..."
                   aria-label="搜索标签"
                   maxLength={MAX_TAG_LENGTH}
@@ -155,8 +159,8 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               <div className="p-1.5 pr-2">
                 <Button
                   variant="sticker"
+                  type="submit"
                   className="h-9 rounded-xl px-5"
-                  onClick={handleSubmit}
                 >
                   随机获取
                   <Shuffle className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
@@ -169,7 +173,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               type="button"
               onClick={handleCopyApi}
               title="点击复制 API 地址"
-              className="group mt-3 flex w-full items-center gap-2.5 rounded-xl border-2 border-ink bg-white px-3.5 py-2.5 text-left transition-colors hover:bg-brand-50"
+              className="group mt-3 flex w-full items-center gap-2.5 rounded-xl border-2 border-ink bg-white px-3.5 py-2.5 text-left shadow-[3px_3px_0_0_var(--color-ink)] transition-[background-color,transform,box-shadow] hover:-translate-y-px hover:bg-brand-50 hover:shadow-[4px_4px_0_0_var(--color-ink)] active:translate-x-px active:translate-y-px active:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
             >
               <span className="shrink-0 rounded-md bg-success-soft px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-success-ink">
                 GET
@@ -186,7 +190,7 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
                 {copiedApi ? '已复制' : '复制'}
               </span>
             </button>
-          </div>
+          </form>
 
           {/* Stats Row */}
           {showStatRow && (
@@ -221,6 +225,21 @@ export function HeroSection({ onRequestRandom }: { onRequestRandom: (tag?: strin
               ))}
             </div>
           )}
+
+          <ul className="hero-enter mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground lg:justify-start" style={{ animationDelay: '280ms' }}>
+            <li className="inline-flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-success-ink" aria-hidden="true" />
+              无需申请 Key
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-success-ink" aria-hidden="true" />
+              支持 JSON / 302
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-success-ink" aria-hidden="true" />
+              可直接复制接入
+            </li>
+          </ul>
         </div>
 
         {/* ── 右栏：图库主视觉卡（可点击进入图库 + 浮动状态卡） ───────────── */}

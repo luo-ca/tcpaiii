@@ -7,6 +7,16 @@
          缩到 16px 会糊，且每次访问都多一次跨域握手，外域故障时还会没有图标可用。
          Header 的品牌 Logo 仍走 imgs CDN（见 src/lib/constants.ts 与下方 JSON-LD）。 -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      PWA / 添加到主屏幕。原先只有 `mobile-web-app-capable` 与
+      `apple-mobile-web-app-status-bar-style` 两条声明，却没有 manifest、也没有
+      apple-touch-icon —— 声明了「可作为应用」，但系统拿不到名称与图标，
+      iOS 会截首屏截图当图标、Android 会显示域名。
+      manifest 的图标复用 favicon.svg（现代浏览器支持 SVG 图标）；
+      apple-touch-icon 是 180×180 满幅方形 PNG，自带圆角会被系统遮罩叠出白边。
+    -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!--

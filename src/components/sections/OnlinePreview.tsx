@@ -181,10 +181,13 @@ function OnlinePreviewImpl(
         {/* Section Header */}
         <div className="reveal mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="section-eyebrow">每日精选</p>
+            <p className="section-eyebrow">
+              <Camera className="h-3.5 w-3.5" aria-hidden="true" />
+              在线预览
+            </p>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">热门二次元图片</h2>
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              每次刷新随机一张，复制地址即可接入你的网站。
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+              每次刷新随机一张，复制地址即可接入你的网站。先预览，再决定用 URL 还是 JSON 数据。
             </p>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground border border-border bg-secondary rounded-full px-3 py-1.5">
