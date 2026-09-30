@@ -13,9 +13,14 @@ export function Header() {
 
   useEffect(() => {
     let frame = 0;
+    let lastScrolled = false;
     const update = () => {
       frame = 0;
-      setScrolled(window.scrollY > 12);
+      const nextScrolled = window.scrollY > 12;
+      if (nextScrolled !== lastScrolled) {
+        lastScrolled = nextScrolled;
+        setScrolled(nextScrolled);
+      }
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
       const bar = progressBarRef.current;
       if (bar) {

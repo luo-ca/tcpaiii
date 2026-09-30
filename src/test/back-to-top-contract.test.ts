@@ -43,7 +43,11 @@ describe("BackToTop 行为契约（P157）", () => {
   it("挂载时先读一次当前滚动位置（刷新/回退到已滚动页面时状态正确）", () => {
     // 不能只依赖 scroll 事件：direct load 到已滚动位置不会再触发 scroll
     const effectBlock = SRC.slice(SRC.indexOf("useEffect"), SRC.indexOf("handleClick"));
-    expect(effectBlock, "缺初次读取，刷新后会短暂不显示按钮").toMatch(/handleScroll\(\)/);
+    expect(effectBlock, "缺初次读取，刷新后会短暂不显示按钮").toMatch(/update\(\)/);
+  });
+
+  it("卸载时取消待执行的帧（避免切页后回调访问旧组件）", () => {
+    expect(SRC).toMatch(/cancelAnimationFrame\(frame\)/);
   });
 
   it("点击回到顶部；且尊重 prefers-reduced-motion", () => {

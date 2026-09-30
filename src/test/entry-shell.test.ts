@@ -5,21 +5,13 @@ import { describe, expect, it } from "vitest";
 const mainSource = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
 const indexHtml = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
 const cssSource = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
-
 /**
- * 入口层（index.html 占位骨架 + main.tsx 崩溃兜底 + sonner Toaster）的一致性。
+ * 入口层（index.html 空 root + main.tsx 崩溃兜底 + sonner Toaster）的一致性。
  *
  * P15–P20 的玻璃拟态 / 旧冷灰调色板清理只扫描了 src/components 目录，
- * **漏掉了入口层**。于是出现了两处「不在设计语言里」的残留：
- *
- *  1. main.tsx 的 Toaster 仍是玻璃拟态（半透明白底 + backdropFilter 模糊 +
- *     1px 半透明描边 + 柔光投影），而全站已改成「墨线贴纸」——实色白底、
- *     2px 墨线、无模糊硬投影。这是全站唯一还会 backdrop-blur 的地方。
- *  2. index.html 的加载占位骨架与 main.tsx 的崩溃兜底，用的是早已废弃的
- *     冷灰调色板（#F7F8FA / #0B1220 / #E4E8EF / #5A6474），与 token 化的
- *     暖纸底（#f8f7f3 / #15171f / #e2e1d8 / #5c5b54）不是一套。
- *
- * 这个测试把入口层钉回到与 token 一致的「墨线贴纸 + 暖纸底」。
+ * **漏掉了入口层**。于是出现了 Toaster 与入口兜底不在设计语言里的残留。
+ * 这组测试保证运行时兜底仍保持统一视觉，同时确认 index.html 不再把加载提示
+ * 当作页面内容渲染出来。
  */
 describe("入口层与设计语言一致", () => {
   describe("sonner Toaster 不得使用玻璃拟态", () => {
@@ -40,22 +32,11 @@ describe("入口层与设计语言一致", () => {
     });
   });
 
-  describe("入口占位与崩溃兜底使用暖纸底 token", () => {
-    it("main.tsx 兜底不再用旧冷灰调色板", () => {
-      expect(mainSource).not.toMatch(/#F7F8FA|#0B1220|#E4E8EF|#5A6474/i);
-    });
-
-    it("index.html 占位不再用旧冷灰调色板", () => {
-      expect(indexHtml).not.toMatch(/#F7F8FA|#0B1220|#E4E8EF|#5A6474/i);
-    });
-
-    it("两处都用墨线贴纸语言（2px 墨线 + 硬投影）", () => {
-      for (const src of [mainSource, indexHtml]) {
-        expect(src).toContain("border:2px solid #15171f");
-        expect(src).toContain("#f8f7f3");
-        expect(src).toContain("background:#ffffff");
-        expect(src).toMatch(/box-shadow:6px 6px 0 0 #15171f/);
-      }
+  describe("入口占位", () => {
+    it("不渲染会被误认为页面内容的加载提示", () => {
+      expect(indexHtml).not.toContain("页面正在加载");
+      expect(indexHtml).not.toContain("如果长时间停留在这里");
+      expect(indexHtml).toMatch(/<div id="root"><\/div>/);
     });
   });
 

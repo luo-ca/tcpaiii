@@ -22,6 +22,7 @@ const statusSource = readFileSync(
   resolve(process.cwd(), "src/features/status-page.tsx"),
   "utf8",
 );
+const inputSource = readFileSync(resolve(process.cwd(), "src/components/ui/input.tsx"), "utf8");
 
 describe("A · admin 跳页输入越界必须夹取并回写", () => {
   it("handlePageJump 用 clampNumber 夹取后再跳，并把结果写回输入框", () => {
@@ -111,5 +112,14 @@ describe("D · 图库筛选可复制分享链接", () => {
     );
     expect(filterBlock).toContain("复制链接");
     expect(filterBlock).toContain("清空筛选");
+  });
+
+});
+describe("UI 组件 · 输入框聚焦反馈统一", () => {
+  it("聚焦时强化品牌边界，禁用时保留明确的不可用状态", () => {
+    expect(inputSource).toContain("transition-[border-color,box-shadow]");
+    expect(inputSource).toContain("focus-visible:border-brand-600");
+    expect(inputSource).toContain("focus-visible:ring-2");
+    expect(inputSource).toContain("disabled:cursor-not-allowed");
   });
 });

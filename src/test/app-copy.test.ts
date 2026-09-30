@@ -31,7 +31,8 @@ describe("home page copy", () => {
     expect(mainSource).toContain("\u9875\u9762\u52A0\u8F7D\u5931\u8D25");
     expect(mainSource).toContain("rootElement.innerHTML");
     expect(mainSource).toContain("RootErrorBoundary");
-    expect(indexHtml).toContain("\u9875\u9762\u6B63\u5728\u52A0\u8F7D");
+    expect(indexHtml).not.toContain("\u9875\u9762\u6B63\u5728\u52A0\u8F7D");
+    expect(indexHtml).toMatch(/<div id="root"><\/div>/);
   });
 
   it("imports icons and components used by the redesigned landing page", () => {
