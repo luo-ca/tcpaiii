@@ -31,7 +31,9 @@ function hydrate() {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return;
+    // 数组也是 object：不排掉会让 [1,2,3] 变成 "0"/"1"/"2" 三个假条目，
+    // 白占 MAX_ENTRIES 的名额，把真实记录挤出去。
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
     for (const [url, ratio] of Object.entries(parsed as Record<string, unknown>)) {
       if (typeof ratio === 'number' && isSaneRatio(ratio)) ratios.set(url, ratio);
     }

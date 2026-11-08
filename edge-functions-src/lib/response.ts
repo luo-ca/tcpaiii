@@ -29,6 +29,22 @@ export function noStoreHeaders() {
     };
 }
 
+/**
+ * 由 json() 自己决定的头，调用方的 opts.headers 同名项一律丢弃。
+ *
+ * cache-control / cdn-cache-control / vary 与 content-type 同理：它们由
+ * cacheControl 分支决定，而 Headers 对同名头是「拼接」而不是「后写者胜」
+ * （传 'cache-control: no-store' 会得到 "no-store, public, s-maxage=..."），
+ * 一段 no-store 就足以让 CDN 从此不再缓存可缓存读接口。
+ */
+const RESERVED_HEADERS = new Set([
+    'content-type',
+    'x-content-type-options',
+    'cache-control',
+    'cdn-cache-control',
+    'vary',
+]);
+
 export function json(
     body: unknown,
     status = 200,
@@ -39,16 +55,22 @@ export function json(
     const cacheHeaders = opts?.cacheControl
         ? { 'Cache-Control': opts.cacheControl, 'CDN-Cache-Control': opts.cacheControl, Vary: 'Accept, Accept-Encoding' }
         : noStoreHeaders();
+    // 安全头不可被调用方覆盖，而 HTTP 头名大小写不敏感：光把 opts?.headers 提到
+    // 前面展开不够 —— 传 "Content-Type" 与我们的 "content-type" 在 Headers 里是两个
+    // 键，会被合并成 "text/html, application/json"。所以按小写名剔一遍再展开。
+    const extraHeaders = Object.entries(opts?.headers ?? {}).filter(
+        ([name]) => !RESERVED_HEADERS.has(name.toLowerCase()),
+    );
     return new Response(JSON.stringify(body), {
         status,
         headers: {
+            ...Object.fromEntries(extraHeaders),
             // nosniff 无条件加，不挂在任一分支上 —— 否则「可缓存」那支会悄悄漏掉它，
             // 而漏掉正是最难被发现的（缓存响应平时看起来一切正常）。
             'X-Content-Type-Options': 'nosniff',
             'content-type': 'application/json',
             ...cacheHeaders,
             ...corsHeaders(),
-            ...opts?.headers,
         },
     });
 }

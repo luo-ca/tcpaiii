@@ -86,11 +86,20 @@ export function prefersReducedMotion(): boolean {
 }
 
 /**
- * Format "2025-06-15" → "6/15".
+ * Format "2025-06-15" → "6/15"（ISO 时间戳取日期部分）。
+ *
+ * 只认「年-月-日」开头的形态：`split('-')` 那版遇到 ISO 时间戳
+ * （"2026-09-17T00:00:00.000Z"）会把 day 解析成 "17T00:00:00.000Z"，
+ * `Number()` 得到 NaN，于是图表横轴直接渲染出「9/NaN」。
+ * 认不出形态就原样返回，绝不产出 NaN。
+ *
+ * 只做形态解析、不做日期真实性校验（"2026-13-45" 仍会得到 "13/45"）：
+ * 那是 isStatsDateKey 的职责，它校验的是写进统计桶的键。
  */
 export function formatShortDate(value: string): string {
-  const [, month, day] = value.split('-');
-  return month && day ? `${Number(month)}/${Number(day)}` : value;
+  const match = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ].*)?$/.exec(value);
+  if (!match) return value;
+  return `${Number(match[2])}/${Number(match[3])}`;
 }
 
 /**

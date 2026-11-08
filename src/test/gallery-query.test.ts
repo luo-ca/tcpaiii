@@ -64,4 +64,35 @@ describe("writeGalleryQuery", () => {
     const params = new URLSearchParams(writeGalleryQuery("", { search: "  猫  ", tag: null }));
     expect(params.get("q")).toBe("猫");
   });
+
+  it("tag 的两端空白同样被裁掉（读写同一口径）", () => {
+    // 读侧 readGalleryQuery 会 trim；写侧不 trim 就会分裂成
+    // 「地址栏里 tag=%20%E9%A3%8E%E6%99%AF、实际筛选的是风景」。
+    const params = new URLSearchParams(writeGalleryQuery("", { search: "", tag: "  风景  " }));
+    expect(params.get("tag")).toBe("风景");
+  });
+
+  it("只有空白的 tag 等于没筛选，参数被删掉", () => {
+    const params = new URLSearchParams(
+      writeGalleryQuery("tag=%E9%A3%8E%E6%99%AF&eo_token=abc", { search: "", tag: "   " }),
+    );
+    expect(params.has("tag")).toBe(false);
+    expect(params.get("eo_token")).toBe("abc");
+  });
+
+  it("写进去的值能原样读回来（round-trip）", () => {
+    const search = "猫 风景";
+    const tag = "二次元";
+    const query = writeGalleryQuery("eo_token=abc", { search, tag });
+    expect(readGalleryQuery(`?${query}`)).toEqual({ search, tag });
+  });
+
+  it("含控制字符的输入写进去再读回来仍然一致（两侧同一口径）", () => {
+    // 读侧 sanitizeQueryValue 会剔掉控制字符；写侧不剔的话，
+    // 地址栏里留着 %00、实际筛选的是另一串，链接分享出去就复现不出来。
+    const search = "风\u0000景";
+    const tag = "壁\u001f纸";
+    const query = writeGalleryQuery("", { search, tag });
+    expect(readGalleryQuery(`?${query}`)).toEqual({ search: "风景", tag: "壁纸" });
+  });
 });

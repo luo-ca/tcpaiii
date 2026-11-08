@@ -31,7 +31,9 @@ export async function copyToClipboard(text: string): Promise<void> {
   try {
     const copied = document.execCommand("copy");
     if (!copied) {
-      throw new Error("Clipboard access was rejected");
+      // 这条文案会经 getErrorMessage 原样进 toast —— 写英文等于在中文界面里
+      // 冒出「复制失败，请手动复制: Clipboard access was rejected」。
+      throw new Error("浏览器拒绝了剪贴板写入，请手动复制");
     }
   } finally {
     document.body.removeChild(textarea);

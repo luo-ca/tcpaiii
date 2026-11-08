@@ -100,15 +100,18 @@ export async function fetchHealth(): Promise<HealthPayload> {
   // 整页崩掉。状态页恰恰是「服务挂了时用户来看」的页面，
   // 它自己崩掉是最糟的结果。缺字段时按「未绑定」处理，
   // 页面会显示降级/不可用，而不是白屏。
+  // 布尔字段只认真正的 `true`。`Boolean(x)` 会把字符串 "false" 变成 true ——
+  // 而状态页正是靠 ok / kv 绑定判断「服务是否可用」，把脏值读成健康等于
+  // 让最该报警的页面显示一切正常。与同文件 toStringOr / toIsoOrNull 的边界收口一致。
   const kv = (body?.kv ?? {}) as HealthPayload['kv'];
   return {
-    ok: Boolean(body?.ok),
+    ok: body?.ok === true,
     runtime: toStringOr(body?.runtime, 'unknown'),
     buildId: toStringOr(body?.buildId, ''),
     timestamp: toIsoOrNull(body?.timestamp) ?? new Date().toISOString(),
     kv: {
-      imagesBound: Boolean(kv?.imagesBound),
-      statsBound: Boolean(kv?.statsBound),
+      imagesBound: kv?.imagesBound === true,
+      statsBound: kv?.statsBound === true,
     },
   };
 }

@@ -43,7 +43,13 @@ export function getStatsDateKey(date = new Date()) {
 }
 
 export function isStatsDateKey(value: string) {
-    return /^\d{4}-\d{2}-\d{2}$/.test(value);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
+        return false;
+    // 形状对不等于日期存在：只查形状时 '2026-13-45' / '2026-02-30' 也会被当成
+    // 合法桶收进 dailyRequests，白占 MAX_TRACKED_DAILY_KEYS 的名额，把真实
+    // 日期挤出去。getStatsDateKey 永远产不出这类键，用往返比对一次排掉。
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 export function normalizeStatCount(value: unknown) {

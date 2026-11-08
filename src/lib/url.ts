@@ -90,12 +90,16 @@ export function writeGalleryQuery(
   next: { search: string; tag: string | null },
 ): string {
   const params = new URLSearchParams(currentSearch);
-  const keyword = next.search.trim();
+  // 与读侧同一口径：都过 sanitizeQueryValue（剔控制字符 + trim），
+  // 否则写进去的串读回来会变样（tag=%00风景 之类）。
+  // 长度仍由读侧收口 —— 这里再截一次只会多一份需要同步的规则。
+  const keyword = sanitizeQueryValue(next.search);
+  const tag = sanitizeQueryValue(next.tag);
 
   if (keyword) params.set(GALLERY_QUERY_SEARCH, keyword);
   else params.delete(GALLERY_QUERY_SEARCH);
 
-  if (next.tag) params.set(GALLERY_QUERY_TAG, next.tag);
+  if (tag) params.set(GALLERY_QUERY_TAG, tag);
   else params.delete(GALLERY_QUERY_TAG);
 
   return params.toString();

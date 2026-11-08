@@ -172,7 +172,16 @@ export async function getApiErrorMessage(response: Response, fallback: string): 
     if (isJsonContentType(contentType)) {
       const payload = await response.clone().json();
       if (isApiErrorPayload(payload)) {
-        return translateServerError(payload.error || payload.message || fallback);
+        // isApiErrorPayload 只保证「是对象」，error/message 的运行时类型不可信：
+        // { error: 42 } 会让 translateServerError 在 message.trim() 处抛 TypeError，
+        // 被下面的 catch 吞掉后落到「接口返回了非 JSON 内容」—— 可响应明明是合法 JSON。
+        // 所以取值处收口：取第一个非空字符串，其余回退到调用方的 fallback。
+        // 不能用 `payload.error || payload.message` —— 数字 42 是真值，
+        // 会把后面那条合法的 message 一起丢掉。
+        const raw = [payload.error, payload.message].find(
+          (value): value is string => typeof value === 'string' && value.trim() !== '',
+        );
+        return raw === undefined ? fallback : translateServerError(raw);
       }
     }
   } catch {

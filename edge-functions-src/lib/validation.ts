@@ -121,6 +121,7 @@ export function decodeRouteSegment(value: string) {
     }
 }
 
+/** 注意：原地排序并返回同一数组，调用方需自行决定是否先拷贝。 */
 export function sortTags(tags: string[]) {
     return tags.sort((left, right) => {
         const leftAscii = isAscii(left);
